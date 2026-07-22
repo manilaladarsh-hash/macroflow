@@ -38,6 +38,6 @@ const install = () => {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
 else install();
 
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+if (import.meta.env.PROD && 'serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined), { once: true });
 }
