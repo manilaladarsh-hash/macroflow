@@ -9,7 +9,7 @@
 import { MICRO_NUTRIENT_KEYS, RICH_NUTRIENT_KEYS } from './state-core.js';
 import { parseBarcodeCandidate } from './scanner-core.js';
 
-export const GEMINI_INTERACTIONS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1/interactions';
+export const GEMINI_INTERACTIONS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
 export const DEFAULT_GEMINI_TIMEOUT_MS = 90_000;
 
@@ -220,7 +220,10 @@ export function buildGeminiInteractionRequest({
             { type: 'image', mime_type: image.mimeType, data: image.data },
             { type: 'text', text: instruction }
         ],
-        response_format: [{ type: 'text', mime_type: 'application/json', schema }]
+        response_format: { type: 'text', mime_type: 'application/json', schema },
+        // Food photos and label images are sensitive personal data. MacroFlow
+        // uses stateless requests and does not need Google's interaction store.
+        store: false
     };
     const system = String(systemInstruction || '').trim();
     if (system) request.system_instruction = system;
@@ -271,6 +274,34 @@ export function buildBarcodeOcrInteraction({
         schema: BARCODE_OCR_SCHEMA,
         systemInstruction: 'You transcribe retail and GS1 barcodes. Preserve digit order. Never infer missing digits and never join multiple barcodes.',
         prompt: 'Return every independently visible barcode as its own candidates[] item. If digits are unreadable, omit that candidate. Do not identify or invent a product.'
+    });
+}
+
+/** Build a text-only structured request without introducing another API path. */
+export function buildGeminiTextInteraction({ prompt, schema, systemInstruction = '', model = DEFAULT_GEMINI_MODEL } = {}) {
+    const text = String(prompt || '').trim();
+    if (!text) throw new TypeError('prompt is required');
+    if (!schema || typeof schema !== 'object' || Array.isArray(schema)) throw new TypeError('schema is required');
+    const request = {
+        model: String(model || DEFAULT_GEMINI_MODEL),
+        input: [{ type: 'text', text }],
+        response_format: { type: 'text', mime_type: 'application/json', schema },
+        store: false
+    };
+    const system = String(systemInstruction || '').trim();
+    if (system) request.system_instruction = system;
+    return request;
+}
+
+/** Build a structured meal-description request through the same AI adapter. */
+export function buildMealDescriptionInteraction({ description, model = DEFAULT_GEMINI_MODEL } = {}) {
+    const text = String(description || '').trim().slice(0, 2_000);
+    if (!text) throw new TypeError('description is required');
+    return buildGeminiTextInteraction({
+        prompt: `Estimate the foods, amounts, and nutrition described below. Use null for unknown values; treat this as an editable estimate, not verified database data.\n\nMeal description: ${text}`,
+        schema: NUTRITION_SCAN_SCHEMA,
+        systemInstruction: NUTRITION_SYSTEM_INSTRUCTION,
+        model
     });
 }
 

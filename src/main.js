@@ -39,5 +39,38 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 else install();
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined), { once: true });
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      let acceptUpdate = false;
+      const showUpdate = worker => {
+        if (!navigator.serviceWorker.controller || !worker) return;
+        let notice = document.getElementById('mf-update-notice');
+        if (!notice) {
+          notice = document.createElement('aside');
+          notice.id = 'mf-update-notice';
+          notice.setAttribute('role', 'status');
+          notice.innerHTML = '<span>A MacroFlow update is ready.</span><button type="button">Update now</button>';
+          document.body.appendChild(notice);
+          notice.querySelector('button').addEventListener('click', () => {
+            acceptUpdate = true;
+            worker.postMessage({ type: 'MACROFLOW_ACTIVATE_UPDATE' });
+          });
+        }
+        notice.hidden = false;
+      };
+      registration.waiting && showUpdate(registration.waiting);
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        worker?.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && registration.waiting) showUpdate(registration.waiting);
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (acceptUpdate) window.location.reload();
+      });
+    } catch (_) {
+      // Offline use remains optional when service workers are unavailable.
+    }
+  }, { once: true });
 }

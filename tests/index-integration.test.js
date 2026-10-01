@@ -33,5 +33,13 @@ describe('browser integration shell', () => {
     expect(html).toContain('offerScannerCandidateConfirmation');
     expect(html).toContain("outcome: 'ai-ocr-user-confirmed'");
     expect(html).toContain("outcome: 'photo-user-confirmed'");
+    expect(html).not.toContain("outcome: 'photo-auto-confirmed'");
+  });
+
+  it('provides Today, Library, Progress, and Settings navigation', () => {
+    for (const id of ['mb-nutrition', 'mb-library', 'mb-progress', 'mb-settings']) {
+      expect(html).toContain(`id="${id}"`);
+    }
+    expect(html).toContain('tab-content-library');
   });
 });

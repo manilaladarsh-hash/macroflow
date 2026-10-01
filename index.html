@@ -164,7 +164,7 @@
                 </div>
                 <div>
                     <h1 class="text-sm font-black font-outfit text-white leading-none tracking-tight">MacroFlow</h1>
-                    <span class="text-[8px] text-brand-400 font-bold uppercase tracking-wider">Premium Global Tracker</span>
+                    <span class="text-[8px] text-brand-400 font-bold uppercase tracking-wider">Today</span>
                 </div>
             </div>
             
@@ -405,6 +405,27 @@
                 </div>
             </div>
 
+        </section>
+
+        <!-- Personal foods and recipes workspace -->
+        <section id="tab-content-library" class="hidden space-y-4" aria-labelledby="library-page-title">
+            <div class="mf-page-heading">
+                <div>
+                    <p class="mf-eyebrow">YOUR PERSONAL COLLECTION</p>
+                    <h2 id="library-page-title">Food library</h2>
+                    <p>Keep your regular foods and meals ready to log again.</p>
+                </div>
+            </div>
+            <section class="mf-library-card" aria-label="Food library actions">
+                <div class="mf-library-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div>
+                <div class="mf-library-copy"><h3>Your foods, meals & recipes</h3><p>Search favorites, recent scans, custom foods, saved meals, and recipes.</p></div>
+                <button type="button" class="mf-button-primary" onclick="window.MacroFlowFeatures?.open()">Open library</button>
+            </section>
+            <section class="mf-library-card" aria-label="Additional tracking tools">
+                <div class="mf-library-icon mf-library-icon-muted"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></div>
+                <div class="mf-library-copy"><h3>Daily tools</h3><p>Water, fasting, and nutrition charts are available here.</p></div>
+                <button type="button" class="mf-button-secondary" onclick="switchTab('dashboard')">View tools</button>
+            </section>
         </section>
 
         <!-- TAB 2: DASHBOARD VIEW -->
@@ -778,19 +799,24 @@
     <!-- MOBILE STICKY BOTTOM NAVIGATION BAR -->
     <nav class="safe-bottom-nav fixed bottom-0 left-0 right-0 z-45 glass-card border-t border-slate-800/70 pt-2.5 px-4 shadow-2xl">
         <div class="max-w-xl mx-auto flex items-center justify-around">
-            <button onclick="switchTab('nutrition')" id="mb-nutrition" aria-label="Nutrition" aria-current="page" class="min-h-12 min-w-20 flex flex-col items-center justify-center space-y-0.5 text-brand-500">
+            <button onclick="switchTab('nutrition')" id="mb-nutrition" aria-label="Today" aria-current="page" class="min-h-12 min-w-20 flex flex-col items-center justify-center space-y-0.5 text-brand-500">
                 <i class="fa-solid fa-apple-whole text-base"></i>
-                <span class="text-[9px] font-bold font-outfit uppercase tracking-wider">Nutrition</span>
+                <span class="text-[9px] font-bold font-outfit uppercase tracking-wider">Today</span>
             </button>
-            
-            <button onclick="switchTab('dashboard')" id="mb-dashboard" aria-label="Dashboard" class="min-h-12 min-w-20 flex flex-col items-center justify-center space-y-0.5 text-slate-400">
-                <i class="fa-solid fa-house text-base"></i>
-                <span class="text-[9px] font-bold font-outfit uppercase tracking-wider">Dashboard</span>
+
+            <button onclick="switchTab('library')" id="mb-library" aria-label="Food library" class="min-h-12 min-w-20 flex flex-col items-center justify-center space-y-0.5 text-slate-400">
+                <i class="fa-solid fa-book-open text-base"></i>
+                <span class="text-[9px] font-bold font-outfit uppercase tracking-wider">Library</span>
             </button>
             
             <button onclick="switchTab('progress')" id="mb-progress" aria-label="Progress" class="min-h-12 min-w-20 flex flex-col items-center justify-center space-y-0.5 text-slate-400">
                 <i class="fa-solid fa-chart-line text-base"></i>
                 <span class="text-[9px] font-bold font-outfit uppercase tracking-wider">Progress</span>
+            </button>
+
+            <button onclick="openSettingsModal()" id="mb-settings" aria-label="Settings" class="min-h-12 min-w-20 flex flex-col items-center justify-center space-y-0.5 text-slate-400">
+                <i class="fa-solid fa-sliders text-base"></i>
+                <span class="text-[9px] font-bold font-outfit uppercase tracking-wider">Settings</span>
             </button>
         </div>
     </nav>
@@ -2804,7 +2830,7 @@
             audioEngine.playNotification('tap');
             appState.activeTab = tabId;
             
-            const list = ['nutrition', 'dashboard', 'progress'];
+            const list = ['nutrition', 'library', 'dashboard', 'progress'];
             list.forEach(id => {
                 const el = document.getElementById(`tab-content-${id}`);
                 const btn = document.getElementById(`mb-${id}`);
@@ -4099,38 +4125,14 @@
             showToast("Gemini parsing meal content... Please wait.");
 
             try {
-                const prompt = `Parse this description: "${txt}". Breakdown items, estimate macro balances, and return ONLY a valid JSON array matching this food schema structure:
-                [
-                  {
-                    "name": "Food Name Description",
-                    "calories": integer,
-                    "protein": float,
-                    "carbs": float,
-                    "fats": float,
-                    "servingSize": integer,
-                    "servingUnit": "g",
-                    "micros": {
-                      "vita": float, "vitd": float, "vite": float, "vitk": float, "vitc": float, "thiamin": float, "riboflavin": float, "niacin": float, "pantothenic": float, "vitb6": float, "biotin": float, "folate": float, "vitb12": float, "calcium": float, "iron": float, "magnesium": float, "phosphorus": float, "zinc": float, "copper": float, "manganese": float, "selenium": float, "iodine": float, "chromium": float, "molybdenum": float, "potassium": float, "sodium": float
-                    }
-                  }
-                ]`;
-                const payload = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: "application/json", temperature: 0.2 }
-                };
-                const data = await callGemini(payload);
-                const parsed = parseGeminiJson(extractGeminiText(data));
-                const parsedList = Array.isArray(parsed) ? parsed : [parsed];
-                
-                parsedList.forEach(food => {
-                    const normalized = normalizeNutritionObject(food);
-                    normalized.type = "Gemini AI";
-                    logFood(normalized, currentSearchMealSlot);
-                });
-                 
-                showToast(`Gemini successfully logged ${parsedList.length} items to ${currentSearchMealSlot}!`);
+                const gemini = window.MacroFlowGeminiCore;
+                const request = gemini.buildMealDescriptionInteraction({ description: txt });
+                const response = await gemini.requestGeminiInteraction({ apiKey: geminiKey, request, timeoutMs: 70000 });
+                const scanResult = gemini.parseNutritionScanInteraction(response);
+                if (!scanResult.foods?.length) throw new Error('No foods were found in that description. Add a little more detail and try again.');
                 closeDescribeModal();
                 closeFoodSearchModal();
+                openAIReviewModal(scanResult, currentSearchMealSlot);
             } catch(e) {
                 console.error("Describe parser failed:", e);
                 invalidateGeminiConnectionForError(e);
@@ -4451,6 +4453,8 @@
         let scannerFrameCallbackId = null;
         let scannerFrameFallbackTimer = null;
         let scannerBestFrameId = null;
+        let scannerBestFrameQuality = null;
+        let scannerFrameQualityById = new Map();
         let scannerQualityMetrics = { good: false, sharpness: 0, brightness: 0, glare: 0, motion: 0, contrast: 0 };
         let scannerPreviousRoiPixels = null;
         let pendingScannerCandidate = null;
@@ -4556,7 +4560,8 @@
             const glare = glarePixels / gray.length;
             const motion = scannerPreviousRoiPixels?.length === gray.length ? motionTotal / gray.length : 0;
             scannerPreviousRoiPixels = gray;
-            const sharpness = scannerCurrentSharpness || measureBarcodeRoiSharpness(video);
+            const sharpness = measureBarcodeRoiSharpness(video);
+            scannerCurrentSharpness = sharpness;
             scannerQualityMetrics = {
                 sharpness,
                 brightness,
@@ -4566,6 +4571,19 @@
                 good: sharpness >= 0.105 && contrast >= 32 && brightness >= 42 && brightness <= 222 && glare <= 0.16 && motion <= 20
             };
             return scannerQualityMetrics;
+        }
+
+        function getScannerFrameQuality(video, frameId = scannerCurrentFrameId) {
+            const key = frameId == null ? '' : String(frameId);
+            if (key && scannerFrameQualityById.has(key)) return { ...scannerFrameQualityById.get(key) };
+            const quality = { ...measureBarcodeRoiConditions(video) };
+            if (key) {
+                scannerFrameQualityById.set(key, quality);
+                while (scannerFrameQualityById.size > 60) {
+                    scannerFrameQualityById.delete(scannerFrameQualityById.keys().next().value);
+                }
+            }
+            return quality;
         }
 
         function updateScannerGuidance(video) {
@@ -4961,6 +4979,8 @@
             scannerBestFrameScore = 0;
             scannerBestFrameAt = 0;
             scannerBestFrameId = null;
+            scannerBestFrameQuality = null;
+            scannerFrameQualityById.clear();
             scannerCurrentSharpness = 0;
             scannerBestFrameNumber = 0;
         }
@@ -5038,7 +5058,7 @@
                     const now = Date.now();
                     const sharpness = measureBarcodeRoiSharpness(video);
                     scannerCurrentSharpness = sharpness;
-                    measureBarcodeRoiConditions(video);
+                    const capturedQuality = getScannerFrameQuality(video, scannerCurrentFrameId);
                     scannerBestFrameNumber += 3;
                     const bestExpired = now - scannerBestFrameAt > 3500;
                     if (bestExpired || sharpness > scannerBestFrameScore + 0.003) {
@@ -5047,6 +5067,7 @@
                             scannerBestFrameScore = sharpness;
                             scannerBestFrameAt = now;
                             scannerBestFrameId = scannerCurrentFrameId;
+                            scannerBestFrameQuality = { ...capturedQuality };
                         }
                     }
 
@@ -5203,6 +5224,9 @@
                         ? copyCanvasFrame(scannerBestFrameCanvas, assistCanvas)
                         : createEnhancedBarcodeFrame(video, quaggaAssistFrameNumber, assistCanvas, enhancement);
                     if (!canvas) return;
+                    const frameQuality = useBestFrame
+                        ? { ...scannerBestFrameQuality }
+                        : getScannerFrameQuality(video, observationId);
                     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                     if (!blob || sessionToken !== scannerSessionToken) return;
                     snapshotUrl = URL.createObjectURL(blob);
@@ -5220,7 +5244,9 @@
                     if (sessionToken !== scannerSessionToken) return;
                     const code = String(result?.codeResult?.code || '').trim();
                     const format = result?.codeResult?.format || '';
-                    if (code) registerDetectedBarcode(code, format, 'quagga', observationId, { quality: { ...scannerQualityMetrics }, region: 'roi' });
+                    if (code) registerDetectedBarcode(code, format, 'quagga', observationId, {
+                        quality: frameQuality, region: 'roi'
+                    });
                 } catch (_) {
                     // Most frames are expected to miss; raw and mild crops alternate.
                 } finally {
@@ -5271,11 +5297,15 @@
                         ? scannerBestFrameCanvas
                         : createEnhancedBarcodeFrame(video, zxingAssistFrameNumber, zxingBarcodeCanvas, phase === 2 ? 'mild' : 'raw', 'roi');
                     if (!canvas) return;
-                    const result = zxingAssistReader.decodeFromCanvas(canvas);
+                            const result = zxingAssistReader.decodeFromCanvas(canvas);
                     const code = typeof result?.getText === 'function' ? result.getText() : result?.text;
-                    const format = typeof result?.getBarcodeFormat === 'function' ? result.getBarcodeFormat() : '';
-                    const observationId = phase === 0 && bestIsFresh ? scannerBestFrameId : scannerCurrentFrameId;
-                    if (code) registerDetectedBarcode(code, format, 'zxing', observationId, { quality: { ...scannerQualityMetrics }, region: 'roi' });
+                            const format = typeof result?.getBarcodeFormat === 'function' ? result.getBarcodeFormat() : '';
+                            const observationId = phase === 0 && bestIsFresh ? scannerBestFrameId : scannerCurrentFrameId;
+                            if (code) registerDetectedBarcode(code, format, 'zxing', observationId, {
+                        quality: phase === 0 && bestIsFresh
+                            ? { ...scannerBestFrameQuality }
+                            : getScannerFrameQuality(video, observationId), region: 'roi'
+                    });
                 } catch (_) {
                     // A miss is expected for most individual frames; the next frame may be sharper.
                 } finally {
@@ -5659,13 +5689,16 @@
                                 ? scannerBestFrameCanvas
                                 : createEnhancedBarcodeFrame(video, detectionFrameNumber, nativeEnhancedCanvas, detectionFrameNumber % 2 ? 'raw' : 'mild', 'roi');
                             if (!detectionSource || !observationId) return;
+                            const frameQuality = useBestFrame
+                                ? { ...scannerBestFrameQuality }
+                                : getScannerFrameQuality(video, observationId);
                             const barcodes = await detector.detect(detectionSource);
                             if (sessionToken !== scannerSessionToken) return;
                             const sourceWidth = detectionSource?.width || video.videoWidth;
                             const sourceHeight = detectionSource?.height || video.videoHeight;
                             const barcode = selectBestCenteredBarcode(barcodes, sourceWidth, sourceHeight);
                             if (barcode?.rawValue) registerDetectedBarcode(barcode.rawValue, barcode.format, 'native', observationId, {
-                                quality: { ...scannerQualityMetrics },
+                                quality: frameQuality,
                                 region: 'roi'
                             });
                             nativeScannerFrameFailures = 0;
@@ -6020,23 +6053,16 @@
             }
 
             const photoResolution = resolveBarcodePhotoCandidates(photoCandidates);
-            if (photoResolution.accepted) {
-                fileInput.value = '';
-                showToast("Barcode confirmed by two decoders.");
-                await onBarcodeScanSuccess(photoResolution.winner.displayCode, photoResolution.winner.format, photoResolution.winner.canonical, {
-                    engines: [...photoResolution.winner.engines],
-                    outcome: 'photo-auto-confirmed',
-                    quality: { confidence: 1 }
-                });
-                return;
-            }
-            if (photoResolution.suggested) {
+            if (photoResolution.accepted || photoResolution.suggested) {
+                const photoCandidate = photoResolution.winner || photoResolution.suggested;
                 offerScannerCandidateConfirmation({
-                    ...photoResolution.suggested,
-                    engines: [...photoResolution.suggested.engines],
+                    ...photoCandidate,
+                    engines: [...photoCandidate.engines],
                     outcome: 'photo-user-confirmed'
-                }, { message: 'One reader found this number. Compare every digit with the package before confirming.' });
-                showToast("One possible barcode was found. Confirm every printed digit.");
+                }, { message: photoResolution.accepted
+                    ? 'Two readers agree on this photo. Check the printed digits before continuing.'
+                    : 'One reader found a possible number. Compare every digit with the package before continuing.' });
+                showToast('Check the detected digits against the package before continuing.');
                 fileInput.value = '';
                 return;
             }
@@ -6390,11 +6416,8 @@
         async function verifyGeminiKey(candidateKey) {
             const gemini = window.MacroFlowGeminiCore;
             if (!gemini?.buildGeminiInteractionRequest) throw new Error('AI scanner is still loading. Try again.');
-            const onePixelPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
-            const request = gemini.buildGeminiInteractionRequest({
-                imageBase64: onePixelPng,
-                mimeType: 'image/png',
-                prompt: 'Return ok=true when image input is available.',
+            const request = gemini.buildGeminiTextInteraction({
+                prompt: 'Return {"ok":true} to confirm this key can use the configured Gemini model.',
                 schema: {
                     type: 'object',
                     additionalProperties: false,

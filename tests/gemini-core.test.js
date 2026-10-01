@@ -4,9 +4,12 @@ import {
     BARCODE_OCR_SCHEMA,
     DEFAULT_GEMINI_MODEL,
     GEMINI_ERROR_CODES,
+    GEMINI_INTERACTIONS_ENDPOINT,
     NUTRITION_SCAN_SCHEMA,
     buildBarcodeOcrInteraction,
     buildGeminiInteractionRequest,
+    buildGeminiTextInteraction,
+    buildMealDescriptionInteraction,
     extractGeminiInteractionText,
     parseGeminiStructuredJson,
     parseNutritionScanInteraction,
@@ -44,6 +47,14 @@ function nutritionResult() {
 }
 
 describe('Gemini Interactions request construction', () => {
+    it('uses the documented API route and disables stored interaction history', () => {
+        expect(GEMINI_INTERACTIONS_ENDPOINT).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
+        const request = buildGeminiTextInteraction({ prompt: 'Check this key.', schema: { type: 'object' } });
+        expect(request.store).toBe(false);
+        expect(request.input).toEqual([{ type: 'text', text: 'Check this key.' }]);
+        expect(request.response_format).toEqual({ type: 'text', mime_type: 'application/json', schema: { type: 'object' } });
+    });
+
     it('builds a schema-constrained image and text request without embedding a key', () => {
         const request = buildGeminiInteractionRequest({
             imageBase64: 'data:image/png;base64,YWJjZA==',
@@ -56,19 +67,27 @@ describe('Gemini Interactions request construction', () => {
             { type: 'image', mime_type: 'image/png', data: 'YWJjZA==' },
             { type: 'text', text: 'Inspect this image.' }
         ]);
-        expect(request.response_format).toEqual([{
+        expect(request.response_format).toEqual({
             type: 'text',
             mime_type: 'application/json',
             schema: NUTRITION_SCAN_SCHEMA
-        }]);
+        });
+        expect(request.store).toBe(false);
         expect(JSON.stringify(request)).not.toContain('AIza');
     });
 
     it('keeps barcode OCR output as a candidates array', () => {
         const request = buildBarcodeOcrInteraction({ imageBase64: 'YWJjZA==' });
-        expect(request.response_format[0].schema).toBe(BARCODE_OCR_SCHEMA);
-        expect(request.response_format[0].schema.properties.candidates.type).toBe('array');
+        expect(request.response_format.schema).toBe(BARCODE_OCR_SCHEMA);
+        expect(request.response_format.schema.properties.candidates.type).toBe('array');
         expect(request.input[1].text).toContain('its own candidates[] item');
+    });
+
+    it('builds meal description requests using the shared nullable nutrition schema', () => {
+        const request = buildMealDescriptionInteraction({ description: 'rice and lentils' });
+        expect(request.store).toBe(false);
+        expect(request.response_format.schema).toBe(NUTRITION_SCAN_SCHEMA);
+        expect(request.input[0].text).toContain('rice and lentils');
     });
 });
 

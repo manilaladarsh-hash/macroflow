@@ -1,4 +1,5 @@
 import { access, cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { extname, join, relative, resolve } from 'node:path';
 
 async function exists(path) {
@@ -53,9 +54,15 @@ export function sites() {
       const templatePath = resolve(root, 'public', 'sw-template.js');
       if (await exists(templatePath)) {
         const template = await readFile(templatePath, 'utf8');
+        const precacheAssets = [...new Set(['/', '/index.html', ...assets])];
+        const hash = createHash('sha256');
+        for (const asset of precacheAssets.filter(path => path !== '/')) {
+          hash.update(asset);
+          hash.update(await readFile(resolve(clientDirectory, `.${asset}`)));
+        }
         const rendered = template
-          .replace('__BUILD__', '3.0.0')
-          .replace('__PRECACHE_ASSETS__', JSON.stringify([...new Set(['/', '/index.html', ...assets])]));
+          .replace('__BUILD__', hash.digest('hex').slice(0, 16))
+          .replace('__PRECACHE_ASSETS__', JSON.stringify(precacheAssets));
         await writeFile(resolve(clientDirectory, 'sw.js'), rendered, 'utf8');
         await rm(resolve(clientDirectory, 'sw-template.js'), { force: true });
       }
