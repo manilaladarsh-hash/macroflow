@@ -40,6 +40,7 @@ Overhaul the existing vanilla JavaScript/Vite MacroFlow calorie tracker. Preserv
 - Prior in-checkpoint Vite production build passed; warning remains that the main JavaScript bundle is about 699 KB minified (about 193 KB gzip), reflecting legacy inline logic still to extract.
 - `git diff --check` passed before the latest final review; only line-ending normalization warnings were reported.
 - Browser preview rendered the Today screen and exposed navigation, meals, daily targets, and Add food. This is desktop/browser review, not physical-device camera validation.
+- The Sites publishing service reported the updated owner-only HTTPS deployment succeeded on 2026-10-01 at `https://macroflow-nutrition-tracker.manilaladarsh.chatgpt.site` (saved version 3; source commit `66cd5e529f989700e8b533646fe06c0dcb148216`). The existing custom audience remained owner-only; no public access was enabled.
 
 ### Problems, limits, and unresolved acceptance gates
 
@@ -47,14 +48,14 @@ Overhaul the existing vanilla JavaScript/Vite MacroFlow calorie tracker. Preserv
 - Camera access was not requested during browser review. No physical iPhone/Android or webcam test was run; autofocus, shake, torch, lifecycle, release-time, and 29/30 or 27/30 gates remain unverified.
 - No live Gemini request was run because this checkpoint did not expose a safely testable configured user key. Valid/invalid key, quota, timeout, malformed-response, and image-review paths need integration validation.
 - Existing exact-match providers, comprehensive global coverage, full feature-journal undo/import/recipe suite, keyboard/screen-reader/200% zoom, offline install/reload, and narrow viewport matrix were not all revalidated here.
-- Private HTTPS deployment remains a required release action, contingent on publishing the exact reviewed source/build without changing the audience.
+- Private HTTPS deployment succeeded, but no external browser/camera smoke test was run on the hosted URL in this checkpoint.
 
 ### Current status and next actions
 
-Status: partial implementation; automated suite passes, but the complete overhaul is not yet acceptance-complete.
+Status: partial implementation deployed privately; automated suite passes, but the complete overhaul is not yet acceptance-complete.
 
 1. Finish the scanner/runtime and food-entry extraction and test the actual live-camera journeys with safe user permission and device availability.
 2. Finish/reconcile the full Today/Add-food/Library/Progress/Settings flows while preserving storage and all existing user data.
 3. Run expanded browser, data-migration, offline, accessibility, and responsive regression checks; run live Gemini checks only with the locally configured credential and never disclose it.
-4. Publish privately over HTTPS through Sites after the exact source is saved, preserving owner-only access, and verify deployment status.
-5. Update this log with final test/deployment evidence and remaining device/key gaps.
+4. Revisit the large inline script/bundle and complete remaining feature extraction while keeping the current private release stable.
+5. Update this log after device/key checks and each material acceptance milestone.
