@@ -59,3 +59,9 @@ Status: partial implementation deployed privately; automated suite passes, but t
 3. Run expanded browser, data-migration, offline, accessibility, and responsive regression checks; run live Gemini checks only with the locally configured credential and never disclose it.
 4. Revisit the large inline script/bundle and complete remaining feature extraction while keeping the current private release stable.
 5. Update this log after device/key checks and each material acceptance milestone.
+
+## 2026-10-01 — GitHub handoff
+
+- User asked to update the app to GitHub. The workspace had only the Sites remote configured; the related GitHub repository was identified as `manilaladarsh-hash/macroflow` from existing project context.
+- GitHub `main` was reachable but had no common ancestor with the current Sites checkout (`0839e3a` on GitHub versus `466f79b` locally). To avoid overwriting or rewriting the existing GitHub history, the complete current checkout was pushed as `codex/macroflow-overhaul-20261001`.
+- Push succeeded. A GitHub pull request was not created; that remains a separate action. The private Sites release remains unchanged. No camera or live Gemini claims changed; physical device and key-backed validation are still pending.
