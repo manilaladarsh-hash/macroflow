@@ -1031,7 +1031,7 @@ Audit Keywords:
     </div>
 
     <!-- 4. NUTRITION FACTS MODAL -->
-    <div id="modal-nutrition-facts" class="fixed inset-0 z-50 bg-black/60 hidden items-center justify-center p-4">
+    <div id="modal-nutrition-facts" role="dialog" aria-modal="true" aria-labelledby="label-food-name" class="fixed inset-0 z-50 bg-black/60 hidden items-center justify-center p-4">
         <div class="absolute inset-0" onclick="closeNutritionFactsModal()"></div>
         
         <div class="relative w-full max-w-sm bg-white text-black rounded-3xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto font-sans border-8 border-black">
@@ -1046,6 +1046,16 @@ Audit Keywords:
                 <p class="text-xs text-slate-650" id="label-food-brand">Brand Info</p>
             </div>
             
+            <form id="label-portion-controls" class="hidden my-3 p-3 bg-slate-100 rounded-xl" onsubmit="event.preventDefault(); saveDiaryPortion()">
+                <label for="label-portion-amount" class="block text-xs font-bold mb-2">Amount eaten (<span id="label-portion-unit"></span>)</label>
+                <div class="flex items-center gap-2">
+                    <input id="label-portion-amount" type="number" inputmode="decimal" min="0.01" step="any" required oninput="previewDiaryPortion()" class="min-w-0 w-full rounded-lg border border-slate-400 p-2 text-sm">
+                    <button id="label-portion-save" type="submit" class="shrink-0 bg-black text-white rounded-lg p-2 text-xs font-bold disabled:opacity-40">Save amount</button>
+                </div>
+                <p id="label-portion-error" role="status" class="text-xs text-rose-700 mt-2"></p>
+                <p class="text-[10px] text-slate-600 mt-1">Nutrition below previews this amount. Close to cancel.</p>
+            </form>
+
             <div class="border-b-4 border-black py-1.5 flex justify-between font-bold text-sm">
                 <span>Serving Size</span>
                 <span id="label-serving-display">100g</span>
@@ -1357,6 +1367,26 @@ Audit Keywords:
         const geminiKey = CONFIG.geminiApiKey || '';
         const usdaKey = CONFIG.usdaApiKey || '';
 
+        // Calendar keys use the browser's local day, including across DST changes.
+        function localDateKey(date = new Date()) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function localDayOffset(offset, date = new Date()) {
+            const shifted = new Date(date);
+            shifted.setHours(12, 0, 0, 0);
+            shifted.setDate(shifted.getDate() + offset);
+            return shifted;
+        }
+
+        function createDiaryEntryId() {
+            return 'entry_' + (window.crypto?.randomUUID?.() || Date.now() + '_' + Math.random().toString(36).slice(2));
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+
         // APP STATE INITIAL SCHEMA
         let appState = {
             fasting: {
@@ -1374,23 +1404,23 @@ Audit Keywords:
                 calcium: 1000, iron: 8, magnesium: 400, phosphorus: 700, zinc: 11, copper: 0.9,
                 manganese: 2.3, selenium: 55, iodine: 150, chromium: 35, molybdenum: 45, potassium: 3400, sodium: 2300
             },
-            currentDate: new Date().toISOString().split('T')[0],
+            currentDate: localDateKey(),
             dailyLogs: {},
             bodyProfile: { sex: 'male', age: 25, heightFt: 5, heightIn: 10, weight: 165, unit: 'lbs', activityLevel: 'moderate', goal: 'recomp' },
             weightHistory: [
-                { date: new Date(Date.now() - 6*86400000).toISOString().split('T')[0], value: 168.2, unit: 'lbs' },
-                { date: new Date(Date.now() - 5*86400000).toISOString().split('T')[0], value: 167.4, unit: 'lbs' },
-                { date: new Date(Date.now() - 4*86400000).toISOString().split('T')[0], value: 167.1, unit: 'lbs' },
-                { date: new Date(Date.now() - 3*86400000).toISOString().split('T')[0], value: 166.5, unit: 'lbs' },
-                { date: new Date(Date.now() - 2*86400000).toISOString().split('T')[0], value: 166.0, unit: 'lbs' },
-                { date: new Date(Date.now() - 1*86400000).toISOString().split('T')[0], value: 165.2, unit: 'lbs' },
-                { date: new Date().toISOString().split('T')[0], value: 165.0, unit: 'lbs' }
+                { date: localDateKey(localDayOffset(-6)), value: 168.2, unit: 'lbs' },
+                { date: localDateKey(localDayOffset(-5)), value: 167.4, unit: 'lbs' },
+                { date: localDateKey(localDayOffset(-4)), value: 167.1, unit: 'lbs' },
+                { date: localDateKey(localDayOffset(-3)), value: 166.5, unit: 'lbs' },
+                { date: localDateKey(localDayOffset(-2)), value: 166.0, unit: 'lbs' },
+                { date: localDateKey(localDayOffset(-1)), value: 165.2, unit: 'lbs' },
+                { date: localDateKey(), value: 165.0, unit: 'lbs' }
             ],
             weighInFrequency: 7,
             strengthHistory: [
-                { date: new Date(Date.now() - 5*86400000).toISOString().split('T')[0], rating: 1, notes: "Felt very strong on bench today" },
-                { date: new Date(Date.now() - 3*86400000).toISOString().split('T')[0], rating: 0, notes: "Same energy as last time" },
-                { date: new Date(Date.now() - 1*86400000).toISOString().split('T')[0], rating: 1, notes: "Explosive military press" }
+                { date: localDateKey(localDayOffset(-5)), rating: 1, notes: "Felt very strong on bench today" },
+                { date: localDateKey(localDayOffset(-3)), rating: 0, notes: "Same energy as last time" },
+                { date: localDateKey(localDayOffset(-1)), rating: 1, notes: "Explosive military press" }
             ],
             foodFrequency: {},
             customPacks: [],
@@ -1771,7 +1801,7 @@ Audit Keywords:
                 protein: Math.round((Number(sourceObj.protein) || 0) * 10) / 10,
                 carbs: Math.round((Number(sourceObj.carbs) || 0) * 10) / 10,
                 fats: Math.round((Number(sourceObj.fats) || 0) * 10) / 10,
-                servingSize: Math.round(Number(sourceObj.servingSize) || 100),
+                servingSize: Number(sourceObj.servingSize) > 0 ? Number(sourceObj.servingSize) : 100,
                 servingUnit: sourceObj.servingUnit || "g",
                 store: sourceObj.store || "Generic",
                 type: sourceObj.type || "Local Search",
@@ -2021,12 +2051,27 @@ Audit Keywords:
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appState));
         }
 
+        // Older versions reused food IDs. Repair duplicates without altering nutrition.
+        function ensureUniqueDiaryEntryIds() {
+            const seen = new Set();
+            for (const log of Object.values(appState.dailyLogs || {})) {
+                for (const entries of Object.values(log?.meals || {})) {
+                    if (!Array.isArray(entries)) continue;
+                    for (const entry of entries) {
+                        if (!entry.id || seen.has(entry.id)) entry.id = createDiaryEntryId();
+                        seen.add(entry.id);
+                    }
+                }
+            }
+        }
+
         function loadStateFromLocalStorage() {
             const data = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (data) {
                 try {
                     const parsed = JSON.parse(data);
                     appState = { ...appState, ...parsed };
+                    ensureUniqueDiaryEntryIds();
                 } catch(e) {
                     console.warn("Corrupt local storage database. Reverting...", e);
                 }
@@ -2038,7 +2083,7 @@ Audit Keywords:
             audioEngine.playNotification('tap');
             const d = new Date(appState.currentDate + 'T12:00:00');
             d.setDate(d.getDate() + offset);
-            appState.currentDate = d.toISOString().split('T')[0];
+            appState.currentDate = localDateKey(d);
             
             renderDateNavigator();
             renderAll();
@@ -2048,8 +2093,8 @@ Audit Keywords:
 
         function renderDateNavigator() {
             const dateStr = appState.currentDate;
-            const today = new Date().toISOString().split('T')[0];
-            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            const today = localDateKey();
+            const yesterday = localDateKey(localDayOffset(-1));
             
             const displayEl = document.getElementById('date-display-text');
             if (dateStr === today) {
@@ -2252,23 +2297,25 @@ Audit Keywords:
                     const item = document.createElement('div');
                     item.className = "flex justify-between items-center py-2 px-3 bg-slate-900/40 border border-slate-850/60 rounded-xl text-xs";
                     item.innerHTML = `
-                        <div class="flex-1 min-w-0 pr-2" onclick="openNutritionLabel(${JSON.stringify(food).replace(/"/g, '&quot;')})">
+                        <button type="button" class="diary-details flex-1 min-w-0 pr-2 text-left" aria-label="Edit portion for ${escapeHTML(food.name)}">
                             <p class="font-bold text-slate-200 truncate font-outfit cursor-pointer hover:underline flex items-center">
-                                <span class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[8px] text-slate-450 font-bold uppercase tracking-wider rounded mr-2">${food.timestamp || 'Diary'}</span>
-                                <span>${food.name}</span>
+                                <span class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[8px] text-slate-450 font-bold uppercase tracking-wider rounded mr-2">${escapeHTML(food.timestamp || 'Diary')}</span>
+                                <span>${escapeHTML(food.name)}</span>
                             </p>
-                            <p class="text-[9px] text-slate-500 font-sans">${food.servingSize}${food.servingUnit} · ${food.store || 'Generic'}</p>
-                        </div>
+                            <p class="text-[9px] text-slate-500 font-sans">${food.servingSize}${escapeHTML(food.servingUnit)} · ${escapeHTML(food.store || 'Generic')} · Edit portion</p>
+                        </button>
                         <div class="flex items-center space-x-3">
                             <div class="text-right">
                                 <span class="font-bold text-slate-300 font-outfit">${food.calories} kcal</span>
                                 <span class="block text-[8px] text-red-400 font-bold uppercase tracking-wider">${food.protein}g P</span>
                             </div>
-                            <button onclick="removeFood('${food.id}', '${meal}')" class="text-slate-600 hover:text-rose-500 transition px-1.5 py-1">
+                            <button type="button" class="diary-delete text-slate-600 hover:text-rose-500 transition min-w-[44px] min-h-[44px]" aria-label="Remove ${escapeHTML(food.name)}">
                                 <i class="fa-solid fa-trash-can text-[10px]"></i>
                             </button>
                         </div>
                     `;
+                    item.querySelector('.diary-details').onclick = () => openNutritionLabel(food, { date: dateKey, meal, id: food.id });
+                    item.querySelector('.diary-delete').onclick = () => removeFood(food.id, meal);
                     listContainer.appendChild(item);
                 });
 
@@ -2327,6 +2374,8 @@ Audit Keywords:
             }
             
             const normalized = normalizeNutritionObject(food);
+            // Every log is independent, even when re-adding the same custom food.
+            normalized.id = createDiaryEntryId();
             // Diary entry timestamps
             normalized.timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
             appState.dailyLogs[dateKey].meals[meal].push(normalized);
@@ -3398,11 +3447,87 @@ Audit Keywords:
         }
 
         // NUTRITION FDA MONOCHROME FACTS MODAL
-        function openNutritionLabel(food) {
+        let activeDiaryPortion = null;
+
+        // Keep the original nutrition basis so repeated edits do not compound rounding.
+        function scaleFoodPortion(food, amount) {
+            const base = food.portionBase || {
+                servingSize: food.servingSize,
+                calories: food.calories, protein: food.protein, carbs: food.carbs, fats: food.fats,
+                micros: { ...food.micros }
+            };
+            if (!Number.isFinite(amount) || amount < 0.01 || !Number.isFinite(base.servingSize) || base.servingSize <= 0) {
+                throw new Error('Enter an amount of at least 0.01.');
+            }
+            const factor = amount / base.servingSize;
+            const scaled = { ...food, servingSize: amount, portionBase: base, micros: {} };
+            for (const key of ['calories', 'protein', 'carbs', 'fats']) {
+                const value = Number(base[key] || 0) * factor;
+                if (!Number.isFinite(value)) throw new Error('Amount is too large.');
+                scaled[key] = key === 'calories' ? Math.round(value) : Math.round(value * 10) / 10;
+                if (!Number.isFinite(scaled[key])) throw new Error('Amount is too large.');
+            }
+            for (const [key, value] of Object.entries(base.micros || {})) {
+                scaled.micros[key] = Number(value || 0) * factor;
+                if (!Number.isFinite(scaled.micros[key])) throw new Error('Amount is too large.');
+            }
+            return scaled;
+        }
+
+        function previewDiaryPortion() {
+            if (!activeDiaryPortion) return;
+            try {
+                const food = scaleFoodPortion(activeDiaryPortion.food, Number(document.getElementById('label-portion-amount').value));
+                renderNutritionLabel(food);
+                document.getElementById('label-portion-error').textContent = '';
+                document.getElementById('label-portion-save').disabled = false;
+            } catch (error) {
+                document.getElementById('label-portion-error').textContent = error.message;
+                document.getElementById('label-portion-save').disabled = true;
+            }
+        }
+
+        function saveDiaryPortion() {
+            if (!activeDiaryPortion) return;
+            const { date, meal, id, food } = activeDiaryPortion;
+            const entries = appState.dailyLogs[date]?.meals?.[meal];
+            const index = entries?.findIndex(entry => entry.id === id) ?? -1;
+            if (index < 0) {
+                showToast('This diary entry is no longer available.', true);
+                closeNutritionFactsModal();
+                return;
+            }
+            try {
+                const updated = scaleFoodPortion(food, Number(document.getElementById('label-portion-amount').value));
+                entries[index] = updated;
+            } catch (error) {
+                document.getElementById('label-portion-error').textContent = error.message;
+                return;
+            }
+            saveStateToLocalStorage();
+            closeNutritionFactsModal();
+            renderAll();
+            showToast('Portion updated. Calories and nutrients recalculated.');
+        }
+
+        function openNutritionLabel(food, diaryContext = null) {
             audioEngine.playNotification('tap');
             document.getElementById('modal-nutrition-facts').classList.remove('hidden');
             document.getElementById('modal-nutrition-facts').classList.add('flex');
 
+            activeDiaryPortion = diaryContext ? { ...diaryContext, food: JSON.parse(JSON.stringify(food)) } : null;
+            document.getElementById('label-portion-controls').classList.toggle('hidden', !activeDiaryPortion);
+            document.getElementById('label-portion-error').textContent = '';
+            document.getElementById('label-portion-save').disabled = false;
+            if (activeDiaryPortion) {
+                document.getElementById('label-portion-amount').value = food.servingSize;
+                document.getElementById('label-portion-unit').textContent = food.servingUnit;
+            }
+            renderNutritionLabel(food);
+            if (activeDiaryPortion) document.getElementById('label-portion-amount').focus();
+        }
+
+        function renderNutritionLabel(food) {
             document.getElementById('label-food-name').innerText = food.name;
             document.getElementById('label-food-brand').innerText = food.store || 'Generic';
             document.getElementById('label-serving-display').innerText = `${food.servingSize} ${food.servingUnit}`;
@@ -3441,6 +3566,7 @@ Audit Keywords:
         }
 
         function closeNutritionFactsModal() {
+            activeDiaryPortion = null;
             audioEngine.playNotification('tap');
             document.getElementById('modal-nutrition-facts').classList.add('hidden');
             document.getElementById('modal-nutrition-facts').classList.remove('flex');
@@ -3832,6 +3958,7 @@ Audit Keywords:
                 try {
                     const importedState = JSON.parse(e.target.result);
                     appState = { ...appState, ...importedState };
+                    ensureUniqueDiaryEntryIds();
                     showToast("Database imported successfully!");
                     renderAll();
                     saveStateToLocalStorage();
@@ -3891,9 +4018,10 @@ Audit Keywords:
             
             toast.className = `p-3 rounded-2xl text-xs font-bold font-outfit shadow-2xl flex items-center justify-between border slide-up pointer-events-auto ${isError ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-slate-900 border-slate-800 text-slate-100'}`;
             toast.innerHTML = `
-                <span>${message}</span>
+                <span class="toast-message"></span>
                 <button class="ml-3 text-slate-500 hover:text-white" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
             `;
+            toast.querySelector('.toast-message').textContent = message;
             container.appendChild(toast);
             
             setTimeout(() => {
@@ -4085,8 +4213,8 @@ Audit Keywords:
                 return;
             }
 
-            const todayStr = new Date().toISOString().split('T')[0];
-            const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            const todayStr = localDateKey();
+            const yesterdayStr = localDateKey(localDayOffset(-1));
             
             const hasToday = logDates.includes(todayStr);
             const hasYesterday = logDates.includes(yesterdayStr);
@@ -4096,7 +4224,7 @@ Audit Keywords:
             if (hasToday || hasYesterday) {
                 let checkDate = new Date((hasToday ? todayStr : yesterdayStr) + 'T12:00:00');
                 while (true) {
-                    const checkStr = checkDate.toISOString().split('T')[0];
+                    const checkStr = localDateKey(checkDate);
                     if (logDates.includes(checkStr)) {
                         currentStreak++;
                         checkDate.setDate(checkDate.getDate() - 1);
@@ -4208,7 +4336,7 @@ Audit Keywords:
             const todayDate = new Date(todayStr + 'T12:00:00');
             const yesterdayDate = new Date(todayDate);
             yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-            const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+            const yesterdayStr = localDateKey(yesterdayDate);
             
             const yesterdayLog = appState.dailyLogs[yesterdayStr];
             if (!yesterdayLog || !yesterdayLog.meals) {
@@ -4451,8 +4579,8 @@ Audit Keywords:
             let loggedDaysCount = 0;
             
             for (let i = 0; i < days; i++) {
-                const checkDate = new Date(Date.now() - i * 86400000);
-                const key = checkDate.toISOString().split('T')[0];
+                const checkDate = localDayOffset(-i);
+                const key = localDateKey(checkDate);
                 const log = appState.dailyLogs[key];
                 if (log && log.meals) {
                     let dayCal = 0;
@@ -4484,8 +4612,8 @@ Audit Keywords:
             const labels = [];
             
             for (let i = days - 1; i >= 0; i--) {
-                const date = new Date(Date.now() - i * 86400000);
-                const key = date.toISOString().split('T')[0];
+                const date = localDayOffset(-i);
+                const key = localDateKey(date);
                 const log = appState.dailyLogs[key];
                 let dayCal = 0;
                 if (log && log.meals) {
@@ -4571,8 +4699,8 @@ Audit Keywords:
             
             const boxes = [];
             for (let i = days - 1; i >= 0; i--) {
-                const date = new Date(Date.now() - i * 86400000);
-                const key = date.toISOString().split('T')[0];
+                const date = localDayOffset(-i);
+                const key = localDateKey(date);
                 const log = appState.dailyLogs[key];
                 
                 let dayCal = 0;
@@ -4682,10 +4810,19 @@ Audit Keywords:
         }
 
 
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !document.getElementById('modal-nutrition-facts').classList.contains('hidden')) {
+                closeNutritionFactsModal();
+            }
+        });
+
         window.onload = function() {
             setupLocalStaples();
             loadStateFromLocalStorage();
             
+            // Each new session opens today; historical logs keep their original keys.
+            appState.currentDate = localDateKey();
+
             // Build defaults
             renderDateNavigator();
             renderAll();
