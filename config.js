@@ -1,19 +1,6 @@
-// ============================================================
-// MacroFlow — API Configuration
-// ============================================================
-// Edit this file to add your Google Gemini API key.
-// This file is loaded separately from the main app, so your
-// key never appears inside index.html.
-//
-// TIP: Add "config.js" to your .gitignore so you never
-//      accidentally commit your key to version control.
-// ============================================================
-
+// MacroFlow optional services. Leave credentials blank for a public deployment.
+// This file is readable by every visitor. Keep private credentials on a backend.
+// For local use only, you may supply your own key; never commit it to GitHub.
 window.MACROFLOW_CONFIG = {
-
-  // Google Gemini API Key
-  // Powers: AI food search, meal description parsing, plate scanning, label parsing
-  // Get yours free at: https://aistudio.google.com/apikey
-  geminiApiKey: 'REMOVED_GEMINI_KEY'
-
+  geminiApiKey: ''
 };

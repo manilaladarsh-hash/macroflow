@@ -8,9 +8,12 @@ A personal nutrition tracker for logging meals, tracking calories and macronutri
 
 1. **Set your targets:** open the settings gear to configure your daily nutrition goals and body profile. You can use the built-in calculator to estimate calorie targets.
 2. **Log your meals:** search for a food, review its nutrition information and serving, then add it to a meal. Use **Quick Log Calories** for manual entries or **Create Custom Food** to save your own foods.
-3. **Review your day:** check the calorie budget, protein, carbohydrates, fats, and micronutrients. Use the date navigator to view other days.
-4. **Track habits and progress:** record water intake, use the fasting timer, and log weight or strength check-ins in the progress section.
-5. **Try optional tools:** look up packaged foods by barcode, describe a meal, or scan a food photo. AI tools require Gemini configuration; review estimates before logging them.
+3. **Adjust portions:** tap a logged food, enter the amount eaten in its displayed unit (including fractional servings), review the live nutrition preview, and select **Save amount**. Closing the label cancels the change. Each repeated log is a separate entry.
+4. **Review your day:** check the calorie budget, protein, carbohydrates, fats, and micronutrients. Use the date navigator to view other days.
+5. **Track habits and progress:** record water intake, use the fasting timer, and log weight or strength check-ins in the progress section.
+6. **Try optional tools:** look up packaged foods by barcode, describe a meal, or scan a food photo. AI tools require Gemini configuration; review estimates before logging them.
+
+Diary dates, streaks, and calorie trends follow your browser’s local calendar, including daylight saving changes. The app opens today when you return; older records remain accessible through the date navigator.
 
 ## Back up and restore
 
@@ -45,3 +48,7 @@ An internet connection is needed for externally hosted libraries, online food se
 ## Built with
 
 HTML, CSS, JavaScript, Tailwind CSS, Font Awesome, html5-qrcode, Open Food Facts, USDA FoodData Central, and Gemini. Libraries load from CDNs.
+
+## Regression checks
+
+With Node.js 18 or later, run `node --test tests/diary.test.cjs`. This dependency-free suite checks portion previews and persistence, repeated logs, legacy ID repair, local dates, and daylight saving boundaries using a DOM harness; it does not test visual layout. To exercise different time zones on macOS/Linux, prefix the command with `TZ=America/Toronto` or `TZ=Pacific/Kiritimati`.
