@@ -1,27 +1,36 @@
 # MacroFlow
 
-A personal nutrition tracker for logging meals, tracking calories and macronutrients, and reviewing hydration, weight, and strength progress. Designed for desktop and mobile browsers.
+A personal nutrition tracker for logging meals, scanning packaged foods, and tracking calories, macronutrients, weight, and strength progress. Designed for phones first, and works in desktop browsers too.
 
 **[Open MacroFlow](https://manilaladarsh-hash.github.io/macroflow/)**
 
+On a phone, use your browser's **Add to Home Screen** option to open MacroFlow like an app.
+
 ## How to use
 
-1. **Set your targets:** open the settings gear to configure your daily nutrition goals and body profile. You can use the built-in calculator to estimate calorie targets.
-2. **Log your meals:** search for a food, review its nutrition information and serving, then add it to a meal. Use **Quick Log Calories** for manual entries or **Create Custom Food** to save your own foods.
-3. **Adjust portions:** tap a logged food, enter the amount eaten in its displayed unit (including fractional servings), review the live nutrition preview, and select **Save amount**. Closing the label cancels the change. Each repeated log is a separate entry.
-4. **Review your day:** check the calorie budget, protein, carbohydrates, fats, and micronutrients. Use the date navigator to view other days.
-5. **Track habits and progress:** record water intake, use the fasting timer, and log weight or strength check-ins in the progress section.
-6. **Try optional tools:** look up packaged foods by barcode, describe a meal, or scan a food photo. AI tools require Gemini configuration; review estimates before logging them.
+1. **Set your targets:** open **Settings** to set daily calories and macros, or use **Calculate my targets** to estimate them from your body profile.
+2. **Add food:** tap **+** (or a meal's **+**), then search, scan a barcode, describe the meal, snap a photo, quick-add calories, or create your own food. Choosing a food opens a review sheet where you set the amount (in servings or grams/ml) and the meal before adding it. The **+** on a search result adds one default serving straight away.
+3. **Scan barcodes:** tap **Scan** and point the camera at the barcode. MacroFlow looks the product up by its exact code in Open Food Facts. If the camera struggles, use **From photo** or **Type number**. If a product isn't found, **Add from label** saves it under My foods with its barcode, so the next scan finds it instantly.
+4. **Adjust portions:** tap a logged food, enter the amount eaten in its displayed unit (including fractional servings), review the live nutrition preview, and select **Save**. Closing the label cancels the change.
+5. **Review your day:** the calorie ring shows calories eaten (tap it to show what's left), with protein, carbs, and fat below. **Vitamins & minerals** expands a breakdown, and you can tap a nutrient to see which foods supplied it. Use the date bar to view or log other days, or **Copy** to repeat the previous day's meals.
+6. **Insights and progress:** **Insights** shows your logging streak, macro split, and a fasting timer. **Progress** tracks weight (with weekly averages and a goal estimate), strength check-ins, and calorie trends.
 
-Diary dates, streaks, and calorie trends follow your browser’s local calendar, including daylight saving changes. The app opens today when you return; older records remain accessible through the date navigator.
+Diary dates, streaks, and calorie trends follow your browser's local calendar, including daylight saving changes. The app opens today when you return; older records remain accessible through the date bar.
+
+## Barcode scanning
+
+- Live scanning uses the browser's built-in barcode detector where available (for example Chrome on Android) and otherwise a bundled ZXing decoder loaded on demand.
+- A code is accepted only when its check digit is valid and it has been read in two frames, which filters out blurry misreads. Retail EAN-13, EAN-8, UPC-A, and UPC-E barcodes are supported.
+- Lookups are exact: MacroFlow never substitutes a "similar" product or an AI guess for an unknown barcode.
+- The camera needs HTTPS (as on GitHub Pages) or `localhost`, plus camera permission. The flashlight button appears when your camera supports it.
 
 ## Back up and restore
 
-In **Settings**:
+In **Settings → Your data**:
 
-- **Export Data** downloads a JSON backup of your saved app data.
-- **Import Data** loads a previously exported JSON backup. Export your current data first, because importing can replace existing records and settings.
-- **Print Clinical Report** opens the browser print dialog, where you can print or save a PDF.
+- **Export** downloads a JSON backup of your saved app data.
+- **Import** loads a previously exported JSON backup after you confirm. Export your current data first, because importing can replace existing records and settings.
+- **Print / save PDF report** opens the browser print dialog for the current day.
 
 Data is saved in this browser using `localStorage`; there is no account-based sync. Keep backups before clearing browser data or switching devices, and use export/import to move your records.
 
@@ -37,18 +46,18 @@ python -m http.server 8000
 
 With Python 3 installed, open **http://localhost:8000**. On Windows, use `py -m http.server 8000` if `python` is unavailable. Stop the server with **Ctrl+C**.
 
-An internet connection is needed for externally hosted libraries, online food searches, and AI features. Camera scanning requires camera permission and a supported browser on HTTPS or localhost; manual barcode entry is also available.
+An internet connection is needed for externally hosted libraries, online food searches, barcode lookups, and AI features.
 
 ## Optional services
 
-- **Gemini:** on your local copy, set `geminiApiKey` in `config.js` to your own key to enable AI meal descriptions, food search, and image parsing. Availability depends on the configured models and your account's limits.
-- **Food databases:** the app integrates Open Food Facts and supports USDA FoodData Central through an optional `usdaApiKey` property in `window.MACROFLOW_CONFIG`. Built-in foods and manual entries do not require API credentials.
-- **Privacy:** AI requests send the relevant meal description or image to Gemini; online searches contact the selected food services. A `config.js` served by a website is readable by visitors, so it does not keep API keys secret. Do not commit personal keys or publish them with a hosted copy; a public deployment needs a backend to keep credentials private.
+- **Gemini (AI):** describe-a-meal, photo estimates, and AI search suggestions need your own Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). Paste it in **Settings → AI features**; it is stored only in that browser and is never included in exports. AI results always open for review before anything is logged. You can change the model with an optional `geminiModel` property in `config.js` (default `gemini-2.5-flash`).
+- **Food databases:** the app uses Open Food Facts for search and barcodes and supports USDA FoodData Central through an optional `usdaApiKey` property in `window.MACROFLOW_CONFIG`. Built-in foods and manual entries do not require API credentials.
+- **Privacy:** AI requests send the relevant meal description or image to Google; online searches and barcode lookups contact the selected food services. A `config.js` served by a website is readable by visitors, so never put a personal key in it on a hosted copy.
 
 ## Built with
 
-HTML, CSS, JavaScript, Tailwind CSS, Font Awesome, html5-qrcode, Open Food Facts, USDA FoodData Central, and Gemini. Libraries load from CDNs.
+HTML, CSS, JavaScript, Tailwind CSS, Font Awesome, ZXing, Open Food Facts, USDA FoodData Central, and Gemini. Libraries load from CDNs.
 
 ## Regression checks
 
-With Node.js 18 or later, run `node --test tests/diary.test.cjs`. This dependency-free suite checks portion previews and persistence, repeated logs, legacy ID repair, local dates, and daylight saving boundaries using a DOM harness; it does not test visual layout. To exercise different time zones on macOS/Linux, prefix the command with `TZ=America/Toronto` or `TZ=Pacific/Kiritimati`.
+With Node.js 18 or later, run `node --test tests/*.test.cjs`. These dependency-free suites run the app's real JavaScript in a small DOM harness. They cover portion previews and persistence, repeated logs, legacy ID repair, local dates, and daylight saving boundaries, plus barcode check digits, UPC-E expansion, two-frame scan confirmation, exact barcode lookup, and Open Food Facts unit conversion. They do not test visual layout or a real camera. To exercise different time zones on macOS/Linux, prefix the command with `TZ=America/Toronto` or `TZ=Pacific/Kiritimati`.
