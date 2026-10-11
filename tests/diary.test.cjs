@@ -61,7 +61,7 @@ test('preview is reversible; save updates only the selected entry and persists i
     a.run('previewDiaryPortion(); saveDiaryPortion()');
     const entries = plain(a.run('appState.dailyLogs[appState.currentDate].meals.breakfast'));
     assert.deepEqual(entries.map(x => x.calories), [185, 123]);
-    assert.equal(a.document.getElementById('calorie-big-number').innerText, 308);
+    assert.equal(String(a.document.getElementById('calorie-big-number').innerText), '308');
     assert.equal(JSON.parse(a.storage.get('macroflow_v2_state')).dailyLogs[a.run('appState.currentDate')].meals.breakfast[0].servingSize, 150);
     a.run(`removeFood('${entries[0].id}', 'breakfast')`);
     assert.equal(a.run('appState.dailyLogs[appState.currentDate].meals.breakfast.length'), 1);
