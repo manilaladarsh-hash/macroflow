@@ -5812,6 +5812,20 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             setStrengthCheckRating(0);
         }
 
+        // Offline support. Only on https (or localhost), where browsers allow service workers.
+        function registerServiceWorker() {
+            if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+            const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+            if (location.protocol !== 'https:' && !local) return;
+            navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline support unavailable:', err));
+        }
+
+        // Tell the user when they are offline: logging still works, lookups don't.
+        if (typeof window.addEventListener === 'function') {
+            window.addEventListener('offline', () => showToast("You're offline. Logging still works; search, barcode lookups and AI need a connection.", true));
+            window.addEventListener('online', () => showToast('Back online.'));
+        }
+
         window.onload = function() {
             setupLocalStaples();
             loadStateFromLocalStorage();
@@ -5826,6 +5840,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             switchTab(appState.activeTab || 'nutrition', { silent: true });
 
             initSwipeNavigation();
+            registerServiceWorker();
 
             let resizeTimer = null;
             window.addEventListener('resize', () => {
