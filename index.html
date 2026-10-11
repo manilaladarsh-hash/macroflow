@@ -256,6 +256,11 @@
         .micro-row { padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
         .micro-row .top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 7px; }
 
+        .water-row { display: flex; align-items: center; gap: 8px; padding-top: 12px; }
+        .water-bar { flex: 1; height: 8px; }
+        .water-row .chip { height: 34px; padding: 0 12px; font-variant-numeric: tabular-nums; }
+        #exercise-section .entry-kcal { color: var(--brand); }
+
         /* ---------- Bottom nav ---------- */
         .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 6px 12px calc(6px + var(--safe-bottom));
             background: rgba(11, 11, 12, 0.94); backdrop-filter: saturate(140%) blur(16px); -webkit-backdrop-filter: saturate(140%) blur(16px); border-top: 1px solid var(--line); }
@@ -497,6 +502,7 @@
                     </div>
                     <div class="kcal-eq">
                         <div><span>Goal</span><b id="calorie-target-display">2000</b></div>
+                        <div id="eq-exercise" class="hidden"><span>Exercise</span><b id="calorie-exercise-display">+0</b></div>
                         <div id="eq-eaten"><span>Eaten</span><b id="calorie-eaten-display">0</b></div>
                         <div id="eq-left"><span id="calorie-left-label">Left</span><b id="calorie-left-display">2000</b></div>
                     </div>
@@ -559,6 +565,24 @@
 
             <button id="copy-prev-day" class="copy-day hidden" onclick="copyYesterdayMeals()"><i class="fa-solid fa-clone"></i><span>Copy meals from the previous day</span></button>
 
+            <section class="meal" id="exercise-section">
+                <div class="meal-head"><h3>Exercise</h3><span class="meal-kcal" id="exercise-kcal"></span>
+                    <button class="meal-plus" onclick="openExerciseModal()" aria-label="Log exercise"><i class="fa-solid fa-plus"></i>Add</button></div>
+                <div id="exercise-list"></div>
+                <p id="steps-line" class="small faint pt-2 hidden"></p>
+                <p id="exercise-goal-note" class="small faint pt-2 hidden">Not added to your calorie goal — you can change this in Settings.</p>
+            </section>
+
+            <section class="meal" id="water-section">
+                <div class="meal-head"><h3>Water</h3><span class="meal-kcal" id="water-amount">0 of 2.5 L</span></div>
+                <div class="water-row">
+                    <div class="bar water-bar"><div id="water-bar" style="width:0%;background:var(--carbs)"></div></div>
+                    <button class="chip" id="water-minus" onclick="addWater(-0.25)" aria-label="Remove 250 ml">−</button>
+                    <button class="chip" onclick="addWater(0.25)">+250 ml</button>
+                    <button class="chip" onclick="addWater(0.5)">+500 ml</button>
+                </div>
+            </section>
+
             <div>
                 <button id="micros-toggle" class="disclosure" onclick="toggleMicrosPanel()" aria-expanded="false" aria-controls="micros-panel-content">
                     <span>Vitamins &amp; minerals</span><i id="micros-panel-chevron" class="fa-solid fa-chevron-down"></i>
@@ -573,14 +597,19 @@
             <div class="stat-tiles">
                 <div class="tile">
                     <div class="k"><i class="fa-solid fa-fire" style="color:#fb923c"></i>Logging streak</div>
-                    <div class="v"><span id="streak-count">0</span> <small>days</small></div>
-                    <div class="s">Best: <span id="streak-best">0</span> days</div>
+                    <div class="v"><span id="streak-count">0</span> <small id="streak-unit">days</small></div>
+                    <div class="s">Best: <span id="streak-best">0</span><span id="streak-best-unit"> days</span></div>
                 </div>
                 <div class="tile">
                     <div class="k"><i class="fa-solid fa-utensils" style="color:var(--brand)"></i>Eaten this day</div>
                     <div class="v"><span id="dash-cal">0</span> <small>kcal</small></div>
                     <div class="s"><span id="dash-protein">0</span>g protein · <span id="dash-remaining">0</span> kcal left</div>
                 </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-calendar-week"></i>Last 7 days</h3><span class="small muted">ending today</span></div>
+                <div class="detail-list" id="weekly-report"></div>
             </div>
 
             <div class="card">
@@ -797,6 +826,7 @@
             <div id="smart-search-debug" class="hidden small muted px-1"></div>
 
             <div id="often-logged-panel">
+                <div id="saved-meals-list"></div>
                 <p class="list-label mb-2" id="often-logged-header">Recent for breakfast</p>
                 <div id="often-logged-list"></div>
             </div>
@@ -1007,11 +1037,17 @@
                     <div class="field"><label for="settings-target-protein">Protein</label><div class="input-unit"><input type="number" id="settings-target-protein" min="10" max="500" inputmode="numeric" class="input"><span>g</span></div></div>
                     <div class="field"><label for="settings-target-carbs">Carbs</label><div class="input-unit"><input type="number" id="settings-target-carbs" min="10" max="1000" inputmode="numeric" class="input"><span>g</span></div></div>
                     <div class="field"><label for="settings-target-fats">Fat</label><div class="input-unit"><input type="number" id="settings-target-fats" min="5" max="300" inputmode="numeric" class="input"><span>g</span></div></div>
-                    <div class="field hidden"><label for="settings-target-water">Water (L)</label><input type="number" id="settings-target-water" step="0.1" min="0.5" max="10" class="input"></div>
+                    <div class="field"><label for="settings-target-water">Water</label><div class="input-unit"><input type="number" id="settings-target-water" step="0.1" min="0.5" max="10" inputmode="decimal" class="input"><span>L</span></div></div>
                     <div class="field"><label for="settings-weight-unit">Weight unit</label>
                         <select id="settings-weight-unit" class="select"><option value="lbs">Pounds (lbs)</option><option value="kg">Kilograms (kg)</option></select>
                     </div>
                 </div>
+            </section>
+
+            <section class="settings-section">
+                <h3><i class="fa-solid fa-person-running"></i>Exercise</h3>
+                <label class="check"><input type="checkbox" id="settings-exercise-goal">Add exercise calories to my daily goal</label>
+                <p class="small muted">Leave this off if your calorie target already includes your activity level (the calculator below does), otherwise exercise is counted twice.</p>
             </section>
 
             <section class="settings-section">
@@ -1084,6 +1120,17 @@
             </section>
 
             <section class="settings-section">
+                <h3><i class="fa-solid fa-heart-pulse"></i>Health data (Google Health, Fitbit, Google Fit)</h3>
+                <p class="small muted">Google isn't letting new apps connect to Google Health directly yet, so import your data instead. Download it with <a href="https://takeout.google.com" target="_blank" rel="noopener" style="color:var(--brand)">Google Takeout</a> (choose Google Health, Fitbit or Fit), or export a CSV from your health app, then choose the .zip, .csv or .json files here. Steps, calories burned and weight are imported; you'll see a preview first.</p>
+                <button class="btn btn-soft btn-block" onclick="triggerHealthImport()"><i class="fa-solid fa-file-arrow-up"></i>Import health data</button>
+                <div class="flex items-center justify-between gap-3">
+                    <span class="small faint" id="health-import-status">No data imported yet.</span>
+                    <button class="btn btn-ghost btn-sm hidden" id="health-remove-btn" onclick="removeImportedHealthData()">Remove imported</button>
+                </div>
+                <input type="file" id="health-file-input" accept=".zip,.csv,.json,.txt,application/zip,text/csv,application/json" multiple class="hidden" onchange="onHealthFilesChosen(event)">
+            </section>
+
+            <section class="settings-section">
                 <h3><i class="fa-solid fa-database"></i>Your data</h3>
                 <p class="small muted">Everything is saved in this browser only. Export a backup before clearing browser data or switching devices.</p>
                 <div class="grid-2">
@@ -1129,9 +1176,90 @@
         <p class="list-label mt-5 mb-1">Vitamins &amp; minerals</p>
         <div class="detail-list" id="label-micros-panel"></div>
 
+        <div id="label-meal-field" class="field mt-5 hidden">
+            <label>Meal</label>
+            <div class="seg" id="label-meal-seg" role="group" aria-label="Move to meal">
+                <button data-meal="breakfast" onclick="setEntryMeal('breakfast')">Breakfast</button>
+                <button data-meal="lunch" onclick="setEntryMeal('lunch')">Lunch</button>
+                <button data-meal="dinner" onclick="setEntryMeal('dinner')">Dinner</button>
+                <button data-meal="snacks" onclick="setEntryMeal('snacks')">Snacks</button>
+            </div>
+        </div>
         <div id="label-entry-actions" class="sheet-actions hidden">
-            <button class="btn btn-danger" style="flex:0 0 auto" onclick="removeActiveDiaryEntry()"><i class="fa-regular fa-trash-can"></i>Remove</button>
+            <button class="btn btn-danger" style="flex:0 0 auto" onclick="removeActiveDiaryEntry()" aria-label="Remove entry"><i class="fa-regular fa-trash-can"></i></button>
+            <button class="btn btn-soft" style="flex:0 0 auto" onclick="duplicateActiveDiaryEntry()"><i class="fa-regular fa-clone"></i>Log again</button>
             <button id="label-portion-save" class="btn btn-primary" onclick="saveDiaryPortion()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- EXERCISE -->
+<div id="modal-exercise" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="exercise-title">
+    <div class="overlay-backdrop" onclick="closeExerciseModal()"></div>
+    <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-head">
+            <div><h3 id="exercise-title">Log exercise</h3><p>Calories are estimated from your weight. Use your watch's number if you have one.</p></div>
+            <button class="icon-btn" onclick="closeExerciseModal()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form class="sheet-body" onsubmit="event.preventDefault(); saveExercise()">
+            <div class="field"><label for="exercise-type">Activity</label><select id="exercise-type" class="select" onchange="onExerciseTypeChange()"></select></div>
+            <div class="field hidden" id="exercise-name-field"><label for="exercise-name">Name</label><input id="exercise-name" class="input" placeholder="e.g. Rowing"></div>
+            <div class="grid-2">
+                <div class="field"><label for="exercise-minutes">Duration</label><div class="input-unit"><input id="exercise-minutes" type="number" min="1" step="1" inputmode="numeric" class="input" oninput="estimateExerciseCalories()"><span>min</span></div></div>
+                <div class="field"><label for="exercise-calories">Calories burned</label><div class="input-unit"><input id="exercise-calories" type="number" min="0" step="1" inputmode="numeric" class="input" oninput="exerciseCaloriesTouched = true"><span>kcal</span></div></div>
+            </div>
+            <div class="sheet-actions">
+                <button type="button" id="exercise-remove-btn" class="btn btn-danger hidden" style="flex:0 0 auto" onclick="removeExercise()" aria-label="Remove exercise"><i class="fa-regular fa-trash-can"></i></button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- SAVE MEAL -->
+<div id="modal-save-meal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="save-meal-title">
+    <div class="overlay-backdrop" onclick="closeSaveMealModal()"></div>
+    <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-head">
+            <div><h3 id="save-meal-title">Save meal</h3><p id="save-meal-summary"></p></div>
+            <button class="icon-btn" onclick="closeSaveMealModal()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form class="sheet-body" onsubmit="event.preventDefault(); confirmSaveMeal()">
+            <div class="field"><label for="save-meal-name">Name</label><input id="save-meal-name" class="input" maxlength="60" required></div>
+            <button type="submit" class="btn btn-primary btn-block">Save meal</button>
+        </form>
+    </div>
+</div>
+
+<!-- HEALTH IMPORT PREVIEW -->
+<div id="modal-health-import" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="health-title">
+    <div class="overlay-backdrop" onclick="closeHealthImport()"></div>
+    <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-head">
+            <div><h3 id="health-title">Import health data</h3><p id="health-preview-range"></p></div>
+            <button class="icon-btn" onclick="closeHealthImport()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="detail-list" id="health-preview-list"></div>
+        <p class="list-label mt-5 mb-1">Most recent days</p>
+        <div class="detail-list" id="health-preview-sample"></div>
+        <div class="sheet-body mt-5">
+            <div class="field" id="health-calories-field"><label for="health-calories-kind">The calorie numbers are…</label>
+                <select id="health-calories-kind" class="select">
+                    <option value="total">Total burned, incl. resting</option>
+                    <option value="active">Active / exercise only</option>
+                </select>
+            </div>
+            <div class="field" id="health-weight-field"><label for="health-weight-unit">Weights in the file are in…</label>
+                <select id="health-weight-unit" class="select"><option value="kg">Kilograms (kg)</option><option value="lbs">Pounds (lbs)</option></select>
+            </div>
+            <p class="small faint">Total calories are shown as your energy balance on Insights; active calories are logged as exercise. Days already imported are updated, and your food log is not changed.</p>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-ghost" onclick="closeHealthImport()">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmHealthImport()">Import</button>
         </div>
     </div>
 </div>
@@ -2044,13 +2172,13 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const start = new Date(end);
             start.setDate(end.getDate() - 6);
             while (localDateKey(start) > selectedKey) { start.setDate(start.getDate() - 7); end.setDate(end.getDate() - 7); }
-            const goal = appState.targets.calories || 1;
             const circumference = 2 * Math.PI * 15;
             for (let i = 0; i < 7; i++) {
                 const day = new Date(start);
                 day.setDate(start.getDate() + i);
                 const key = localDateKey(day);
                 const kcal = dayTotals(key).calories;
+                const goal = dayGoal(key) || 1;
                 const fraction = Math.min(1, kcal / goal);
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -2097,19 +2225,13 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             saveStateToLocalStorage();
         }
 
-        // HYDRATION (kept for backwards compatibility; not shown in the UI)
-        function addWater(val) {
-            const log = ensureDayLog();
-            log.water = Math.round(((log.water || 0) + val) * 100) / 100;
-            saveStateToLocalStorage();
-        }
-
         function renderDashboardTab() {
             const totals = dayTotals();
             document.getElementById('dash-cal').innerText = Number(totals.calories).toLocaleString('en-US');
             document.getElementById('dash-protein').innerText = Math.round(totals.protein);
-            document.getElementById('dash-remaining').innerText = Math.max(0, appState.targets.calories - totals.calories).toLocaleString('en-US');
+            document.getElementById('dash-remaining').innerText = Math.max(0, dayGoal() - totals.calories).toLocaleString('en-US');
             calculateStreak();
+            renderWeeklyReport();
             renderMacroPieChart(totals.protein, totals.carbs, totals.fats);
             renderFastingUI();
         }
@@ -2189,13 +2311,16 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             });
 
             // Calorie summary + macro-split bar
-            const target = targets.calories || 1;
+            const target = dayGoal(dateKey) || 1;
+            const exerciseBonus = target - (targets.calories || 0);
             const remaining = target - totalKcal;
             const consumedMode = appState.calorieDisplayMode !== 'remaining';
             const fmt = n => Number(n).toLocaleString('en-US');
             document.getElementById('calorie-big-number').innerText = fmt(consumedMode ? totalKcal : Math.abs(remaining));
             document.getElementById('calorie-state-subtitle').innerText = consumedMode ? 'Eaten' : (remaining >= 0 ? 'Remaining' : 'Over target');
             document.getElementById('calorie-target-display').innerText = fmt(targets.calories);
+            document.getElementById('eq-exercise').classList.toggle('hidden', !(exerciseBonus > 0));
+            document.getElementById('calorie-exercise-display').innerText = `+${fmt(exerciseBonus)}`;
             document.getElementById('calorie-eaten-display').innerText = fmt(totalKcal);
             document.getElementById('calorie-left-display').innerText = fmt(Math.abs(remaining));
             document.getElementById('calorie-left-label').innerText = remaining >= 0 ? 'Left' : 'Over';
@@ -2214,6 +2339,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const prev = new Date(dateKey + 'T12:00:00');
             prev.setDate(prev.getDate() - 1);
             copyBtn.classList.toggle('hidden', !(itemCount === 0 && dayTotals(localDateKey(prev)).calories > 0));
+            renderExerciseSection();
+            renderWaterSection();
 
             const macroRows = [['protein', totalP], ['carbs', totalC], ['fats', totalF]];
             macroRows.forEach(([key, value]) => {
@@ -2320,8 +2447,18 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         function renderSmartSuggestionSlot(meal) {
             const container = document.getElementById(`suggestion-slot-${meal}`);
             container.innerHTML = '';
+            const count = (getDayLog().meals?.[meal] || []).length;
+            if (count >= 2) {
+                const save = document.createElement('button');
+                save.type = 'button';
+                save.className = 'suggest';
+                save.onclick = () => openSaveMealModal(meal);
+                save.innerHTML = '<i class="fa-regular fa-bookmark"></i><span>Save as a meal to log it again in one tap</span>';
+                container.appendChild(save);
+                return;
+            }
             // Only suggest for an empty meal, so logged days stay uncluttered.
-            if ((getDayLog().meals?.[meal] || []).length) return;
+            if (count) return;
             const favorite = getSuggestionsForMeal(meal)[0];
             if (!favorite) return;
 
@@ -2958,6 +3095,13 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             document.getElementById('fasting-progress-ring').style.strokeDashoffset = 213.6 - (pct / 100) * 213.6;
         }
 
+        function setStreakText(current, best) {
+            document.getElementById('streak-count').innerText = current;
+            document.getElementById('streak-best').innerText = best;
+            document.getElementById('streak-unit').innerText = current === 1 ? 'day' : 'days';
+            document.getElementById('streak-best-unit').innerText = best === 1 ? ' day' : ' days';
+        }
+
         // --- STREAK COUNTER ---
         function calculateStreak() {
             const logDates = Object.keys(appState.dailyLogs || {}).filter(d => {
@@ -2968,8 +3112,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             }).sort();
 
             if (logDates.length === 0) {
-                document.getElementById('streak-count').innerText = 0;
-                document.getElementById('streak-best').innerText = appState.bestStreak || 0;
+                setStreakText(0, appState.bestStreak || 0);
                 return;
             }
 
@@ -2998,8 +3141,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
 
             const bestStreak = Math.max(appState.bestStreak || 0, currentStreak, maxContig);
             appState.bestStreak = bestStreak;
-            document.getElementById('streak-count').innerText = currentStreak;
-            document.getElementById('streak-best').innerText = bestStreak;
+            setStreakText(currentStreak, bestStreak);
         }
 
         // --- MACRO SPLIT DONUT ---
@@ -3227,6 +3369,9 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const list = document.getElementById('often-logged-list');
             const header = document.getElementById('often-logged-header');
             list.innerHTML = '';
+            const savedBox = document.getElementById('saved-meals-list');
+            savedBox.innerHTML = '';
+            renderSavedMealsList(savedBox);
             const seen = new Set();
             const foods = [...getSuggestionsForMeal(meal), ...getRecentFoods(12)].filter(f => {
                 const key = (f.name || '').toLowerCase();
@@ -3798,16 +3943,24 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 closeNutritionFactsModal();
                 return;
             }
+            let updated;
             try {
-                entries[index] = scaleFoodPortion(food, Number(document.getElementById('label-portion-amount').value));
+                updated = scaleFoodPortion(food, Number(document.getElementById('label-portion-amount').value));
             } catch (error) {
                 document.getElementById('label-portion-error').textContent = error.message;
                 return;
             }
+            const targetMeal = activeDiaryPortion.targetMeal || meal;
+            if (targetMeal !== meal && MEAL_KEYS.includes(targetMeal)) {
+                entries.splice(index, 1);
+                ensureDayLog(date).meals[targetMeal].push(updated);
+            } else {
+                entries[index] = updated;
+            }
             saveStateToLocalStorage();
             closeNutritionFactsModal();
             renderAll();
-            showToast('Amount updated.');
+            showToast(targetMeal !== meal ? `Moved to ${MEAL_LABELS[targetMeal].toLowerCase()}.` : 'Entry updated.');
         }
 
         function openNutritionLabel(food, diaryContext = null) {
@@ -3817,6 +3970,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             activeDiaryPortion = diaryContext ? { ...diaryContext, food: JSON.parse(JSON.stringify(food)) } : null;
             document.getElementById('label-portion-controls').classList.toggle('hidden', !activeDiaryPortion);
             document.getElementById('label-entry-actions').classList.toggle('hidden', !activeDiaryPortion);
+            document.getElementById('label-meal-field').classList.toggle('hidden', !activeDiaryPortion);
+            if (activeDiaryPortion) setSegActive('label-meal-seg', activeDiaryPortion.meal);
             document.getElementById('label-portion-error').textContent = '';
             document.getElementById('label-portion-save').disabled = false;
             if (activeDiaryPortion) {
@@ -3862,6 +4017,30 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 p.innerText = 'No vitamin or mineral data for this food.';
                 container.appendChild(p);
             }
+        }
+
+        function setEntryMeal(meal) {
+            if (!activeDiaryPortion) return;
+            activeDiaryPortion.targetMeal = meal;
+            setSegActive('label-meal-seg', meal);
+        }
+
+        function duplicateActiveDiaryEntry() {
+            if (!activeDiaryPortion) return;
+            let copy;
+            try {
+                copy = scaleFoodPortion(activeDiaryPortion.food, Number(document.getElementById('label-portion-amount').value));
+            } catch (error) {
+                document.getElementById('label-portion-error').textContent = error.message;
+                return;
+            }
+            const { date } = activeDiaryPortion;
+            const meal = activeDiaryPortion.targetMeal || activeDiaryPortion.meal;
+            closeNutritionFactsModal();
+            const previous = appState.currentDate;
+            appState.currentDate = date;
+            logFood(copy, meal);
+            appState.currentDate = previous;
         }
 
         function removeActiveDiaryEntry() {
@@ -4619,6 +4798,638 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         }
 
 
+
+        // =========================================================================
+        // HEALTH DATA IMPORT
+        // Google does not currently onboard new apps to the Google Health API, so
+        // MacroFlow imports the files people can download themselves: Google Takeout
+        // (Google Health / Fitbit / Google Fit) or any app's CSV/JSON export.
+        // Column detection is heuristic and every import is previewed first.
+        // =========================================================================
+        const FFLATE_URL = 'https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js';
+        const HEALTH_FILE_HINT = /(step|calor|energy|weight|body|activity|daily|metrics|summary)/i;
+        const HEALTH_FILE_SKIP = /(heart|sleep|spo2|oxygen|temperature|ecg|hrv|respirat|location|stress|menstr|mindful|exercise-\d|sedentary|altitude|swim|zone)/i;
+        const MAX_IMPORT_BYTES = 400 * 1024 * 1024;
+
+        function parseCsv(text) {
+            const rows = [];
+            let row = [], field = '', inQuotes = false;
+            const src = String(text).replace(/^﻿/, '');
+            const delimiter = (() => {
+                const firstLine = src.split(/\r?\n/, 1)[0] || '';
+                const counts = [',', ';', '\t'].map(d => [d, firstLine.split(d).length]);
+                counts.sort((a, b) => b[1] - a[1]);
+                return counts[0][1] > 1 ? counts[0][0] : ',';
+            })();
+            for (let i = 0; i < src.length; i++) {
+                const ch = src[i];
+                if (inQuotes) {
+                    if (ch === '"' && src[i + 1] === '"') { field += '"'; i++; }
+                    else if (ch === '"') inQuotes = false;
+                    else field += ch;
+                } else if (ch === '"') inQuotes = true;
+                else if (ch === delimiter) { row.push(field); field = ''; }
+                else if (ch === '\n' || ch === '\r') {
+                    if (ch === '\r' && src[i + 1] === '\n') i++;
+                    row.push(field); field = '';
+                    if (row.some(v => v.trim() !== '')) rows.push(row);
+                    row = [];
+                } else field += ch;
+            }
+            row.push(field);
+            if (row.some(v => v.trim() !== '')) rows.push(row);
+            return rows;
+        }
+
+        // Returns a local YYYY-MM-DD key, or null when the value is not a date.
+        function parseHealthDate(value) {
+            if (value === null || value === undefined || value === '') return null;
+            if (typeof value === 'number' || /^\d{10,13}$/.test(String(value).trim())) {
+                const n = Number(value);
+                const d = new Date(n < 1e12 ? n * 1000 : n);
+                return Number.isNaN(d.getTime()) ? null : localDateKey(d);
+            }
+            const s = String(value).trim();
+            let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/) || s.match(/^(\d{4})(\d{2})(\d{2})$/);
+            if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+            m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+            if (m) {
+                // Timestamps with a zone are converted to the local day; naive ones keep their date.
+                if (/(Z|[+-]\d{2}:?\d{2})$/.test(s)) {
+                    const d = new Date(s);
+                    if (!Number.isNaN(d.getTime())) return localDateKey(d);
+                }
+                return `${m[1]}-${m[2]}-${m[3]}`;
+            }
+            m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/); // US M/D/Y (Fitbit exports)
+            if (m) {
+                const year = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+                const month = Number(m[1]), day = Number(m[2]);
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+            m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\b/); // D.M.Y
+            if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+            const d = new Date(s);
+            if (!Number.isNaN(d.getTime()) && /[a-z]/i.test(s) && /\d{4}/.test(s)) return localDateKey(d);
+            return null;
+        }
+
+        function healthNumber(value) {
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+            const n = Number(String(value).replace(/,/g, '').trim());
+            return String(value).trim() !== '' && Number.isFinite(n) ? n : null;
+        }
+
+        // Identify which metric a column or field name holds.
+        function classifyHealthField(name, fileName = '') {
+            const n = String(name).toLowerCase();
+            const f = String(fileName).toLowerCase();
+            if (/goal|target|max|min|minutes|distance|floors|elevation|heart|bpm|bmi|fat|water|sodium|protein|carb/.test(n)) {
+                if (!/^(average weight|weight)/.test(n)) return null;
+            }
+            if (/step/.test(n)) return { metric: 'steps' };
+            if (/(calor|kcal|energy)/.test(n) && !/(intake|consum|eaten|food|in\b|bmr|basal|resting)/.test(n)) {
+                return { metric: 'calories', kind: /active|exercise|workout|activity/.test(n) ? 'active' : /total|burn|out/.test(n) ? 'total' : null };
+            }
+            if (/weight|body mass/.test(n) && !/(max|min|goal|lean)/.test(n)) {
+                return { metric: 'weight', unit: /\bkg\b|kilo|\(kg\)/.test(n) ? 'kg' : /\blbs?\b|pound/.test(n) ? 'lbs' : null };
+            }
+            if (n === 'value') {
+                if (/step/.test(f)) return { metric: 'steps' };
+                if (/calor|energy/.test(f)) return { metric: 'calories', kind: /active/.test(f) ? 'active' : null };
+                if (/weight/.test(f)) return { metric: 'weight', unit: null };
+            }
+            return null;
+        }
+
+        const DATE_FIELD = /^(date|day|datetime|date ?time|start ?time|start_time|starttime|timestamp|time|start|summary date|calendar date)$/i;
+
+        function pickDateField(names) {
+            return names.find(n => DATE_FIELD.test(String(n).trim()))
+                || names.find(n => /date|day/i.test(n) && !/update|birth/i.test(n))
+                || names.find(n => /time/i.test(n));
+        }
+
+        // Parses one file into per-day values: { days: {date: {steps, calories, weight}}, meta }.
+        function parseHealthFile(fileName, text) {
+            const result = { days: {}, metrics: new Set(), caloriesKind: null, weightUnit: null, rows: 0, file: fileName };
+            const add = (date, metric, value, mode) => {
+                if (!date || value === null || value < 0) return;
+                const day = result.days[date] || (result.days[date] = {});
+                if (mode === 'last') day[metric] = value;
+                else day[metric] = (day[metric] || 0) + value;
+                result.metrics.add(metric);
+                result.rows++;
+            };
+            const trimmed = String(text).trim();
+            if (/^[\[{]/.test(trimmed)) {
+                let data;
+                try { data = JSON.parse(trimmed); } catch (e) { return result; }
+                const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data
+                    : Object.values(data || {}).find(v => Array.isArray(v) && v.length && typeof v[0] === 'object') || [];
+                if (!list.length || typeof list[0] !== 'object') return result;
+                const keys = Object.keys(list[0]);
+                const dateKey = pickDateField(keys);
+                const fields = keys.map(k => [k, classifyHealthField(k, fileName)]).filter(([, c]) => c);
+                for (const [, c] of fields) {
+                    if (c.metric === 'calories' && c.kind) result.caloriesKind = c.kind;
+                    if (c.metric === 'weight' && c.unit) result.weightUnit = c.unit;
+                }
+                for (const item of list) {
+                    const date = parseHealthDate(item[dateKey] ?? item.date);
+                    for (const [k, c] of fields) {
+                        const v = healthNumber(item[k]?.value ?? item[k]);
+                        add(date, c.metric, v, c.metric === 'weight' ? 'last' : 'sum');
+                    }
+                }
+                return result;
+            }
+            const rows = parseCsv(text);
+            if (rows.length < 2) return result;
+            // Some exports put a title line above the header: use the first row with a date-like column name.
+            let headerIndex = rows.findIndex(r => pickDateField(r.map(c => c.trim())));
+            if (headerIndex < 0) headerIndex = 0;
+            const header = rows[headerIndex].map(h => h.trim());
+            const dateCol = header.indexOf(pickDateField(header));
+            if (dateCol < 0) return result;
+            const cols = header.map((h, i) => [i, classifyHealthField(h, fileName)]).filter(([, c]) => c);
+            // Prefer "Average weight" when min/max/average columns all exist.
+            const weightCols = cols.filter(([, c]) => c.metric === 'weight');
+            const keepCols = cols.filter(([i, c]) => c.metric !== 'weight' || weightCols.length < 2 || /average|^weight/i.test(header[i]));
+            for (const [i, c] of keepCols) {
+                if (c.metric === 'calories' && c.kind) result.caloriesKind = c.kind;
+                if (c.metric === 'weight' && c.unit) result.weightUnit = c.unit;
+            }
+            // When several calorie columns exist, keep one (active preferred, else total).
+            const calCols = keepCols.filter(([, c]) => c.metric === 'calories');
+            const chosenCal = calCols.find(([, c]) => c.kind === 'active') || calCols.find(([, c]) => c.kind === 'total') || calCols[0];
+            const finalCols = keepCols.filter(([i, c]) => c.metric !== 'calories' || (chosenCal && i === chosenCal[0]));
+            if (chosenCal) result.caloriesKind = chosenCal[1].kind || result.caloriesKind;
+            for (const r of rows.slice(headerIndex + 1)) {
+                const date = parseHealthDate(r[dateCol]);
+                for (const [i, c] of finalCols) add(date, c.metric, healthNumber(r[i]), c.metric === 'weight' ? 'last' : 'sum');
+            }
+            return result;
+        }
+
+        // Merges parsed files. Overlapping sources for the same day keep the larger value.
+        function mergeHealthResults(results) {
+            const days = {};
+            let caloriesKind = null, weightUnit = null;
+            const files = [];
+            for (const r of results) {
+                if (!r.rows) continue;
+                files.push(r.file);
+                caloriesKind = caloriesKind || r.caloriesKind;
+                weightUnit = weightUnit || r.weightUnit;
+                for (const [date, values] of Object.entries(r.days)) {
+                    const day = days[date] || (days[date] = {});
+                    for (const [metric, v] of Object.entries(values)) {
+                        day[metric] = metric === 'weight' ? v : Math.max(day[metric] || 0, v);
+                    }
+                }
+            }
+            const summary = { days, files, caloriesKind, weightUnit, counts: { steps: 0, calories: 0, weight: 0 }, from: null, to: null };
+            for (const [date, v] of Object.entries(days)) {
+                for (const metric of Object.keys(summary.counts)) if (v[metric] !== undefined) summary.counts[metric]++;
+                if (!summary.from || date < summary.from) summary.from = date;
+                if (!summary.to || date > summary.to) summary.to = date;
+            }
+            // Guess what the calorie numbers mean when the source did not say.
+            if (!summary.caloriesKind && summary.counts.calories) {
+                const values = Object.values(days).map(d => d.calories).filter(v => v > 0).sort((a, b) => a - b);
+                summary.caloriesKind = values[Math.floor(values.length / 2)] > 1200 ? 'total' : 'active';
+            }
+            if (!summary.weightUnit && summary.counts.weight) {
+                const values = Object.values(days).map(d => d.weight).filter(v => v > 0);
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                summary.weightUnit = avg > 140 ? 'lbs' : (appState.bodyProfile.unit === 'kg' || avg < 90 ? 'kg' : 'lbs');
+            }
+            return summary;
+        }
+
+        function applyHealthImport(summary, { caloriesKind = summary.caloriesKind, weightUnit = summary.weightUnit } = {}) {
+            if (!appState.activity) appState.activity = {};
+            const userUnit = appState.bodyProfile.unit || 'lbs';
+            let weightCount = 0;
+            for (const [date, v] of Object.entries(summary.days)) {
+                const activity = appState.activity[date] || {};
+                if (v.steps !== undefined) activity.steps = Math.round(v.steps);
+                if (v.calories !== undefined && caloriesKind === 'total') activity.caloriesOut = Math.round(v.calories);
+                if (Object.keys(activity).length) appState.activity[date] = { ...activity, source: 'import' };
+                if (v.calories !== undefined && caloriesKind === 'active') {
+                    const log = ensureDayLog(date);
+                    if (!Array.isArray(log.exercise)) log.exercise = [];
+                    log.exercise = log.exercise.filter(e => e.source !== 'import');
+                    if (v.calories > 0) log.exercise.push({ id: `import-${date}`, name: 'Activity from your tracker', calories: Math.round(v.calories), minutes: null, source: 'import' });
+                }
+                if (v.weight !== undefined && v.weight > 0) {
+                    let value = v.weight;
+                    if (weightUnit === 'kg' && userUnit === 'lbs') value *= 2.20462;
+                    if (weightUnit === 'lbs' && userUnit === 'kg') value /= 2.20462;
+                    value = Math.round(value * 10) / 10;
+                    appState.weightHistory = (appState.weightHistory || []).filter(x => x.date !== date);
+                    appState.weightHistory.push({ date, value, unit: userUnit, source: 'import' });
+                    weightCount++;
+                }
+            }
+            if (weightCount) appState.weightHistory.sort((a, b) => a.date.localeCompare(b.date));
+            appState.lastHealthImport = { at: new Date().toISOString(), files: summary.files.length, from: summary.from, to: summary.to, counts: summary.counts, caloriesKind };
+            saveStateToLocalStorage();
+        }
+
+        function removeImportedHealthData() {
+            if (!confirm('Remove all imported steps, calories burned and imported weights? Your food log and manual entries stay.')) return;
+            appState.activity = {};
+            Object.values(appState.dailyLogs || {}).forEach(log => { if (Array.isArray(log.exercise)) log.exercise = log.exercise.filter(e => e.source !== 'import'); });
+            appState.weightHistory = (appState.weightHistory || []).filter(x => x.source !== 'import');
+            appState.lastHealthImport = null;
+            saveStateToLocalStorage();
+            renderAll();
+            renderHealthImportStatus();
+            showToast('Imported health data removed.');
+        }
+
+        // --- Import UI -----------------------------------------------------------
+        let pendingHealthImport = null;
+
+        function triggerHealthImport() {
+            const input = document.getElementById('health-file-input');
+            input.value = '';
+            input.click();
+        }
+
+        async function readHealthFiles(fileList) {
+            const results = [];
+            const skipped = [];
+            for (const file of fileList) {
+                if (file.size > MAX_IMPORT_BYTES) { skipped.push(`${file.name} (too large — unzip it and choose the steps/weight files)`); continue; }
+                if (/\.zip$/i.test(file.name)) {
+                    const fflate = await loadScriptGlobal(FFLATE_URL, 'fflate');
+                    const buffer = new Uint8Array(await file.arrayBuffer());
+                    const entries = fflate.unzipSync(buffer, {
+                        filter: f => /\.(csv|json)$/i.test(f.name) && HEALTH_FILE_HINT.test(f.name) && !HEALTH_FILE_SKIP.test(f.name) && f.originalSize < 60 * 1024 * 1024
+                    });
+                    const decoder = new TextDecoder();
+                    for (const [name, data] of Object.entries(entries)) results.push(parseHealthFile(name.split('/').pop(), decoder.decode(data)));
+                } else if (/\.(csv|json|txt)$/i.test(file.name)) {
+                    results.push(parseHealthFile(file.name, await file.text()));
+                } else {
+                    skipped.push(`${file.name} (not a CSV, JSON or ZIP file)`);
+                }
+            }
+            return { results, skipped };
+        }
+
+        async function onHealthFilesChosen(event) {
+            const files = Array.from(event.target.files || []);
+            if (!files.length) return;
+            showToast('Reading your files…');
+            try {
+                const { results, skipped } = await readHealthFiles(files);
+                const summary = mergeHealthResults(results);
+                if (!summary.files.length) {
+                    showToast(`No steps, calories or weight found${skipped.length ? `. Skipped: ${skipped.join(', ')}` : ''}. Choose the daily activity or weight files from your export.`, true);
+                    return;
+                }
+                pendingHealthImport = summary;
+                openHealthImportPreview(summary, skipped);
+            } catch (e) {
+                console.error('Health import failed:', e);
+                showToast(e.message || 'Could not read those files.', true);
+            }
+        }
+
+        function openHealthImportPreview(summary, skipped = []) {
+            const fmt = d => d ? formatDateShort(d) : '';
+            const lines = [];
+            if (summary.counts.steps) lines.push(['Steps', `${summary.counts.steps} days`]);
+            if (summary.counts.calories) lines.push(['Calories burned', `${summary.counts.calories} days`]);
+            if (summary.counts.weight) lines.push(['Weight', `${summary.counts.weight} entries`]);
+            document.getElementById('health-preview-range').innerText = `${fmt(summary.from)} – ${fmt(summary.to)} · from ${summary.files.length} file${summary.files.length === 1 ? '' : 's'}`;
+            document.getElementById('health-preview-list').innerHTML = lines.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')
+                + (skipped.length ? `<p class="small faint mt-2">Skipped: ${escapeHTML(skipped.join('; '))}</p>` : '');
+            document.getElementById('health-calories-field').classList.toggle('hidden', !summary.counts.calories);
+            document.getElementById('health-calories-kind').value = summary.caloriesKind || 'total';
+            document.getElementById('health-weight-field').classList.toggle('hidden', !summary.counts.weight);
+            document.getElementById('health-weight-unit').value = summary.weightUnit || 'kg';
+            const latest = Object.keys(summary.days).sort().reverse().slice(0, 3).map(date => {
+                const v = summary.days[date];
+                return `<div class="row"><span>${fmt(date)}</span><span>${[v.steps !== undefined ? `${Math.round(v.steps).toLocaleString('en-US')} steps` : '', v.calories !== undefined ? `${Math.round(v.calories).toLocaleString('en-US')} kcal` : '', v.weight !== undefined ? `${v.weight} ${summary.weightUnit}` : ''].filter(Boolean).join(' · ')}</span></div>`;
+            }).join('');
+            document.getElementById('health-preview-sample').innerHTML = latest;
+            showOverlay('modal-health-import');
+        }
+
+        function closeHealthImport() {
+            hideOverlay('modal-health-import');
+            pendingHealthImport = null;
+        }
+
+        function confirmHealthImport() {
+            if (!pendingHealthImport) return;
+            const options = {
+                caloriesKind: document.getElementById('health-calories-kind').value,
+                weightUnit: document.getElementById('health-weight-unit').value
+            };
+            const counts = pendingHealthImport.counts;
+            applyHealthImport(pendingHealthImport, options);
+            closeHealthImport();
+            renderAll();
+            renderHealthImportStatus();
+            if (appState.activeTab === 'progress') setProgressSubTab(appState.progressSubTab);
+            showToast(`Imported ${[counts.steps ? `${counts.steps} days of steps` : '', counts.calories ? `${counts.calories} days of calories` : '', counts.weight ? `${counts.weight} weights` : ''].filter(Boolean).join(', ')}.`);
+        }
+
+        function renderHealthImportStatus() {
+            const el = document.getElementById('health-import-status');
+            if (!el) return;
+            const last = appState.lastHealthImport;
+            el.innerText = last ? `Last import ${new Date(last.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${formatDateShort(last.from)} – ${formatDateShort(last.to)}` : 'No data imported yet.';
+            document.getElementById('health-remove-btn').classList.toggle('hidden', !last);
+        }
+
+
+        // =========================================================================
+        // EXERCISE
+        // =========================================================================
+        const EXERCISE_TYPES = [
+            ['Walking', 3.5], ['Brisk walking', 4.3], ['Running', 9.8], ['Cycling', 7.5], ['Strength training', 5.0],
+            ['Swimming', 7.0], ['HIIT', 8.0], ['Yoga', 2.5], ['Hiking', 6.0], ['Sports', 7.0], ['Dancing', 5.0], ['Other', 5.0]
+        ];
+        let exerciseEditing = null;
+        let exerciseCaloriesTouched = false;
+
+        function getDayExercise(dateKey = appState.currentDate) {
+            const list = appState.dailyLogs[dateKey]?.exercise;
+            return Array.isArray(list) ? list : [];
+        }
+
+        function exerciseCaloriesFor(dateKey = appState.currentDate) {
+            return getDayExercise(dateKey).reduce((sum, e) => sum + (Number(e.calories) || 0), 0);
+        }
+
+        // The calorie goal for a day, optionally raised by that day's exercise.
+        function dayGoal(dateKey = appState.currentDate) {
+            const base = appState.targets.calories || 2000;
+            return appState.settings?.exerciseAddsToGoal ? base + exerciseCaloriesFor(dateKey) : base;
+        }
+
+        function currentWeightKg() {
+            const history = (appState.weightHistory || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+            const latest = history.length ? history[history.length - 1] : null;
+            const value = latest ? latest.value : (appState.bodyProfile.weight || 165);
+            const unit = latest ? (latest.unit || appState.bodyProfile.unit) : 'lbs';
+            return unit === 'kg' ? value : value / 2.20462;
+        }
+
+        function estimateExerciseKcal(type, minutes) {
+            const met = (EXERCISE_TYPES.find(t => t[0] === type) || ['Other', 5])[1];
+            return Math.round(met * currentWeightKg() * (minutes / 60));
+        }
+
+        function openExerciseModal(editId = null) {
+            const select = document.getElementById('exercise-type');
+            if (!select.options.length) select.innerHTML = EXERCISE_TYPES.map(([name]) => `<option>${name}</option>`).join('');
+            exerciseEditing = editId ? getDayExercise().find(e => e.id === editId) || null : null;
+            exerciseCaloriesTouched = Boolean(exerciseEditing);
+            document.getElementById('exercise-title').innerText = exerciseEditing ? 'Edit exercise' : 'Log exercise';
+            document.getElementById('exercise-remove-btn').classList.toggle('hidden', !exerciseEditing);
+            const known = exerciseEditing && EXERCISE_TYPES.some(t => t[0] === exerciseEditing.name);
+            select.value = exerciseEditing ? (known ? exerciseEditing.name : 'Other') : 'Walking';
+            document.getElementById('exercise-name').value = exerciseEditing && !known ? exerciseEditing.name : '';
+            document.getElementById('exercise-name-field').classList.toggle('hidden', select.value !== 'Other');
+            document.getElementById('exercise-minutes').value = exerciseEditing?.minutes ?? 30;
+            document.getElementById('exercise-calories').value = exerciseEditing?.calories ?? '';
+            if (!exerciseEditing) estimateExerciseCalories();
+            showOverlay('modal-exercise');
+        }
+
+        function onExerciseTypeChange() {
+            document.getElementById('exercise-name-field').classList.toggle('hidden', document.getElementById('exercise-type').value !== 'Other');
+            estimateExerciseCalories();
+        }
+
+        function estimateExerciseCalories() {
+            if (exerciseCaloriesTouched) return;
+            const minutes = Number(document.getElementById('exercise-minutes').value);
+            if (minutes > 0) document.getElementById('exercise-calories').value = estimateExerciseKcal(document.getElementById('exercise-type').value, minutes);
+        }
+
+        function closeExerciseModal() {
+            hideOverlay('modal-exercise');
+            exerciseEditing = null;
+        }
+
+        function saveExercise() {
+            const type = document.getElementById('exercise-type').value;
+            const name = type === 'Other' ? (document.getElementById('exercise-name').value.trim() || 'Exercise') : type;
+            const minutes = Number(document.getElementById('exercise-minutes').value) || null;
+            const calories = Math.round(Number(document.getElementById('exercise-calories').value));
+            if (!(calories >= 0) || document.getElementById('exercise-calories').value === '') return showToast('Enter the calories burned.', true);
+            const log = ensureDayLog();
+            if (!Array.isArray(log.exercise)) log.exercise = [];
+            if (exerciseEditing) {
+                Object.assign(log.exercise.find(e => e.id === exerciseEditing.id) || {}, { name, minutes, calories, source: 'manual' });
+            } else {
+                log.exercise.push({ id: createDiaryEntryId(), name, minutes, calories, source: 'manual' });
+            }
+            closeExerciseModal();
+            saveStateToLocalStorage();
+            renderAll();
+            showToast(`${name} · ${calories} kcal ${appState.settings?.exerciseAddsToGoal ? 'added to your goal' : 'logged'}.`);
+        }
+
+        function removeExercise() {
+            if (!exerciseEditing) return;
+            const log = ensureDayLog();
+            log.exercise = (log.exercise || []).filter(e => e.id !== exerciseEditing.id);
+            closeExerciseModal();
+            saveStateToLocalStorage();
+            renderAll();
+            showToast('Exercise removed.');
+        }
+
+        function renderExerciseSection() {
+            const list = document.getElementById('exercise-list');
+            list.innerHTML = '';
+            const entries = getDayExercise();
+            entries.forEach(e => {
+                const row = document.createElement('div');
+                row.className = 'entry';
+                row.innerHTML = `
+                    <button type="button" class="entry-main" aria-label="Edit ${escapeHTML(e.name)}">
+                        <p class="entry-name">${escapeHTML(e.name)}</p>
+                        <p class="entry-meta">${[e.minutes ? `${e.minutes} min` : '', e.source === 'import' ? 'Imported' : ''].filter(Boolean).join(' · ')}</p>
+                    </button>
+                    <span class="entry-kcal">−${Number(e.calories || 0).toLocaleString('en-US')}</span>`;
+                row.onclick = () => openExerciseModal(e.id);
+                list.appendChild(row);
+            });
+            const total = exerciseCaloriesFor();
+            document.getElementById('exercise-kcal').innerText = total ? `${total.toLocaleString('en-US')} kcal` : '';
+            const activity = appState.activity?.[appState.currentDate];
+            const stepsLine = document.getElementById('steps-line');
+            const parts = [];
+            if (activity?.steps !== undefined) parts.push(`${Number(activity.steps).toLocaleString('en-US')} steps`);
+            if (activity?.caloriesOut) parts.push(`${Number(activity.caloriesOut).toLocaleString('en-US')} kcal burned in total`);
+            stepsLine.innerText = parts.length ? `${parts.join(' · ')} (imported)` : '';
+            stepsLine.classList.toggle('hidden', !parts.length);
+            const note = document.getElementById('exercise-goal-note');
+            note.classList.toggle('hidden', !total || Boolean(appState.settings?.exerciseAddsToGoal));
+        }
+
+        // =========================================================================
+        // WATER
+        // =========================================================================
+        function addWater(liters) {
+            const log = ensureDayLog();
+            log.water = Math.max(0, Math.round(((log.water || 0) + liters) * 1000) / 1000);
+            saveStateToLocalStorage();
+            renderWaterSection();
+            calculateStreak();
+            renderWeekStrip();
+        }
+
+        function renderWaterSection() {
+            const target = Number(appState.targets.water) || 2.5;
+            const water = getDayLog().water || 0;
+            document.getElementById('water-amount').innerText = `${formatAmount(water)} of ${formatAmount(target)} L`;
+            document.getElementById('water-bar').style.width = `${Math.min(100, (water / target) * 100)}%`;
+            document.getElementById('water-minus').disabled = water <= 0;
+        }
+
+        // =========================================================================
+        // SAVED MEALS
+        // =========================================================================
+        let saveMealSource = null;
+
+        function openSaveMealModal(meal) {
+            const foods = getDayLog().meals?.[meal] || [];
+            if (foods.length < 2) return;
+            saveMealSource = { meal, foods: JSON.parse(JSON.stringify(foods)) };
+            const firstWords = foods.slice(0, 2).map(f => f.name.split(/[,(]/)[0].trim()).join(' & ');
+            document.getElementById('save-meal-name').value = firstWords.length > 40 ? `My ${MEAL_LABELS[meal].toLowerCase()}` : firstWords;
+            document.getElementById('save-meal-summary').innerText = `${foods.length} items · ${foods.reduce((s, f) => s + (f.calories || 0), 0).toLocaleString('en-US')} kcal`;
+            showOverlay('modal-save-meal');
+            document.getElementById('save-meal-name').select?.();
+        }
+
+        function closeSaveMealModal() {
+            hideOverlay('modal-save-meal');
+            saveMealSource = null;
+        }
+
+        function confirmSaveMeal() {
+            if (!saveMealSource) return;
+            const name = document.getElementById('save-meal-name').value.trim() || `My ${MEAL_LABELS[saveMealSource.meal].toLowerCase()}`;
+            if (!appState.savedMeals) appState.savedMeals = [];
+            appState.savedMeals.unshift({
+                id: createDiaryEntryId(),
+                name,
+                items: saveMealSource.foods.map(({ id, timestamp, portionBase, ...food }) => food),
+                createdAt: Date.now()
+            });
+            closeSaveMealModal();
+            saveStateToLocalStorage();
+            showToast(`Saved "${name}". Find it under My meals when adding food.`);
+        }
+
+        function logSavedMeal(mealId, meal = currentSearchMealSlot) {
+            const saved = (appState.savedMeals || []).find(m => m.id === mealId);
+            if (!saved) return;
+            saved.items.forEach(food => logFood(food, meal, { silent: true }));
+            saved.lastUsedAt = Date.now();
+            saveStateToLocalStorage();
+            showToast(`Added ${saved.name} (${saved.items.length} items) to ${MEAL_LABELS[meal].toLowerCase()}.`);
+            if (isOverlayOpen('modal-food-search')) closeFoodSearchModal();
+        }
+
+        function deleteSavedMeal(mealId) {
+            const saved = (appState.savedMeals || []).find(m => m.id === mealId);
+            if (!saved || !confirm(`Delete the saved meal "${saved.name}"?`)) return;
+            appState.savedMeals = appState.savedMeals.filter(m => m.id !== mealId);
+            saveStateToLocalStorage();
+            renderOftenLoggedSection();
+        }
+
+        function renderSavedMealsList(container) {
+            const meals = (appState.savedMeals || []).slice().sort((a, b) => (b.lastUsedAt || b.createdAt || 0) - (a.lastUsedAt || a.createdAt || 0));
+            if (!meals.length) return;
+            const label = document.createElement('p');
+            label.className = 'list-label mb-1';
+            label.innerText = 'My meals';
+            container.appendChild(label);
+            meals.forEach(m => {
+                const kcal = m.items.reduce((s, f) => s + (f.calories || 0), 0);
+                const row = document.createElement('div');
+                row.className = 'result';
+                row.innerHTML = `
+                    <div class="result-main">
+                        <p class="result-name">${escapeHTML(m.name)}</p>
+                        <p class="result-meta">${m.items.length} items · ${escapeHTML(m.items.map(f => f.name.split(/[,(]/)[0].trim()).slice(0, 3).join(', '))}</p>
+                    </div>
+                    <div class="result-kcal"><b>${kcal.toLocaleString('en-US')}</b><span>kcal</span></div>
+                    <button type="button" class="icon-btn saved-del" aria-label="Delete ${escapeHTML(m.name)}"><i class="fa-regular fa-trash-can"></i></button>
+                    <button type="button" class="result-add" aria-label="Add ${escapeHTML(m.name)}"><i class="fa-solid fa-plus"></i></button>`;
+                row.querySelector('.result-add').onclick = e => { e.stopPropagation(); logSavedMeal(m.id); };
+                row.querySelector('.saved-del').onclick = e => { e.stopPropagation(); deleteSavedMeal(m.id); };
+                row.onclick = () => logSavedMeal(m.id);
+                container.appendChild(row);
+            });
+            const spacer = document.createElement('div');
+            spacer.style.height = '20px';
+            container.appendChild(spacer);
+        }
+
+        // =========================================================================
+        // WEEKLY REPORT (Insights)
+        // =========================================================================
+        function weeklyReport(endKey = localDateKey(), days = 7) {
+            const end = new Date(endKey + 'T12:00:00');
+            const rows = [];
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(end);
+                d.setDate(end.getDate() - i);
+                const key = localDateKey(d);
+                const totals = dayTotals(key);
+                rows.push({ key, ...totals, goal: dayGoal(key), steps: appState.activity?.[key]?.steps, burned: appState.activity?.[key]?.caloriesOut, exercise: exerciseCaloriesFor(key) });
+            }
+            const logged = rows.filter(r => r.calories > 0);
+            const avg = (list, key) => list.length ? list.reduce((s, r) => s + (r[key] || 0), 0) / list.length : 0;
+            const withSteps = rows.filter(r => r.steps !== undefined);
+            const withBurn = rows.filter(r => r.burned && r.calories > 0);
+            return {
+                daysLogged: logged.length,
+                days,
+                avgCalories: Math.round(avg(logged, 'calories')),
+                avgGoal: Math.round(avg(logged.length ? logged : rows, 'goal')),
+                avgProtein: Math.round(avg(logged, 'protein')),
+                onTarget: logged.filter(r => Math.abs(r.calories - r.goal) <= r.goal * 0.1).length,
+                avgSteps: withSteps.length ? Math.round(avg(withSteps, 'steps')) : null,
+                avgBalance: withBurn.length ? Math.round(withBurn.reduce((s, r) => s + (r.calories - r.burned), 0) / withBurn.length) : null,
+                totalExercise: rows.reduce((s, r) => s + r.exercise, 0)
+            };
+        }
+
+        function renderWeeklyReport() {
+            const el = document.getElementById('weekly-report');
+            if (!el) return;
+            const r = weeklyReport();
+            const fmt = n => Number(n).toLocaleString('en-US');
+            const rows = [
+                ['Days logged', `${r.daysLogged} of ${r.days}`],
+                ['Average intake', r.daysLogged ? `${fmt(r.avgCalories)} kcal <span class="faint">/ ${fmt(r.avgGoal)} goal</span>` : '—'],
+                ['Days within 10% of goal', r.daysLogged ? `${r.onTarget}` : '—'],
+                ['Average protein', r.daysLogged ? `${r.avgProtein} g <span class="faint">/ ${appState.targets.protein} g</span>` : '—']
+            ];
+            if (r.totalExercise) rows.push(['Exercise', `${fmt(r.totalExercise)} kcal`]);
+            if (r.avgSteps !== null) rows.push(['Average steps', fmt(r.avgSteps)]);
+            if (r.avgBalance !== null) rows.push(['Average energy balance', `${r.avgBalance > 0 ? '+' : '−'}${fmt(Math.abs(r.avgBalance))} kcal/day <span class="faint">${r.avgBalance > 0 ? 'surplus' : 'deficit'}</span>`]);
+            el.innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('');
+        }
+
         // SETTINGS & PROFILE CONFIG
         function refreshGeminiStatus() {
             const badge = document.getElementById('gemini-status-badge');
@@ -4688,7 +5499,9 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             document.getElementById('settings-profile-activity').value = p.activityLevel || 'moderate';
             document.getElementById('settings-profile-goal').value = p.goal || 'recomp';
             document.getElementById('settings-gemini-key').value = '';
+            document.getElementById('settings-exercise-goal').checked = Boolean(appState.settings?.exerciseAddsToGoal);
             refreshGeminiStatus();
+            renderHealthImportStatus();
             if (!document.getElementById('form-micros-panel').classList.contains('hidden')) buildSettingsMicrosGrid();
         }
 
@@ -4716,6 +5529,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             p.weight = readNumber('settings-profile-weight', p.weight || 165, { min: 60, max: 700 });
             p.activityLevel = document.getElementById('settings-profile-activity').value;
             p.goal = document.getElementById('settings-profile-goal').value;
+            appState.settings = { ...(appState.settings || {}), exerciseAddsToGoal: document.getElementById('settings-exercise-goal').checked };
 
             if (!document.getElementById('form-micros-panel').classList.contains('hidden')) {
                 micronutrients.forEach(m => {
@@ -4962,7 +5776,10 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             'modal-custom-food': () => closeCustomFoodModal(),
             'modal-settings': () => closeSettingsModal(),
             'modal-nutrition-facts': () => closeNutritionFactsModal(),
-            'modal-scanner': () => closeScannerModal()
+            'modal-scanner': () => closeScannerModal(),
+            'modal-exercise': () => closeExerciseModal(),
+            'modal-save-meal': () => closeSaveMealModal(),
+            'modal-health-import': () => closeHealthImport()
         };
 
         document.addEventListener('keydown', event => {
@@ -4987,6 +5804,9 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
 
         function applyInitialUI() {
             if (!appState.expandedMeals) appState.expandedMeals = {};
+            if (!appState.settings) appState.settings = { exerciseAddsToGoal: false };
+            if (!appState.activity) appState.activity = {};
+            if (!Array.isArray(appState.savedMeals)) appState.savedMeals = [];
             [14, 30, 90].forEach(r => document.getElementById(`range-btn-${r}`).classList.toggle('is-active', r === (appState.progressRange || 30)));
             document.getElementById('enable-multi-add').checked = Boolean(appState.multiAddEnabled);
             setStrengthCheckRating(0);
