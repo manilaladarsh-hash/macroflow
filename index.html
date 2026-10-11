@@ -361,7 +361,9 @@
         .scan-laser { position: absolute; left: 8%; right: 8%; top: 50%; height: 2px; background: rgba(255,255,255,.85); animation: laser 2.2s ease-in-out infinite; }
         .scan-window.is-paused .scan-laser { display: none; }
         @keyframes laser { 0%, 100% { transform: translateY(-70px); opacity: .35; } 50% { transform: translateY(70px); opacity: .9; } }
-        .scan-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        .scan-tools { display: flex; gap: 8px; justify-content: flex-end; }
+        .scan-btn#scanner-zoom { font-size: 14px; font-weight: 600; }
+        .scan-top { position: absolute; top: 0; left: 0; right: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
             padding: calc(12px + var(--safe-top)) 14px 12px; background: linear-gradient(to bottom, rgba(0,0,0,.6), transparent); }
         .scan-top h2 { font-size: 17px; font-weight: 600; }
         .scan-btn { width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; background: rgba(255,255,255,.14); color: #fff; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-size: 16px; }
@@ -1141,8 +1143,11 @@
     <div class="scan-top">
         <button class="scan-btn" onclick="closeScannerModal()" aria-label="Close scanner"><i class="fa-solid fa-xmark"></i></button>
         <h2 id="scanner-title">Scan barcode</h2>
-        <button class="scan-btn hidden" id="scanner-torch" onclick="toggleTorch()" aria-label="Toggle flashlight" aria-pressed="false"><i class="fa-solid fa-bolt"></i></button>
-        <span class="w-[46px]" id="scanner-torch-spacer"></span>
+        <div class="scan-tools">
+            <button class="scan-btn hidden" id="scanner-zoom" onclick="cycleZoom()" aria-label="Zoom">1×</button>
+            <button class="scan-btn hidden" id="scanner-switch" onclick="switchCamera()" aria-label="Switch camera"><i class="fa-solid fa-camera-rotate"></i></button>
+            <button class="scan-btn hidden" id="scanner-torch" onclick="toggleTorch()" aria-label="Toggle flashlight" aria-pressed="false"><i class="fa-solid fa-bolt"></i></button>
+        </div>
     </div>
     <div class="scan-panel">
         <div class="inner">
@@ -3958,6 +3963,11 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         // GTIN check digit is valid and it was read in two separate frames.
         // =========================================================================
         const ZXING_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+        // ZXing-C++ compiled to WebAssembly (BarcodeDetector ponyfill). Reads UPC-E and
+        // damaged/blurred codes that the JavaScript ZXing port misses.
+        const BARCODE_WASM_URL = 'https://cdn.jsdelivr.net/npm/barcode-detector@3.2.2/dist/iife/ponyfill.min.js';
+        const CAMERA_PREF_KEY = 'macroflow_scanner_camera';
+        const SCAN_HINT = 'Hold the phone about 15–20 cm (6–8 in) away so the camera can focus, with the barcode inside the frame.';
         const RETAIL_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
         const SCAN_CONFIRMATIONS = 2;
         const SCAN_WINDOW_MS = 1500;
@@ -3973,7 +3983,10 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             reads: [],
             torchOn: false,
             canvas: null,
-            frames: 0
+            frames: 0,
+            devices: [],
+            zoomLevels: [],
+            zoomIndex: 0
         };
 
         // --- GTIN helpers ---------------------------------------------------------
@@ -4087,42 +4100,75 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         }
 
         // --- Decoders -------------------------------------------------------------
-        let zxingPromise = null;
-        function loadZXing() {
-            if (window.ZXing) return Promise.resolve(window.ZXing);
-            if (!zxingPromise) {
-                zxingPromise = new Promise((resolve, reject) => {
+        const scriptPromises = {};
+        function loadScriptGlobal(url, globalName) {
+            if (window[globalName]) return Promise.resolve(window[globalName]);
+            if (!scriptPromises[url]) {
+                scriptPromises[url] = new Promise((resolve, reject) => {
                     const script = document.createElement('script');
-                    script.src = ZXING_URL;
+                    script.src = url;
                     script.async = true;
                     script.crossOrigin = 'anonymous';
-                    script.onload = () => window.ZXing ? resolve(window.ZXing) : reject(new Error('Barcode library failed to load.'));
-                    script.onerror = () => { zxingPromise = null; reject(new Error('Could not download the barcode reader. Check your connection.')); };
+                    script.onload = () => window[globalName] ? resolve(window[globalName]) : reject(new Error('Barcode library failed to load.'));
+                    script.onerror = () => { delete scriptPromises[url]; reject(new Error('Could not download the barcode reader. Check your connection.')); };
                     document.head.appendChild(script);
                 });
             }
-            return zxingPromise;
+            return scriptPromises[url];
         }
 
-        async function createBarcodeDecoder() {
-            if ('BarcodeDetector' in window) {
-                try {
-                    const supported = await window.BarcodeDetector.getSupportedFormats();
-                    const formats = RETAIL_FORMATS.filter(f => supported.includes(f));
-                    if (formats.length >= 2) {
-                        const detector = new window.BarcodeDetector({ formats });
-                        return {
-                            kind: 'native',
-                            async detect(source) {
-                                const found = await detector.detect(source);
-                                return found.map(b => ({ text: b.rawValue, format: b.format }));
-                            }
-                        };
-                    }
-                } catch (e) {
-                    console.warn('BarcodeDetector unavailable, using ZXing.', e);
+        function loadZXing() {
+            return loadScriptGlobal(ZXING_URL, 'ZXing');
+        }
+
+        function withTimeout(promise, ms, message) {
+            let timer;
+            return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })])
+                .finally(() => clearTimeout(timer));
+        }
+
+        function wrapDetector(kind, detector) {
+            return {
+                kind,
+                async detect(source) {
+                    const found = await detector.detect(source);
+                    return found.map(b => ({ text: b.rawValue, format: b.format }));
                 }
+            };
+        }
+
+        async function createNativeDecoder() {
+            if (!('BarcodeDetector' in window) || window.BarcodeDetector === window.BarcodeDetectionAPI?.BarcodeDetector) return null;
+            try {
+                const supported = await window.BarcodeDetector.getSupportedFormats();
+                const formats = RETAIL_FORMATS.filter(f => supported.includes(f));
+                if (formats.length < 2) return null;
+                return wrapDetector('native', new window.BarcodeDetector({ formats }));
+            } catch (e) {
+                console.warn('Native BarcodeDetector unavailable.', e);
+                return null;
             }
+        }
+
+        async function createWasmDecoder() {
+            if (typeof WebAssembly === 'undefined') return null;
+            try {
+                const api = await loadScriptGlobal(BARCODE_WASM_URL, 'BarcodeDetectionAPI');
+                const detector = new api.BarcodeDetector({ formats: RETAIL_FORMATS });
+                // Warm up: downloads and compiles the .wasm now, so a failure falls back
+                // to the JavaScript decoder instead of silently scanning nothing.
+                const probe = document.createElement('canvas');
+                probe.width = probe.height = 8;
+                probe.getContext('2d').fillRect(0, 0, 8, 8);
+                await withTimeout(detector.detect(probe), 20000, 'Barcode reader took too long to load.');
+                return wrapDetector('wasm', detector);
+            } catch (e) {
+                console.warn('WebAssembly barcode reader unavailable, using ZXing JS.', e);
+                return null;
+            }
+        }
+
+        async function createZXingDecoder() {
             const ZX = await loadZXing();
             const hints = new Map();
             hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E]);
@@ -4132,6 +4178,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const formatName = f => String(ZX.BarcodeFormat[f] || f).toLowerCase();
             return {
                 kind: 'zxing',
+                canvasOnly: true,
                 async detect(canvas) {
                     try {
                         const source = new ZX.HTMLCanvasElementLuminanceSource(canvas);
@@ -4144,6 +4191,12 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                     }
                 }
             };
+        }
+
+        // Best available: the phone's own detector, then ZXing-C++ (WebAssembly),
+        // then the JavaScript ZXing port for browsers without WebAssembly.
+        async function createBarcodeDecoder() {
+            return (await createNativeDecoder()) || (await createWasmDecoder()) || (await createZXingDecoder());
         }
 
         // --- Scanner UI -----------------------------------------------------------
@@ -4187,8 +4240,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             scanner.torchOn = false;
             const video = document.getElementById('scanner-video');
             if (video) { try { video.pause(); } catch (e) {} video.srcObject = null; }
-            document.getElementById('scanner-torch').classList.add('hidden');
-            document.getElementById('scanner-torch-spacer').classList.remove('hidden');
+            ['scanner-torch', 'scanner-switch', 'scanner-zoom'].forEach(id => document.getElementById(id).classList.add('hidden'));
         }
 
         function cameraErrorMessage(err) {
@@ -4227,15 +4279,24 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             setScannerStatus('Starting camera…', 'busy', 'Allow camera access if your browser asks.');
             try {
                 const decoderPromise = scanner.decoder ? Promise.resolve(scanner.decoder) : createBarcodeDecoder();
+                let preferredId = null;
+                try { preferredId = localStorage.getItem(CAMERA_PREF_KEY); } catch (e) {}
+                const size = { width: { ideal: 1920 }, height: { ideal: 1080 } };
                 let stream;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({
                         audio: false,
-                        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+                        video: preferredId ? { deviceId: { exact: preferredId }, ...size } : { facingMode: { ideal: 'environment' }, ...size }
                     });
                 } catch (err) {
-                    if (err && err.name === 'OverconstrainedError') stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                    else throw err;
+                    if (err && (err.name === 'OverconstrainedError' || err.name === 'NotFoundError') && preferredId) {
+                        try { localStorage.removeItem(CAMERA_PREF_KEY); } catch (e) {}
+                        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, ...size } });
+                    } else if (err && err.name === 'OverconstrainedError') {
+                        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    } else {
+                        throw err;
+                    }
                 }
                 if (session !== scanner.session) { stream.getTracks().forEach(t => t.stop()); return; }
                 scanner.stream = stream;
@@ -4249,14 +4310,19 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                     scanner.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
                 }
                 const caps = scanner.track?.getCapabilities ? scanner.track.getCapabilities() : {};
-                const canTorch = Boolean(caps && caps.torch);
-                document.getElementById('scanner-torch').classList.toggle('hidden', !canTorch);
-                document.getElementById('scanner-torch-spacer').classList.toggle('hidden', canTorch);
+                document.getElementById('scanner-torch').classList.toggle('hidden', !(caps && caps.torch));
+                setupZoom(caps);
+                navigator.mediaDevices.enumerateDevices?.().then(list => {
+                    scanner.devices = list.filter(d => d.kind === 'videoinput');
+                    if (session === scanner.session) document.getElementById('scanner-switch').classList.toggle('hidden', scanner.devices.length < 2);
+                }).catch(() => {});
 
                 scanner.decoder = await decoderPromise;
                 if (session !== scanner.session) return;
                 scanner.running = true;
-                setScannerStatus('Point at a barcode', 'live', 'Line the barcode up inside the frame and hold steady. Move closer if it is small.');
+                scanner.startedAt = Date.now();
+                scanner.hinted = false;
+                setScannerStatus('Point at a barcode', 'live', SCAN_HINT);
                 scheduleScanFrame(session);
             } catch (err) {
                 if (session !== scanner.session) return;
@@ -4269,12 +4335,12 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
 
         function scheduleScanFrame(session) {
             if (!scanner.running || session !== scanner.session) return;
-            const delay = scanner.decoder?.kind === 'native' ? 90 : 140;
+            const delay = { native: 90, wasm: 100 }[scanner.decoder?.kind] || 140;
             scanner.timer = setTimeout(() => scanFrame(session), delay);
         }
 
         // Crop the part of the video that sits under the on-screen scan window.
-        function grabScanRegion(video, fullWidth = false) {
+        function grabScanRegion(video, mode = 'window') {
             const vw = video.videoWidth, vh = video.videoHeight;
             if (!vw || !vh) return null;
             const rect = video.getBoundingClientRect();
@@ -4290,9 +4356,10 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             sx -= sw * 0.1; sw *= 1.2; sy -= sh * 0.25; sh *= 1.5;
             sx = Math.max(0, sx); sy = Math.max(0, sy);
             sw = Math.min(vw - sx, sw); sh = Math.min(vh - sy, sh);
-            if (fullWidth) { sx = 0; sw = vw; sy = Math.max(0, sy - sh * 0.25); sh = Math.min(vh - sy, sh * 1.5); }
+            if (mode === 'band') { sx = 0; sw = vw; sy = Math.max(0, sy - sh * 0.25); sh = Math.min(vh - sy, sh * 1.5); }
+            if (mode === 'full') { sx = 0; sy = 0; sw = vw; sh = vh; }
             if (sw < 40 || sh < 20) { sx = 0; sy = 0; sw = vw; sh = vh; }
-            const outScale = Math.min(1, 1280 / sw);
+            const outScale = Math.min(1, 1280 / Math.max(sw, mode === 'full' ? sh : 0));
             if (!scanner.canvas) scanner.canvas = document.createElement('canvas');
             const canvas = scanner.canvas;
             canvas.width = Math.round(sw * outScale);
@@ -4309,14 +4376,21 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             scanner.busy = true;
             try {
                 scanner.frames++;
-                // Alternate between the guide region and a wider view, so codes that
-                // overhang the guide (or sit off-centre) are still found.
-                const wide = scanner.frames % 2 === 0;
-                const source = scanner.decoder.kind === 'native' && wide ? video : grabScanRegion(video, wide);
+                // Cycle through the guide region, a full-width band and the whole frame,
+                // so codes that overhang the guide or sit off-centre are still found.
+                const mode = ['window', 'band', 'full'][scanner.frames % 3];
+                const source = mode === 'full' && !scanner.decoder.canvasOnly ? video : grabScanRegion(video, mode);
                 const results = source ? await scanner.decoder.detect(source) : [];
                 if (session !== scanner.session) return;
                 for (const r of results) {
                     if (registerScanRead(r.text, r.format)) return;
+                }
+                if (!scanner.hinted && Date.now() - scanner.startedAt > 7000) {
+                    scanner.hinted = true;
+                    const extras = [];
+                    if (!document.getElementById('scanner-torch').classList.contains('hidden')) extras.push('turn on the light');
+                    if (!document.getElementById('scanner-switch').classList.contains('hidden')) extras.push('try another camera');
+                    setScannerStatus('Still looking…', 'live', `If the bars look blurry, move the phone back a little so it can focus${extras.length ? `, ${extras.join(' or ')}` : ''}. You can also tap "Type number".`);
                 }
             } catch (err) {
                 console.warn('Frame decode failed:', err);
@@ -4401,6 +4475,42 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         }
 
         function onBarcodeScanFailure() {}
+
+        async function switchCamera() {
+            const devices = scanner.devices || [];
+            if (devices.length < 2) return;
+            const currentId = scanner.track?.getSettings ? scanner.track.getSettings().deviceId : null;
+            const index = devices.findIndex(d => d.deviceId === currentId);
+            const next = devices[(index + 1) % devices.length];
+            try { localStorage.setItem(CAMERA_PREF_KEY, next.deviceId); } catch (e) {}
+            showToast(next.label ? `Camera: ${next.label}` : `Camera ${((index + 1) % devices.length) + 1} of ${devices.length}`);
+            startScannerCamera();
+        }
+
+        function setupZoom(caps) {
+            const btn = document.getElementById('scanner-zoom');
+            const z = caps && caps.zoom;
+            scanner.zoomLevels = [];
+            if (z && Number(z.max) >= 1.5) {
+                const min = Number(z.min) || 1;
+                scanner.zoomLevels = [...new Set([min, Math.min(2, z.max), Math.min(3, z.max)].map(v => Math.round(v * 10) / 10))];
+            }
+            scanner.zoomIndex = 0;
+            btn.classList.toggle('hidden', scanner.zoomLevels.length < 2);
+            btn.innerText = '1×';
+        }
+
+        async function cycleZoom() {
+            if (!scanner.track || scanner.zoomLevels.length < 2) return;
+            scanner.zoomIndex = (scanner.zoomIndex + 1) % scanner.zoomLevels.length;
+            const level = scanner.zoomLevels[scanner.zoomIndex];
+            try {
+                await scanner.track.applyConstraints({ advanced: [{ zoom: level }] });
+                document.getElementById('scanner-zoom').innerText = `${scanner.zoomIndex === 0 ? 1 : level}×`;
+            } catch (e) {
+                showToast('Zoom is not available on this camera.', true);
+            }
+        }
 
         async function toggleTorch() {
             if (!scanner.track) return;
