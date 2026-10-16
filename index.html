@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>MacroFlow — Nutrition Tracker</title>
     <meta name="description" content="Log meals, scan barcodes and track calories, macros, weight and strength. Data stays in your browser.">
-    <meta name="theme-color" content="#0b0b0c">
+    <meta name="theme-color" content="#050506">
     <meta name="color-scheme" content="dark">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -29,28 +29,38 @@
 
     <style>
         :root {
-            --bg: #0b0b0c;
-            --bg-2: #111113;
-            --surface: #161618;
+            --bg: #050506;
+            --bg-2: #0e0e10;
+            --surface: #141416;
             --surface-2: #1d1d20;
-            --surface-3: #27272b;
+            --surface-3: #2a2a2e;
             --line: rgba(255, 255, 255, 0.07);
-            --line-strong: rgba(255, 255, 255, 0.12);
-            --text: #ededee;
-            --muted: #94949b;
-            --faint: #5f5f67;
-            --brand: #3ecf8e;
-            --brand-strong: #2fb67a;
-            --brand-soft: rgba(62, 207, 142, 0.12);
-            --brand-ink: #04220f;
-            --protein: #ef7a73;
-            --carbs: #63a4f0;
-            --fat: #e9b44c;
-            --ai: #a99cf2;
-            --danger: #ef5e5e;
-            --warn: #e9b44c;
-            --radius: 16px;
-            --radius-sm: 12px;
+            --line-strong: rgba(255, 255, 255, 0.13);
+            --text: #f4f4f6;
+            --muted: #9a9aa3;
+            --faint: #63636c;
+            /* Ring colours: calories, protein, carbs, fat (+ gradient ends) */
+            --kcal: #30d158;
+            --kcal-2: #b5f23f;
+            --protein: #ff375f;
+            --protein-2: #ff7a59;
+            --carbs: #0a84ff;
+            --carbs-2: #5ac8fa;
+            --fat: #ffd60a;
+            --fat-2: #ff9f0a;
+            --water: #64d2ff;
+            --burn: #ff9f0a;
+            --burn-2: #ff453a;
+            --brand: #30d158;
+            --brand-strong: #28b84c;
+            --brand-soft: rgba(48, 209, 88, 0.14);
+            --brand-ink: #032b10;
+            --ai: #bf5af2;
+            --ai-2: #7d7aff;
+            --danger: #ff453a;
+            --warn: #ff9f0a;
+            --radius: 22px;
+            --radius-sm: 13px;
             --safe-bottom: env(safe-area-inset-bottom, 0px);
             --safe-top: env(safe-area-inset-top, 0px);
             --nav-h: 64px;
@@ -97,15 +107,15 @@
         .topbar {
             position: sticky; top: 0; z-index: 30;
             margin: 0 -20px; padding: calc(10px + var(--safe-top)) 20px 0;
-            background: rgba(11, 11, 12, 0.94);
-            backdrop-filter: saturate(140%) blur(16px); -webkit-backdrop-filter: saturate(140%) blur(16px);
+            background: rgba(5, 5, 6, 0.9);
+            backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px);
         }
         .topbar-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 6px 0 12px; }
         .title-btn { text-align: left; background: none; border: 0; padding: 0; color: inherit; min-width: 0; }
-        .page-title { font-size: 28px; font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; }
+        .page-title { font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.035em; }
         .page-sub { font-size: 14px; color: var(--muted); margin-top: 3px; font-weight: 450; }
         .topbar-actions { display: flex; gap: 2px; margin-bottom: 2px; }
-        .tab-panel > * + * { margin-top: 24px; }
+        .tab-panel > * + * { margin-top: 16px; }
 
         /* Week strip */
         .week { display: grid; grid-template-columns: 28px repeat(7, minmax(0, 1fr)) 28px; align-items: center; gap: 2px; padding: 0 0 12px; border-bottom: 1px solid var(--line); }
@@ -117,10 +127,10 @@
         .day .dnum svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
         .day .dnum circle { fill: none; stroke-width: 2.5; }
         .day .track { stroke: var(--surface-3); }
-        .day .prog { stroke: var(--brand); stroke-linecap: round; }
-        .day .prog.over { stroke: var(--warn); }
-        .day.is-today .dow { color: var(--brand); }
-        .day.is-selected .dnum { background: var(--text); color: var(--bg); border-radius: 50%; font-weight: 600; }
+        .day .prog { stroke: var(--kcal); stroke-linecap: round; }
+        .day .prog.over { stroke: var(--fat-2); }
+        .day.is-today .dow { color: var(--kcal); }
+        .day.is-selected .dnum { background: linear-gradient(135deg, var(--kcal), var(--kcal-2)); color: var(--brand-ink); border-radius: 50%; font-weight: 700; }
         .day.is-selected .dnum svg { display: none; }
         .day.is-future { opacity: 0.4; }
 
@@ -140,15 +150,15 @@
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px;
             border-radius: var(--radius-sm); font-weight: 600; font-size: 15px; border: 1px solid transparent; transition: background .15s, border-color .15s, opacity .15s; }
         .btn:active:not(:disabled) { opacity: 0.8; }
-        .btn-primary { background: var(--brand); color: var(--brand-ink); }
-        .btn-primary:hover:not(:disabled) { background: #5ad9a0; }
+        .btn-primary { background: linear-gradient(135deg, var(--kcal), #5fe07e); color: var(--brand-ink); }
+        .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
         .btn-soft { background: var(--surface-2); color: var(--text); }
         .btn-soft:hover:not(:disabled) { background: var(--surface-3); }
         .btn-ghost { background: transparent; color: var(--muted); border-color: var(--line-strong); }
         .btn-ghost:hover:not(:disabled) { color: var(--text); }
         .btn-danger { background: transparent; color: #f08b8b; border-color: rgba(239, 94, 94, 0.3); }
         .btn-danger:hover:not(:disabled) { background: rgba(239, 94, 94, 0.08); }
-        .btn-ai { background: var(--text); color: var(--bg); }
+        .btn-ai { background: linear-gradient(135deg, var(--ai), var(--ai-2)); color: #fff; }
         .btn-sm { min-height: 36px; padding: 0 14px; font-size: 14px; border-radius: 10px; }
         .btn-block { width: 100%; }
         .icon-btn { width: 40px; height: 40px; border-radius: 12px; display: inline-grid; place-items: center; flex-shrink: 0;
@@ -163,7 +173,7 @@
         .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500;
             background: var(--surface-2); color: var(--muted); white-space: nowrap; }
         .badge.brand { background: var(--brand-soft); color: var(--brand); }
-        .badge.ai { background: rgba(169, 156, 242, 0.12); color: var(--ai); }
+        .badge.ai { background: rgba(191, 90, 242, 0.14); color: #d49cf7; }
         .badge.warn { background: rgba(233, 180, 76, 0.12); color: var(--warn); }
 
         .seg { display: flex; padding: 3px; gap: 2px; background: var(--surface); border-radius: 12px; }
@@ -194,57 +204,126 @@
         .bar > div { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.2,.8,.2,1); }
         .bar.thin { height: 4px; }
 
-        /* ---------- Today: summary ---------- */
-        .summary { padding-top: 4px; }
-        .summary-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-        .kcal-label { font-size: 13px; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; }
+        /* ---------- Today: rings hero ---------- */
+        .hero { position: relative; background: radial-gradient(120% 90% at 0% 0%, rgba(48, 209, 88, 0.10), transparent 55%), radial-gradient(90% 80% at 100% 100%, rgba(10, 132, 255, 0.10), transparent 60%), var(--surface);
+            border-radius: 26px; padding: 18px 18px 14px; overflow: hidden; }
+        .hero-main { display: flex; align-items: center; gap: 16px; }
+        .rings { position: relative; width: 158px; height: 158px; flex-shrink: 0; }
+        .rings svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+        .rings circle { fill: none; stroke-linecap: round; }
+        .rings .ring-track { opacity: 0.2; }
+        .rings .ring-arc { transition: stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1); }
+        .rings .ring-lap { transition: stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 0 2px rgba(0,0,0,.65)); }
+        .hero-stats { flex: 1; min-width: 0; display: grid; gap: 9px; }
+        .kcal-label { font-size: 13px; color: var(--muted); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; }
         .kcal-label i { font-size: 10px; color: var(--faint); }
-        .kcal-big { font-size: 56px; font-weight: 600; line-height: 1; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; margin-top: 6px; }
-        .kcal-big small { font-size: 17px; font-weight: 500; color: var(--muted); letter-spacing: -0.01em; margin-left: 6px; }
-        .kcal-eq { display: flex; gap: 20px; text-align: right; padding-bottom: 6px; }
-        .kcal-eq div { display: flex; flex-direction: column; gap: 2px; }
-        .kcal-eq span { font-size: 12px; color: var(--faint); }
-        .kcal-eq b { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
-        .kcal-bar { position: relative; display: flex; height: 10px; margin-top: 16px; border-radius: 999px; background: var(--surface-2); overflow: hidden; gap: 2px; }
-        .kcal-bar > div { height: 100%; transition: width .5s cubic-bezier(.2,.8,.2,1); }
-        .kcal-bar.over { box-shadow: inset 0 0 0 1.5px var(--danger); }
-        .kcal-bar-legend { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
-        .macro-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 22px; }
-        .macro .name { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
-        .macro .dot { width: 7px; height: 7px; border-radius: 2px; }
-        .macro .amt { font-size: 20px; font-weight: 600; margin: 4px 0 8px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-        .macro .amt small { font-size: 13px; color: var(--faint); font-weight: 500; letter-spacing: 0; }
-        .macro .left { font-size: 12px; color: var(--faint); margin-top: 7px; font-variant-numeric: tabular-nums; }
-        .macro .left.over { color: var(--warn); }
+        .hero-kcal { font-size: 38px; font-weight: 700; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--kcal); margin-top: 3px; }
+        .hero-of { font-size: 13px; color: var(--muted); font-weight: 500; margin-top: 3px; font-variant-numeric: tabular-nums; }
+        .hero-stats > div:first-child { margin-bottom: 4px; }
+        .hm { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 8px; }
+        .hm .k { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+        .hm .v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; text-align: right; white-space: nowrap; }
+        .hm .v small { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+        .hm .left { grid-column: 1 / -1; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; margin-top: -1px; }
+        .hm .left.over { color: var(--fat-2); }
+        .hm.protein .k { color: var(--protein); }
+        .hm.carbs .k { color: var(--carbs-2); }
+        .hm.fat .k { color: var(--fat); }
+        .hero-eq { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+        .hero-eq > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .hero-eq span { font-size: 11.5px; color: var(--faint); font-weight: 500; }
+        .hero-eq b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+        .hero-eq .op { align-self: flex-end; color: var(--faint); font-size: 15px; padding-bottom: 1px; }
+        #eq-left b { color: var(--kcal); }
+        #eq-left.over b { color: var(--fat-2); }
+        #eq-exercise b { color: var(--burn); }
 
-        .log-bar { display: flex; gap: 8px; }
-        .log-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; height: 50px; padding: 0 16px; border-radius: 14px; background: var(--surface); color: var(--muted); font-size: 15px; text-align: left; }
-        .log-search:hover { background: var(--surface-2); }
-        .log-search i { color: var(--faint); }
-        .log-scan { width: 50px; height: 50px; border-radius: 14px; display: grid; place-items: center; background: var(--surface); color: var(--text); font-size: 17px; }
-        .log-scan:hover { background: var(--surface-2); }
+        /* Quick actions */
+        .actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+        .action { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px 10px; border-radius: 18px; background: var(--surface); color: var(--text); font-size: 12.5px; font-weight: 600; transition: transform .12s, background .15s; }
+        .action:active { transform: scale(0.96); }
+        .action:hover { background: var(--surface-2); }
+        .action .ai-ico { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 17px; color: #fff; box-shadow: 0 6px 16px -8px currentColor; }
+        .ico-search { background: linear-gradient(135deg, var(--kcal), #1fae7a); }
+        .ico-scan { background: linear-gradient(135deg, var(--carbs), var(--carbs-2)); }
+        .ico-photo { background: linear-gradient(135deg, var(--ai), var(--ai-2)); }
+        .ico-quick { background: linear-gradient(135deg, var(--burn), var(--burn-2)); }
+        .ico-describe { background: linear-gradient(135deg, #ff6ad5, var(--ai)); }
+        .ico-exercise { background: linear-gradient(135deg, var(--burn-2), #ff2d55); }
+        .ico-water { background: linear-gradient(135deg, var(--water), var(--carbs)); }
+        .ico-weight { background: linear-gradient(135deg, #8e8e93, #5a5a61); }
+        /* kept for selectors used by tests and older code */
+        .log-search, .log-scan { cursor: pointer; }
+
+        /* Quick log carousel */
+        .ql-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .ql-head h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+        .ql-meal { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--surface); }
+        .ql-meal b { color: var(--text); font-weight: 600; }
+        .ql-list { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; margin: 0 -20px; padding: 2px 20px 4px; scrollbar-width: none; }
+        .ql-list::-webkit-scrollbar { display: none; }
+        .ql-item { position: relative; flex: 0 0 138px; scroll-snap-align: start; border-radius: 18px; background: var(--surface); padding: 12px 12px 11px; text-align: left; display: flex; flex-direction: column; gap: 8px; min-height: 124px; }
+        .ql-item .ql-name { font-size: 13.5px; font-weight: 600; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .ql-item .ql-kcal { margin-top: auto; padding-right: 34px; font-size: 12px; line-height: 1.3; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .ql-add { position: absolute; right: 9px; bottom: 9px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--kcal); color: var(--brand-ink); font-size: 14px; box-shadow: 0 6px 14px -6px var(--kcal); }
+        .ql-add:active { transform: scale(0.92); }
+
+        /* Food icons */
+        .food-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; font-size: 15px; }
+        .food-ico.sm { width: 32px; height: 32px; border-radius: 10px; font-size: 13px; }
+        .fi-fruit { background: rgba(255, 55, 95, 0.16); color: #ff6b8a; }
+        .fi-veg { background: rgba(48, 209, 88, 0.16); color: #5be07f; }
+        .fi-dairy { background: rgba(100, 210, 255, 0.15); color: #8fdfff; }
+        .fi-egg { background: rgba(255, 214, 10, 0.15); color: #ffe066; }
+        .fi-grain { background: rgba(255, 159, 10, 0.15); color: #ffb84d; }
+        .fi-meat { background: rgba(255, 69, 58, 0.15); color: #ff7a70; }
+        .fi-fish { background: rgba(10, 132, 255, 0.16); color: #5aa9ff; }
+        .fi-nuts { background: rgba(172, 142, 104, 0.2); color: #d4b48c; }
+        .fi-fat { background: rgba(255, 214, 10, 0.13); color: #f5d34d; }
+        .fi-sweet { background: rgba(255, 106, 213, 0.15); color: #ff8ee0; }
+        .fi-drink { background: rgba(90, 200, 250, 0.15); color: #7fd4fb; }
+        .fi-pack { background: rgba(142, 142, 147, 0.18); color: #c7c7cc; }
+        .fi-ai { background: rgba(191, 90, 242, 0.16); color: #d49cf7; }
+        .fi-quick { background: rgba(255, 159, 10, 0.16); color: #ffb84d; }
+        .fi-mine { background: rgba(48, 209, 88, 0.14); color: #5be07f; }
+        .fi-meal { background: rgba(125, 122, 255, 0.16); color: #a5a3ff; }
 
         /* ---------- Meals ---------- */
-        .meal + .meal { margin-top: 26px; }
-        .meal-head { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-        .meal-head h3 { font-size: 17px; font-weight: 600; }
-        .meal-head .meal-kcal { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; }
-        .meal-head .meal-kcal.zero { color: var(--faint); }
-        .meal-plus { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 8px; margin-right: -8px; border-radius: 9px; color: var(--brand); font-size: 14px; font-weight: 500; }
-        .meal-plus:hover { background: var(--brand-soft); }
+        .meal { background: var(--surface); border-radius: var(--radius); padding: 14px 16px 6px; }
+        .meal + .meal { margin-top: 12px; }
+        .meal-head { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; }
+        .meal-ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-size: 15px; flex-shrink: 0; color: #fff; }
+        .mi-breakfast { background: linear-gradient(135deg, #ffb340, #ff7a00); }
+        .mi-lunch { background: linear-gradient(135deg, #5be07f, #1fae7a); }
+        .mi-dinner { background: linear-gradient(135deg, #7d7aff, #bf5af2); }
+        .mi-snacks { background: linear-gradient(135deg, #ff6ad5, #ff375f); }
+        .mi-exercise { background: linear-gradient(135deg, var(--burn), var(--burn-2)); }
+        .mi-water { background: linear-gradient(135deg, var(--water), var(--carbs)); }
+        .meal-title { flex: 1; min-width: 0; }
+        .meal-head h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+        .meal-head .meal-kcal { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; display: block; margin-top: 1px; }
+        .meal-head .meal-kcal:empty::before { content: 'Nothing logged yet'; color: var(--faint); }
+        .meal-plus { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-soft); color: var(--kcal); font-size: 14px; flex-shrink: 0; }
+        .meal-plus:hover { background: rgba(48, 209, 88, 0.24); }
+        .meal-plus .lbl { display: none; }
+        .meal-save { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); font-size: 14px; flex-shrink: 0; }
+        .meal-save:hover { color: var(--text); background: var(--surface-2); }
+        .meal-macros { display: flex; height: 4px; gap: 2px; border-radius: 99px; overflow: hidden; margin: -2px 0 8px; }
+        .meal-macros > div { height: 100%; border-radius: 99px; }
         .meal-content.collapsed { display: none; }
-        .entry { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
-        .entry:last-child { border-bottom: 0; }
+        .entry { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
         .entry-main { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; color: inherit; }
-        .entry-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .entry-meta { font-size: 13px; color: var(--faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .entry-kcal { font-size: 15px; font-variant-numeric: tabular-nums; color: var(--text); flex-shrink: 0; }
+        .entry-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+        .entry-meta { font-size: 12.5px; color: var(--faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .entry-kcal { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); flex-shrink: 0; }
+        .entry-kcal small { font-size: 11.5px; color: var(--faint); font-weight: 500; margin-left: 2px; }
         .meal-empty { display: none; }
-        .suggest { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 11px 0; color: var(--faint); font-size: 14px; background: transparent; }
+        .suggest { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 0 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; background: transparent; }
         .suggest:hover { color: var(--text); }
-        .suggest b { color: var(--muted); font-weight: 500; }
-        .suggest .plus { margin-left: auto; color: var(--brand); font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap; }
-        .copy-day { display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px dashed var(--line-strong); color: var(--muted); font-size: 14px; }
+        .suggest b { color: var(--text); font-weight: 600; }
+        .suggest .plus { margin-left: auto; color: var(--kcal); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; white-space: nowrap; }
+        .suggest > i { color: var(--faint); }
+        .copy-day { display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 16px; border-radius: 18px; border: 1px dashed var(--line-strong); color: var(--muted); font-size: 14px; }
         .copy-day:hover { color: var(--text); border-color: var(--muted); }
 
         .disclosure { width: 100%; display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0;
@@ -256,8 +335,11 @@
         .micro-row { padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
         .micro-row .top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 7px; }
 
-        .water-row { display: flex; align-items: center; gap: 8px; padding-top: 12px; }
-        .sync-row { display: flex; align-items: center; gap: 10px; padding-top: 12px; flex-wrap: wrap; }
+        .water-row { display: flex; align-items: center; gap: 8px; padding: 2px 0 10px; }
+        .water-glasses { flex: 1; display: flex; gap: 4px; min-width: 0; }
+        .water-glasses span { flex: 1; height: 22px; border-radius: 6px; background: rgba(100, 210, 255, 0.12); }
+        .water-glasses span.full { background: linear-gradient(180deg, var(--water), var(--carbs)); }
+        .sync-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
         .sync-row .chip { height: 34px; padding: 0 12px; }
         .text-strong { color: var(--text); font-weight: 600; }
         .steps-list { counter-reset: step; display: grid; gap: 10px; font-size: 14px; line-height: 1.45; color: var(--muted); }
@@ -265,18 +347,22 @@
         .steps-list li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 10px; background: var(--surface-3); color: var(--text); font-size: 12px; font-weight: 600; display: grid; place-items: center; }
         .steps-list b { color: var(--text); font-weight: 600; }
         .code-block { font-family: var(--mono); font-size: 12px; line-height: 1.5; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; white-space: pre; overflow-x: auto; color: var(--text); }
-        .water-bar { flex: 1; height: 8px; }
-        .water-row .chip { height: 34px; padding: 0 12px; font-variant-numeric: tabular-nums; }
-        #exercise-section .entry-kcal { color: var(--brand); }
+        .water-bar { display: none; }
+        .water-row .chip { height: 34px; padding: 0 11px; font-variant-numeric: tabular-nums; }
+        #exercise-section .entry-kcal { color: var(--burn); }
+        #steps-line, #exercise-goal-note { padding: 0 0 10px; }
 
         /* ---------- Bottom nav ---------- */
         .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 6px 12px calc(6px + var(--safe-bottom));
-            background: rgba(11, 11, 12, 0.94); backdrop-filter: saturate(140%) blur(16px); -webkit-backdrop-filter: saturate(140%) blur(16px); border-top: 1px solid var(--line); }
-        .bottom-nav .inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+            background: rgba(5, 5, 6, 0.92); backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px); border-top: 1px solid var(--line); }
+        .bottom-nav .inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; }
+        .nav-plus { justify-self: center; width: 58px; height: 58px; margin-top: -26px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; color: var(--brand-ink);
+            background: linear-gradient(135deg, var(--kcal), var(--kcal-2)); box-shadow: 0 10px 24px -8px rgba(48, 209, 88, 0.7), 0 0 0 5px var(--bg); transition: transform .12s; }
+        .nav-plus:active { transform: scale(0.94); }
         .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; color: var(--faint); font-size: 11px; font-weight: 500; letter-spacing: 0.01em; }
         .nav-btn i { font-size: 18px; }
         .nav-btn:hover { color: var(--muted); }
-        .nav-btn.is-active { color: var(--text); }
+        .nav-btn.is-active { color: var(--kcal); }
 
         /* ---------- Overlays ---------- */
         .overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
@@ -301,6 +387,11 @@
         .screen-inner > * + * { margin-top: 16px; }
         @keyframes slideUp { from { transform: translateY(32px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ---------- Log sheet (+) ---------- */
+        .log-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+        .log-grid .action { background: transparent; padding: 6px 0 2px; }
+        .log-grid .action .ai-ico { width: 54px; height: 54px; border-radius: 18px; font-size: 21px; }
 
         /* ---------- Add food screen ---------- */
         .search-box { display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 16px; border-radius: 14px; background: var(--surface); border: 1px solid transparent; }
@@ -328,8 +419,8 @@
         .result-kcal { text-align: right; flex-shrink: 0; }
         .result-kcal b { font-size: 15px; font-weight: 500; display: block; font-variant-numeric: tabular-nums; }
         .result-kcal span { font-size: 12px; color: var(--faint); }
-        .result-add { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--brand); border: 1px solid var(--line-strong); flex-shrink: 0; font-size: 14px; }
-        .result-add:hover { background: var(--brand-soft); border-color: transparent; }
+        .result-add { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--kcal); background: var(--brand-soft); flex-shrink: 0; font-size: 14px; }
+        .result-add:hover { background: rgba(48, 209, 88, 0.24); }
         .state-msg { text-align: center; padding: 34px 12px; color: var(--muted); font-size: 14px; }
         .state-msg i { font-size: 22px; color: var(--faint); display: block; margin-bottom: 10px; }
         .multi-bar { position: sticky; bottom: calc(12px + var(--safe-bottom)); z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -351,7 +442,7 @@
         .nutri span { font-size: 12px; color: var(--faint); }
         .nutri.kcal b { font-size: 24px; color: var(--text); }
         .note { display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.45; background: rgba(233, 180, 76, 0.08); color: #ecd3a0; }
-        .note.ai { background: rgba(169, 156, 242, 0.09); color: #d2cbf7; }
+        .note.ai { background: rgba(191, 90, 242, 0.1); color: #e2c2f9; }
         .note.info { background: var(--surface-2); color: var(--muted); }
         .note i { margin-top: 2px; }
         .ai-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -418,12 +509,36 @@
         /* ---------- Insights / progress ---------- */
         .stat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .tile { background: var(--surface); border-radius: var(--radius); padding: 16px; }
+        .tile.streak { background: radial-gradient(120% 120% at 0% 0%, rgba(255, 159, 10, 0.16), transparent 60%), var(--surface); }
+        .tile.today { background: radial-gradient(120% 120% at 0% 0%, rgba(48, 209, 88, 0.14), transparent 60%), var(--surface); }
         .tile .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
         .tile .k i { color: var(--faint) !important; }
         .tile .v { font-size: 28px; font-weight: 600; margin-top: 8px; line-height: 1.05; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
         .tile .v small { font-size: 14px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
         .tile .s { font-size: 13px; color: var(--faint); margin-top: 6px; }
         .chart-box { position: relative; height: 200px; }
+        .chart { position: relative; width: 100%; }
+        .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .chart text { font-family: var(--font); font-size: 10.5px; fill: var(--faint); font-variant-numeric: tabular-nums; }
+        .chart .grid { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
+        .chart .goal { stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.25; stroke-dasharray: 4 4; }
+        .chart .goal-label { fill: var(--muted); font-weight: 600; }
+        .chart .bar-hit { fill: transparent; cursor: pointer; }
+        .chart .sel-label { fill: var(--text); font-weight: 700; font-size: 11.5px; }
+        .chart-empty { display: grid; place-items: center; gap: 10px; text-align: center; min-height: 150px; color: var(--muted); font-size: 13.5px; padding: 12px; }
+        .chart-empty i { font-size: 22px; color: var(--faint); }
+        .chart-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+        .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .chart-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+        .chart-kpis { display: flex; gap: 18px; margin-bottom: 12px; }
+        .chart-kpis div { display: flex; flex-direction: column; }
+        .chart-kpis b { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+        .chart-kpis b small { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-left: 2px; }
+        .chart-kpis span { font-size: 12px; color: var(--faint); }
+        .split-row { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+        .split-row + .split-row { margin-top: 8px; }
+        .split-bar { display: flex; height: 22px; border-radius: 8px; overflow: hidden; gap: 2px; background: var(--surface-2); }
+        .split-bar > div { display: grid; place-items: center; font-size: 11px; font-weight: 700; color: rgba(0,0,0,.75); min-width: 0; overflow: hidden; }
         .chart-box canvas { width: 100%; height: 100%; display: block; }
         .legend { display: grid; gap: 12px; }
         .legend-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
@@ -435,10 +550,10 @@
         .table tr:last-child td { border-bottom: 0; }
         .heat { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
         .heat > div { aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-variant-numeric: tabular-nums; background: var(--surface-2); color: var(--faint); }
-        .heat .h1 { background: rgba(62, 207, 142, 0.12); color: #8fdcb7; }
-        .heat .h2 { background: rgba(62, 207, 142, 0.3); color: #c4f0da; }
-        .heat .h3 { background: var(--brand-strong); color: #04220f; font-weight: 600; }
-        .heat .h4 { background: rgba(233, 180, 76, 0.3); color: #f3d79f; }
+        .heat .h1 { background: rgba(48, 209, 88, 0.14); color: #8fe6a6; }
+        .heat .h2 { background: rgba(48, 209, 88, 0.34); color: #c8f5d4; }
+        .heat .h3 { background: linear-gradient(135deg, var(--kcal), var(--kcal-2)); color: var(--brand-ink); font-weight: 700; }
+        .heat .h4 { background: rgba(255, 159, 10, 0.36); color: #ffd699; }
         .rating-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .rating { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 72px; justify-content: center; border-radius: 12px; background: var(--surface-2); border: 1px solid transparent; font-size: 14px; color: var(--muted); }
         .rating i { font-size: 16px; }
@@ -468,17 +583,29 @@
         @media (max-width: 380px) {
             .app-shell { padding-left: 16px; padding-right: 16px; }
             .topbar { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
-            .kcal-big { font-size: 46px; }
-            .kcal-eq { gap: 12px; }
-            .macro-grid { gap: 14px; }
-            .macro .amt { font-size: 17px; }
+            .rings { width: 136px; height: 136px; }
+            .hero-kcal { font-size: 29px; }
+            .hm .v { font-size: 14px; }
+            .actions { gap: 8px; }
+            .hero-eq b { font-size: 15px; }
+        }
+        /* Small phones: rings above the numbers so nothing is clipped. */
+        @media (max-width: 360px) {
+            .hero-main { flex-direction: column; align-items: stretch; gap: 14px; }
+            .rings { width: 150px; height: 150px; align-self: center; }
+            .hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; }
+            .hero-stats > div:first-child { grid-column: 1 / -1; text-align: center; }
+            .hm { grid-template-columns: 1fr; }
+            .hm .v { text-align: left; }
+            .action { font-size: 11.5px; }
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
         @media print {
             body { background: #fff !important; color: #000 !important; }
-            .topbar-actions, .week, .bottom-nav, #toast-container, .log-bar, .meal-plus, .suggest, .overlay, .screen, .scanner { display: none !important; }
+            .topbar-actions, .week, .bottom-nav, #toast-container, .actions, #quick-log-section, .meal-plus, .suggest, .overlay, .screen, .scanner { display: none !important; }
+            .hero, .meal { background: #fff !important; border: 1px solid #bbb !important; }
             .card, .tile { background: #fff !important; border: 1px solid #bbb !important; color: #000 !important; }
             .muted, .faint, .entry-meta { color: #333 !important; }
             #micros-panel-content, .meal-content { display: block !important; }
@@ -513,73 +640,112 @@
         <!-- ===================== TODAY ===================== -->
         <section id="tab-content-nutrition" class="tab-panel">
 
-            <div class="summary">
-                <div class="summary-top">
-                    <div>
-                        <button class="kcal-label" onclick="toggleCalorieDisplayMode()" aria-label="Switch between calories eaten and remaining">
-                            <span id="calorie-state-subtitle">Eaten</span><i class="fa-solid fa-arrow-right-arrow-left"></i>
-                        </button>
-                        <p class="kcal-big"><span id="calorie-big-number">0</span><small>kcal</small></p>
+            <section class="hero" aria-label="Calories and macros">
+                <div class="hero-main">
+                    <div class="rings" id="hero-rings" role="img" aria-label="Calories and macros">
+                        <svg viewBox="0 0 200 200" aria-hidden="true">
+                            <defs>
+                                <linearGradient id="grad-kcal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#30d158"/><stop offset="1" stop-color="#b5f23f"/></linearGradient>
+                                <linearGradient id="grad-protein" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff375f"/><stop offset="1" stop-color="#ff7a59"/></linearGradient>
+                                <linearGradient id="grad-carbs" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5ac8fa"/></linearGradient>
+                                <linearGradient id="grad-fat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd60a"/><stop offset="1" stop-color="#ff9f0a"/></linearGradient>
+                            </defs>
+                            <circle class="ring-track" cx="100" cy="100" r="87" stroke="#30d158" stroke-width="18"/>
+                            <circle class="ring-arc" id="ring-kcal" cx="100" cy="100" r="87" stroke="url(#grad-kcal)" stroke-width="18" style="stroke-dasharray:546.64 546.64;stroke-dashoffset:546.64;opacity:0"/>
+                            <circle class="ring-lap" id="ring-kcal-lap" style="stroke-dasharray:546.64 546.64;stroke-dashoffset:546.64;opacity:0" cx="100" cy="100" r="87" stroke="#b5f23f" stroke-width="18"/>
+                            <circle class="ring-track" cx="100" cy="100" r="65" stroke="#ff375f" stroke-width="18"/>
+                            <circle class="ring-arc" id="ring-protein" cx="100" cy="100" r="65" stroke="url(#grad-protein)" stroke-width="18" style="stroke-dasharray:408.41 408.41;stroke-dashoffset:408.41;opacity:0"/>
+                            <circle class="ring-lap" id="ring-protein-lap" style="stroke-dasharray:408.41 408.41;stroke-dashoffset:408.41;opacity:0" cx="100" cy="100" r="65" stroke="#ff7a59" stroke-width="18"/>
+                            <circle class="ring-track" cx="100" cy="100" r="43" stroke="#0a84ff" stroke-width="18"/>
+                            <circle class="ring-arc" id="ring-carbs" cx="100" cy="100" r="43" stroke="url(#grad-carbs)" stroke-width="18" style="stroke-dasharray:270.18 270.18;stroke-dashoffset:270.18;opacity:0"/>
+                            <circle class="ring-lap" id="ring-carbs-lap" style="stroke-dasharray:270.18 270.18;stroke-dashoffset:270.18;opacity:0" cx="100" cy="100" r="43" stroke="#5ac8fa" stroke-width="18"/>
+                            <circle class="ring-track" cx="100" cy="100" r="21" stroke="#ffd60a" stroke-width="18"/>
+                            <circle class="ring-arc" id="ring-fat" cx="100" cy="100" r="21" stroke="url(#grad-fat)" stroke-width="18" style="stroke-dasharray:131.95 131.95;stroke-dashoffset:131.95;opacity:0"/>
+                            <circle class="ring-lap" id="ring-fat-lap" style="stroke-dasharray:131.95 131.95;stroke-dashoffset:131.95;opacity:0" cx="100" cy="100" r="21" stroke="#ff9f0a" stroke-width="18"/>
+                        </svg>
                     </div>
-                    <div class="kcal-eq">
-                        <div><span>Goal</span><b id="calorie-target-display">2000</b></div>
-                        <div id="eq-exercise" class="hidden"><span>Exercise</span><b id="calorie-exercise-display">+0</b></div>
-                        <div id="eq-eaten"><span>Eaten</span><b id="calorie-eaten-display">0</b></div>
-                        <div id="eq-left"><span id="calorie-left-label">Left</span><b id="calorie-left-display">2000</b></div>
+                    <div class="hero-stats">
+                        <div>
+                            <button class="kcal-label" onclick="toggleCalorieDisplayMode()" aria-label="Switch between calories eaten and remaining">
+                                <span id="calorie-state-subtitle">Eaten</span><i class="fa-solid fa-arrow-right-arrow-left"></i>
+                            </button>
+                            <p class="hero-kcal" id="calorie-big-number">0</p>
+                            <p class="hero-of" id="calorie-big-unit">of 2,000 kcal</p>
+                        </div>
+                        <div class="hm protein"><span class="k">Protein</span><span class="v"><span id="protein-logged">0</span><small> / <span id="protein-target-display">150</span> g</small></span><span class="left" id="protein-left">150 g left</span></div>
+                        <div class="hm carbs"><span class="k">Carbs</span><span class="v"><span id="carbs-logged">0</span><small> / <span id="carbs-target-display">200</span> g</small></span><span class="left" id="carbs-left">200 g left</span></div>
+                        <div class="hm fat"><span class="k">Fat</span><span class="v"><span id="fats-logged">0</span><small> / <span id="fats-target-display">65</span> g</small></span><span class="left" id="fats-left">65 g left</span></div>
                     </div>
                 </div>
-                <div class="kcal-bar" id="calorie-bar" role="img" aria-label="Calories eaten by macronutrient">
-                    <div id="kcal-seg-protein" style="width:0%;background:var(--protein)"></div>
-                    <div id="kcal-seg-carbs" style="width:0%;background:var(--carbs)"></div>
-                    <div id="kcal-seg-fats" style="width:0%;background:var(--fat)"></div>
+                <div class="hero-eq">
+                    <div><span>Goal</span><b id="calorie-target-display">2,000</b></div>
+                    <span class="op" aria-hidden="true">−</span>
+                    <div id="eq-eaten"><span>Food</span><b id="calorie-eaten-display">0</b></div>
+                    <span class="op hidden" id="eq-exercise-op" aria-hidden="true">+</span>
+                    <div id="eq-exercise" class="hidden"><span>Exercise</span><b id="calorie-exercise-display">0</b></div>
+                    <span class="op" aria-hidden="true">=</span>
+                    <div id="eq-left"><span id="calorie-left-label">Left</span><b id="calorie-left-display">2,000</b></div>
                 </div>
+            </section>
 
-                <div class="macro-grid">
-                    <div class="macro">
-                        <div class="name"><span class="dot" style="background:var(--protein)"></span>Protein</div>
-                        <div class="amt"><span id="protein-logged">0</span><small> / <span id="protein-target-display">150</span> g</small></div>
-                        <div class="bar thin"><div id="protein-progress-bar" style="width:0%;background:var(--protein)"></div></div>
-                        <div class="left" id="protein-left">150 g left</div>
-                    </div>
-                    <div class="macro">
-                        <div class="name"><span class="dot" style="background:var(--carbs)"></span>Carbs</div>
-                        <div class="amt"><span id="carbs-logged">0</span><small> / <span id="carbs-target-display">200</span> g</small></div>
-                        <div class="bar thin"><div id="carbs-progress-bar" style="width:0%;background:var(--carbs)"></div></div>
-                        <div class="left" id="carbs-left">200 g left</div>
-                    </div>
-                    <div class="macro">
-                        <div class="name"><span class="dot" style="background:var(--fat)"></span>Fat</div>
-                        <div class="amt"><span id="fats-logged">0</span><small> / <span id="fats-target-display">65</span> g</small></div>
-                        <div class="bar thin"><div id="fats-progress-bar" style="width:0%;background:var(--fat)"></div></div>
-                        <div class="left" id="fats-left">65 g left</div>
-                    </div>
-                </div>
+            <div class="actions">
+                <button class="action log-search" onclick="openFoodSearchModal(guessMealForNow())"><span class="ai-ico ico-search"><i class="fa-solid fa-magnifying-glass"></i></span>Search</button>
+                <button class="action log-scan" onclick="openScannerModal(guessMealForNow())" aria-label="Scan a barcode"><span class="ai-ico ico-scan"><i class="fa-solid fa-barcode"></i></span>Scan</button>
+                <button class="action" onclick="triggerVisionUpload(guessMealForNow())"><span class="ai-ico ico-photo"><i class="fa-solid fa-camera"></i></span>Photo AI</button>
+                <button class="action" onclick="openQuickLogModal(guessMealForNow())"><span class="ai-ico ico-quick"><i class="fa-solid fa-bolt"></i></span>Quick add</button>
             </div>
 
-            <div class="log-bar">
-                <button class="log-search" onclick="openFoodSearchModal(guessMealForNow())"><i class="fa-solid fa-magnifying-glass"></i>Search food</button>
-                <button class="log-scan" onclick="openScannerModal(guessMealForNow())" aria-label="Scan a barcode"><i class="fa-solid fa-barcode"></i></button>
-            </div>
+            <section id="quick-log-section" class="hidden" aria-label="Quick log">
+                <div class="ql-head">
+                    <h2>Quick log</h2>
+                    <button class="ql-meal" onclick="cycleQuickLogMeal()" aria-label="Choose the meal quick log adds to">to <b id="quick-log-meal">Lunch</b><i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
+                </div>
+                <div class="ql-list" id="quick-log-list"></div>
+            </section>
 
             <div id="meal-cards">
-                <section class="meal">
-                    <div class="meal-head"><h3>Breakfast</h3><span class="meal-kcal" id="badge-breakfast-cal">0 kcal</span><span id="badge-breakfast-protein" class="hidden"></span>
-                        <button class="meal-plus" onclick="openFoodSearchModal('breakfast')" aria-label="Add food to breakfast"><i class="fa-solid fa-plus"></i>Add</button></div>
+                <section class="meal" id="meal-breakfast">
+                    <div class="meal-head">
+                        <span class="meal-ico mi-breakfast"><i class="fa-solid fa-mug-hot"></i></span>
+                        <div class="meal-title"><h3>Breakfast</h3><span class="meal-kcal" id="badge-breakfast-cal"></span></div>
+                        <span id="badge-breakfast-protein" class="hidden"></span>
+                        <button class="meal-save hidden" id="meal-save-breakfast" onclick="openSaveMealModal('breakfast')" aria-label="Save breakfast as a meal" title="Save as a meal"><i class="fa-regular fa-bookmark"></i></button>
+                        <button class="meal-plus" onclick="openFoodSearchModal('breakfast')" aria-label="Add food to breakfast"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="meal-macros hidden" id="meal-macros-breakfast" aria-hidden="true"></div>
                     <div id="meal-content-breakfast" class="meal-content"><div id="logged-list-breakfast"></div><div id="suggestion-slot-breakfast"></div></div>
                 </section>
-                <section class="meal">
-                    <div class="meal-head"><h3>Lunch</h3><span class="meal-kcal" id="badge-lunch-cal">0 kcal</span><span id="badge-lunch-protein" class="hidden"></span>
-                        <button class="meal-plus" onclick="openFoodSearchModal('lunch')" aria-label="Add food to lunch"><i class="fa-solid fa-plus"></i>Add</button></div>
+                <section class="meal" id="meal-lunch">
+                    <div class="meal-head">
+                        <span class="meal-ico mi-lunch"><i class="fa-solid fa-bowl-food"></i></span>
+                        <div class="meal-title"><h3>Lunch</h3><span class="meal-kcal" id="badge-lunch-cal"></span></div>
+                        <span id="badge-lunch-protein" class="hidden"></span>
+                        <button class="meal-save hidden" id="meal-save-lunch" onclick="openSaveMealModal('lunch')" aria-label="Save lunch as a meal" title="Save as a meal"><i class="fa-regular fa-bookmark"></i></button>
+                        <button class="meal-plus" onclick="openFoodSearchModal('lunch')" aria-label="Add food to lunch"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="meal-macros hidden" id="meal-macros-lunch" aria-hidden="true"></div>
                     <div id="meal-content-lunch" class="meal-content"><div id="logged-list-lunch"></div><div id="suggestion-slot-lunch"></div></div>
                 </section>
-                <section class="meal">
-                    <div class="meal-head"><h3>Dinner</h3><span class="meal-kcal" id="badge-dinner-cal">0 kcal</span><span id="badge-dinner-protein" class="hidden"></span>
-                        <button class="meal-plus" onclick="openFoodSearchModal('dinner')" aria-label="Add food to dinner"><i class="fa-solid fa-plus"></i>Add</button></div>
+                <section class="meal" id="meal-dinner">
+                    <div class="meal-head">
+                        <span class="meal-ico mi-dinner"><i class="fa-solid fa-utensils"></i></span>
+                        <div class="meal-title"><h3>Dinner</h3><span class="meal-kcal" id="badge-dinner-cal"></span></div>
+                        <span id="badge-dinner-protein" class="hidden"></span>
+                        <button class="meal-save hidden" id="meal-save-dinner" onclick="openSaveMealModal('dinner')" aria-label="Save dinner as a meal" title="Save as a meal"><i class="fa-regular fa-bookmark"></i></button>
+                        <button class="meal-plus" onclick="openFoodSearchModal('dinner')" aria-label="Add food to dinner"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="meal-macros hidden" id="meal-macros-dinner" aria-hidden="true"></div>
                     <div id="meal-content-dinner" class="meal-content"><div id="logged-list-dinner"></div><div id="suggestion-slot-dinner"></div></div>
                 </section>
-                <section class="meal">
-                    <div class="meal-head"><h3>Snacks</h3><span class="meal-kcal" id="badge-snacks-cal">0 kcal</span><span id="badge-snacks-protein" class="hidden"></span>
-                        <button class="meal-plus" onclick="openFoodSearchModal('snacks')" aria-label="Add food to snacks"><i class="fa-solid fa-plus"></i>Add</button></div>
+                <section class="meal" id="meal-snacks">
+                    <div class="meal-head">
+                        <span class="meal-ico mi-snacks"><i class="fa-solid fa-cookie-bite"></i></span>
+                        <div class="meal-title"><h3>Snacks</h3><span class="meal-kcal" id="badge-snacks-cal"></span></div>
+                        <span id="badge-snacks-protein" class="hidden"></span>
+                        <button class="meal-save hidden" id="meal-save-snacks" onclick="openSaveMealModal('snacks')" aria-label="Save snacks as a meal" title="Save as a meal"><i class="fa-regular fa-bookmark"></i></button>
+                        <button class="meal-plus" onclick="openFoodSearchModal('snacks')" aria-label="Add food to snacks"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="meal-macros hidden" id="meal-macros-snacks" aria-hidden="true"></div>
                     <div id="meal-content-snacks" class="meal-content"><div id="logged-list-snacks"></div><div id="suggestion-slot-snacks"></div></div>
                 </section>
             </div>
@@ -587,21 +753,30 @@
             <button id="copy-prev-day" class="copy-day hidden" onclick="copyYesterdayMeals()"><i class="fa-solid fa-clone"></i><span>Copy meals from the previous day</span></button>
 
             <section class="meal" id="exercise-section">
-                <div class="meal-head"><h3>Exercise</h3><span class="meal-kcal" id="exercise-kcal"></span>
-                    <button class="meal-plus" onclick="openExerciseModal()" aria-label="Log exercise"><i class="fa-solid fa-plus"></i>Add</button></div>
+                <div class="meal-head">
+                    <span class="meal-ico mi-exercise"><i class="fa-solid fa-fire"></i></span>
+                    <div class="meal-title"><h3>Exercise</h3><span class="meal-kcal" id="exercise-kcal"></span></div>
+                    <button class="meal-plus" onclick="openExerciseModal()" aria-label="Log exercise"><i class="fa-solid fa-plus"></i></button>
+                </div>
                 <div id="exercise-list"></div>
-                <p id="steps-line" class="small faint pt-2 hidden"></p>
+                <p id="steps-line" class="small faint hidden"></p>
                 <div id="health-sync-row" class="sync-row hidden">
                     <button class="chip" onclick="syncFromAppleHealth()"><i class="fa-brands fa-apple"></i>Sync Apple Health</button>
                     <span class="small faint" id="health-sync-status"></span>
                 </div>
-                <p id="exercise-goal-note" class="small faint pt-2 hidden">Not added to your calorie goal — you can change this in Settings.</p>
+                <p id="exercise-goal-note" class="small faint hidden">Not added to your calorie goal — you can change this in Settings.</p>
             </section>
 
             <section class="meal" id="water-section">
-                <div class="meal-head"><h3>Water</h3><span class="meal-kcal" id="water-amount">0 of 2.5 L</span></div>
+                <div class="meal-head">
+                    <span class="meal-ico mi-water"><i class="fa-solid fa-droplet"></i></span>
+                    <div class="meal-title"><h3>Water</h3><span class="meal-kcal" id="water-amount">0 of 2.5 L</span></div>
+                </div>
                 <div class="water-row">
-                    <div class="bar water-bar"><div id="water-bar" style="width:0%;background:var(--carbs)"></div></div>
+                    <div class="water-glasses" id="water-glasses" aria-hidden="true"></div>
+                    <div id="water-bar" class="hidden"></div>
+                </div>
+                <div class="water-row" style="justify-content:flex-end">
                     <button class="chip" id="water-minus" onclick="addWater(-0.25)" aria-label="Remove 250 ml">−</button>
                     <button class="chip" onclick="addWater(0.25)">+250 ml</button>
                     <button class="chip" onclick="addWater(0.5)">+500 ml</button>
@@ -619,39 +794,71 @@
 
         <!-- ===================== INSIGHTS ===================== -->
         <section id="tab-content-dashboard" class="tab-panel hidden">
+            <div class="seg" role="group" aria-label="Insights range">
+                <button onclick="setInsightsRange(7)" id="insights-range-7" class="is-active">7 days</button>
+                <button onclick="setInsightsRange(14)" id="insights-range-14">14 days</button>
+                <button onclick="setInsightsRange(30)" id="insights-range-30">30 days</button>
+            </div>
+
             <div class="stat-tiles">
-                <div class="tile">
-                    <div class="k"><i class="fa-solid fa-fire" style="color:#fb923c"></i>Logging streak</div>
+                <div class="tile streak">
+                    <div class="k"><i class="fa-solid fa-fire" style="color:var(--burn)"></i>Logging streak</div>
                     <div class="v"><span id="streak-count">0</span> <small id="streak-unit">days</small></div>
                     <div class="s">Best: <span id="streak-best">0</span><span id="streak-best-unit"> days</span></div>
                 </div>
-                <div class="tile">
-                    <div class="k"><i class="fa-solid fa-utensils" style="color:var(--brand)"></i>Eaten this day</div>
+                <div class="tile today">
+                    <div class="k"><i class="fa-solid fa-utensils" style="color:var(--kcal)"></i><span id="dash-day-label">Eaten today</span></div>
                     <div class="v"><span id="dash-cal">0</span> <small>kcal</small></div>
                     <div class="s"><span id="dash-protein">0</span>g protein · <span id="dash-remaining">0</span> kcal left</div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-calendar-week"></i>Last 7 days</h3><span class="small muted">ending today</span></div>
-                <div class="detail-list" id="weekly-report"></div>
+                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-fire-flame-curved" style="color:var(--kcal)"></i>Calories</h3><span class="small muted" id="ins-cal-range">last 7 days</span></div>
+                <div class="chart-kpis" id="ins-cal-kpis"></div>
+                <div class="chart" id="ins-cal-chart"></div>
+                <div class="chart-legend"><span><i style="background:var(--protein)"></i>Protein</span><span><i style="background:var(--carbs)"></i>Carbs</span><span><i style="background:var(--fat)"></i>Fat</span><span><i style="background:transparent;border:1.5px dashed rgba(255,255,255,.6);width:12px;height:0;border-radius:0"></i>Goal</span></div>
             </div>
 
             <div class="card">
-                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-chart-pie"></i>Macro split</h3><span class="small muted">by calories</span></div>
-                <div class="flex items-center gap-6">
-                    <div class="relative w-32 h-32 shrink-0"><canvas id="macro-pie-canvas" class="w-full h-full" width="128" height="128"></canvas></div>
+                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-scale-balanced" style="color:var(--burn)"></i>Eaten vs burned</h3><span class="small muted">finished days</span></div>
+                <div class="chart-kpis" id="ins-bal-kpis"></div>
+                <div class="chart" id="ins-bal-chart"></div>
+                <div class="chart-legend" id="ins-bal-legend"><span><i style="background:var(--kcal)"></i>Eaten</span><span><i style="background:var(--burn)"></i>Burned</span></div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-dumbbell" style="color:var(--protein)"></i>Protein</h3><span class="small muted" id="ins-protein-target">target 150 g</span></div>
+                <div class="chart-kpis" id="ins-protein-kpis"></div>
+                <div class="chart" id="ins-protein-chart"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-chart-pie" style="color:var(--carbs-2)"></i>Macro split</h3><span class="small muted" id="ins-split-range">average, last 7 days</span></div>
+                <div class="flex items-center gap-5">
+                    <div class="shrink-0" id="ins-split-donut" style="width:112px;height:112px"></div>
                     <div class="legend flex-1">
                         <div class="legend-row"><span class="sw" style="background:var(--protein)"></span>Protein<b><span id="pie-protein-pct">0</span>%</b></div>
                         <div class="legend-row"><span class="sw" style="background:var(--carbs)"></span>Carbs<b><span id="pie-carbs-pct">0</span>%</b></div>
                         <div class="legend-row"><span class="sw" style="background:var(--fat)"></span>Fat<b><span id="pie-fats-pct">0</span>%</b></div>
                     </div>
                 </div>
+                <div class="mt-4" id="ins-split-bars"></div>
+            </div>
+
+            <div class="card hidden" id="ins-steps-card">
+                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-shoe-prints" style="color:var(--water)"></i>Steps</h3><span class="small muted" id="ins-steps-avg"></span></div>
+                <div class="chart" id="ins-steps-chart"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-calendar-week" style="color:var(--ai)"></i>Last 7 days</h3><span class="small muted">summary</span></div>
+                <div class="detail-list" id="weekly-report"></div>
             </div>
 
             <div class="card">
                 <div class="card-head">
-                    <h3 class="card-title"><i class="fa-solid fa-hourglass-half"></i>Fasting</h3>
+                    <h3 class="card-title"><i class="fa-solid fa-hourglass-half" style="color:var(--ai)"></i>Fasting</h3>
                     <select id="fasting-target-select" onchange="changeFastingProtocol(this.value)" class="select" style="width:auto;min-height:38px;font-size:14px" aria-label="Fasting protocol">
                         <option value="16">16:8</option>
                         <option value="18">18:6</option>
@@ -662,8 +869,9 @@
                 <div class="fast-wrap">
                     <div class="fast-ring">
                         <svg viewBox="0 0 80 80" aria-hidden="true">
-                            <circle cx="40" cy="40" r="34" stroke="var(--surface-3)"/>
-                            <circle id="fasting-progress-ring" cx="40" cy="40" r="34" stroke="var(--ai)" stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" style="transition:stroke-dashoffset .5s"/>
+                            <defs><linearGradient id="grad-fast" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bf5af2"/><stop offset="1" stop-color="#7d7aff"/></linearGradient></defs>
+                            <circle cx="40" cy="40" r="34" stroke="rgba(191,90,242,.2)"/>
+                            <circle id="fasting-progress-ring" cx="40" cy="40" r="34" stroke="url(#grad-fast)" stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" style="transition:stroke-dashoffset .5s"/>
                         </svg>
                         <div class="center"><span id="fasting-percent-display">0%</span></div>
                     </div>
@@ -717,8 +925,10 @@
                     </form>
                 </div>
                 <div class="card">
-                    <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-chart-line"></i>Weight trend</h3><span class="small muted">line · 7-day average</span></div>
-                    <div class="chart-box"><canvas id="weight-sparkline-canvas"></canvas></div>
+                    <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-chart-line" style="color:var(--carbs-2)"></i>Weight trend</h3><span class="small muted" id="weight-trend-rate"></span></div>
+                    <div class="chart-kpis" id="weight-kpis"></div>
+                    <div class="chart" id="weight-chart"></div>
+                    <div class="chart-legend"><span><i style="background:var(--carbs-2);border-radius:50%"></i>Weigh-ins</span><span><i style="background:var(--kcal);height:3px;width:14px"></i>Trend</span><span id="weight-goal-legend" class="hidden"><i style="background:transparent;border:1.5px dashed rgba(255,255,255,.6);width:12px;height:0;border-radius:0"></i>Goal</span></div>
                 </div>
                 <div class="card">
                     <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-table"></i>Weekly averages</h3></div>
@@ -776,16 +986,17 @@
             <!-- Calories -->
             <div id="sub-panel-calories" class="hidden space-y-3.5">
                 <div class="card">
-                    <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-fire"></i>Daily calories</h3><span class="small muted" id="cal-trend-avg">Avg: --</span></div>
-                    <div class="chart-box"><canvas id="calorie-trend-canvas"></canvas></div>
+                    <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-fire" style="color:var(--kcal)"></i>Daily calories</h3><span class="small muted" id="cal-trend-avg">Avg: --</span></div>
+                    <div class="chart" id="calorie-trend-chart"></div>
+                    <div class="chart-legend"><span><i style="background:var(--protein)"></i>Protein</span><span><i style="background:var(--carbs)"></i>Carbs</span><span><i style="background:var(--fat)"></i>Fat</span><span><i style="background:#fff;height:2px;width:14px"></i>7-day average</span></div>
                 </div>
                 <div class="card">
                     <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-calendar-days"></i>Last 4 weeks</h3></div>
                     <div class="heat" id="weekly-cal-heatmap"></div>
                     <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 tiny muted">
-                        <span><span class="inline-block w-2.5 h-2.5 rounded-sm align-middle" style="background:rgba(52,211,153,.28)"></span> under goal</span>
-                        <span><span class="inline-block w-2.5 h-2.5 rounded-sm align-middle" style="background:var(--brand-strong)"></span> on target</span>
-                        <span><span class="inline-block w-2.5 h-2.5 rounded-sm align-middle" style="background:rgba(245,158,11,.5)"></span> over</span>
+                        <span><span class="inline-block w-2.5 h-2.5 rounded-sm align-middle" style="background:rgba(48,209,88,.34)"></span> under goal</span>
+                        <span><span class="inline-block w-2.5 h-2.5 rounded-sm align-middle" style="background:var(--kcal)"></span> on target</span>
+                        <span><span class="inline-block w-2.5 h-2.5 rounded-sm align-middle" style="background:rgba(255,159,10,.5)"></span> over</span>
                     </div>
                 </div>
             </div>
@@ -798,6 +1009,7 @@
     <div class="inner">
         <button onclick="switchTab('nutrition')" id="mb-nutrition" class="nav-btn is-active"><i class="fa-solid fa-utensils"></i><span>Diary</span></button>
         <button onclick="switchTab('dashboard')" id="mb-dashboard" class="nav-btn"><i class="fa-solid fa-chart-simple"></i><span>Insights</span></button>
+        <button onclick="openLogSheet()" id="mb-log" class="nav-plus" aria-label="Log food, exercise or water"><i class="fa-solid fa-plus"></i></button>
         <button onclick="switchTab('progress')" id="mb-progress" class="nav-btn"><i class="fa-solid fa-arrow-trend-down"></i><span>Progress</span></button>
         <button onclick="openSettingsModal()" id="mb-settings" class="nav-btn"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
     </div>
@@ -806,6 +1018,35 @@
 <div id="toast-container" aria-live="polite"></div>
 
 <!-- ==================== OVERLAYS ==================== -->
+
+<!-- LOG SHEET (+ button) -->
+<div id="modal-log" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="log-title">
+    <div class="overlay-backdrop" onclick="closeLogSheet()"></div>
+    <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-head">
+            <div><h3 id="log-title">Log</h3><p id="log-sheet-date">Today</p></div>
+            <button class="icon-btn" onclick="closeLogSheet()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="seg" id="log-meal-seg" role="group" aria-label="Meal">
+            <button data-meal="breakfast" onclick="setLogSheetMeal('breakfast')">Breakfast</button>
+            <button data-meal="lunch" onclick="setLogSheetMeal('lunch')">Lunch</button>
+            <button data-meal="dinner" onclick="setLogSheetMeal('dinner')">Dinner</button>
+            <button data-meal="snacks" onclick="setLogSheetMeal('snacks')">Snacks</button>
+        </div>
+        <div class="log-grid mt-5">
+            <button class="action" onclick="logSheetAction('search')"><span class="ai-ico ico-search"><i class="fa-solid fa-magnifying-glass"></i></span>Search</button>
+            <button class="action" onclick="logSheetAction('scan')"><span class="ai-ico ico-scan"><i class="fa-solid fa-barcode"></i></span>Scan</button>
+            <button class="action" onclick="logSheetAction('photo')"><span class="ai-ico ico-photo"><i class="fa-solid fa-camera"></i></span>Photo AI</button>
+            <button class="action" onclick="logSheetAction('describe')"><span class="ai-ico ico-describe"><i class="fa-solid fa-wand-magic-sparkles"></i></span>Describe</button>
+            <button class="action" onclick="logSheetAction('quick')"><span class="ai-ico ico-quick"><i class="fa-solid fa-bolt"></i></span>Quick add</button>
+            <button class="action" onclick="logSheetAction('exercise')"><span class="ai-ico ico-exercise"><i class="fa-solid fa-person-running"></i></span>Exercise</button>
+            <button class="action" onclick="logSheetAction('water')"><span class="ai-ico ico-water"><i class="fa-solid fa-droplet"></i></span>+250 ml</button>
+            <button class="action" onclick="logSheetAction('weight')"><span class="ai-ico ico-weight"><i class="fa-solid fa-weight-scale"></i></span>Weight</button>
+        </div>
+        <div id="log-sheet-recent" class="mt-5"></div>
+    </div>
+</div>
 
 <!-- ADD FOOD (full screen) -->
 <div id="modal-food-search" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="food-search-title">
@@ -2427,13 +2668,102 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         function renderDashboardTab() {
             const totals = dayTotals();
+            const isToday = appState.currentDate === localDateKey();
+            document.getElementById('dash-day-label').innerText = isToday ? 'Eaten today' : `Eaten ${formatDateShort(appState.currentDate)}`;
             document.getElementById('dash-cal').innerText = Number(totals.calories).toLocaleString('en-US');
             document.getElementById('dash-protein').innerText = Math.round(totals.protein);
             document.getElementById('dash-remaining').innerText = Math.max(0, dayGoal() - totals.calories).toLocaleString('en-US');
             calculateStreak();
             renderWeeklyReport();
-            renderMacroPieChart(totals.protein, totals.carbs, totals.fats);
+            renderInsightsCharts();
             renderFastingUI();
+        }
+
+        function setInsightsRange(days) {
+            audioEngine.playNotification('tap');
+            appState.insightsRange = [7, 14, 30].includes(days) ? days : 7;
+            renderInsightsCharts();
+            saveStateToLocalStorage();
+        }
+
+        function selectInsightsDay(key) {
+            selectDate(key);
+        }
+
+        function renderInsightsCharts() {
+            const days = appState.insightsRange || 7;
+            [7, 14, 30].forEach(d => document.getElementById(`insights-range-${d}`).classList.toggle('is-active', d === days));
+            const series = dailySeries(days).map(d => ({ ...d, selected: d.key === appState.currentDate }));
+            const logged = series.filter(d => d.kcal > 0);
+            const fmt = n => Math.round(n).toLocaleString('en-US');
+            const avg = (list, key) => list.length ? list.reduce((sum, d) => sum + (d[key] || 0), 0) / list.length : 0;
+            const rangeText = `last ${days} days`;
+            document.getElementById('ins-cal-range').innerText = rangeText;
+            document.getElementById('ins-split-range').innerText = `average, ${rangeText}`;
+
+            // Calories
+            const calEl = document.getElementById('ins-cal-chart');
+            const onTarget = logged.filter(d => Math.abs(d.kcal - d.goal) <= d.goal * 0.1).length;
+            document.getElementById('ins-cal-kpis').innerHTML = kpisHtml([
+                [logged.length ? `${fmt(avg(logged, 'kcal'))}<small>kcal</small>` : '—', 'avg per logged day', 'var(--kcal)'],
+                [`${onTarget}<small>/ ${logged.length}</small>`, 'days within 10%'],
+                [`${logged.length}<small>/ ${days}</small>`, 'days logged']
+            ]);
+            calEl.innerHTML = logged.length
+                ? barChartSvg({ width: chartWidthOf(calEl), bars: series.map(d => ({ ...d, segments: macroSegments(d) })), goal: appState.targets.calories || 2000, onTap: 'selectInsightsDay' })
+                : chartEmpty('fa-chart-column', 'Log food to see your daily calories here.');
+
+            // Eaten vs burned (finished days with burn data)
+            const today = localDateKey();
+            const balance = series.filter(d => d.burned && d.kcal > 0 && d.key < today);
+            const balEl = document.getElementById('ins-bal-chart');
+            document.getElementById('ins-bal-legend').classList.toggle('hidden', !balance.length);
+            if (balance.length) {
+                const net = avg(balance, 'kcal') - avg(balance, 'burned');
+                document.getElementById('ins-bal-kpis').innerHTML = kpisHtml([
+                    [`${fmt(avg(balance, 'kcal'))}<small>kcal</small>`, 'avg eaten', 'var(--kcal)'],
+                    [`${fmt(avg(balance, 'burned'))}<small>kcal</small>`, 'avg burned', 'var(--burn)'],
+                    [`${net > 0 ? '+' : '−'}${fmt(Math.abs(net))}`, net > 0 ? 'surplus / day' : 'deficit / day', net > 0 ? 'var(--fat-2)' : 'var(--carbs-2)']
+                ]);
+                balEl.innerHTML = pairBarChartSvg({ width: chartWidthOf(balEl), items: series.map(d => ({ ...d, a: d.key < today && d.burned ? d.kcal : 0, b: d.key < today ? d.burned || 0 : 0 })), colors: ['var(--kcal)', 'var(--burn)'], onTap: 'selectInsightsDay' });
+            } else {
+                document.getElementById('ins-bal-kpis').innerHTML = '';
+                balEl.innerHTML = chartEmpty('fa-heart-pulse', 'See calories eaten next to calories burned once burn data arrives from Apple Health (Google Health, Fitbit) or an import.',
+                    '<button class="btn btn-soft btn-sm" onclick="syncFromAppleHealth()"><i class="fa-brands fa-apple"></i>Sync Apple Health</button>');
+            }
+
+            // Protein
+            const proteinTarget = appState.targets.protein || 150;
+            document.getElementById('ins-protein-target').innerText = `target ${proteinTarget} g`;
+            const proteinEl = document.getElementById('ins-protein-chart');
+            const hit = logged.filter(d => d.protein >= proteinTarget * 0.9).length;
+            document.getElementById('ins-protein-kpis').innerHTML = kpisHtml([
+                [logged.length ? `${fmt(avg(logged, 'protein'))}<small>g</small>` : '—', 'avg per logged day', 'var(--protein)'],
+                [`${hit}<small>/ ${logged.length}</small>`, 'days at 90%+ of target']
+            ]);
+            proteinEl.innerHTML = logged.length
+                ? barChartSvg({ width: chartWidthOf(proteinEl), height: 150, bars: series.map(d => ({ ...d, segments: [{ value: d.protein, color: d.protein >= proteinTarget * 0.9 ? 'var(--protein)' : 'rgba(255,55,95,0.45)' }] })), goal: proteinTarget, goalLabel: 'Target', fmt: n => `${Math.round(n)}`, onTap: 'selectInsightsDay' })
+                : chartEmpty('fa-dumbbell', 'Log food to see protein by day.');
+
+            // Macro split (average of logged days) vs targets
+            const avgP = avg(logged, 'protein'), avgC = avg(logged, 'carbs'), avgF = avg(logged, 'fats');
+            renderMacroPieChart(avgP, avgC, avgF);
+            const t = appState.targets;
+            const targetKcal = (t.protein || 0) * 4 + (t.carbs || 0) * 4 + (t.fats || 0) * 9;
+            const pct = (p, c, f) => { const total = p * 4 + c * 4 + f * 9; return total ? [p * 4 / total, c * 4 / total, f * 9 / total].map(x => Math.round(x * 100)) : [0, 0, 0]; };
+            const bar = vals => `<div class="split-bar">${vals.map((v, i) => v ? `<div style="width:${v}%;background:${['var(--protein)', 'var(--carbs)', 'var(--fat)'][i]}">${v >= 12 ? `${v}%` : ''}</div>` : '').join('')}</div>`;
+            document.getElementById('ins-split-bars').innerHTML = logged.length && targetKcal
+                ? `<div class="split-row"><span>You</span>${bar(pct(avgP, avgC, avgF))}</div><div class="split-row"><span>Target</span>${bar(pct(t.protein, t.carbs, t.fats))}</div>`
+                : '';
+
+            // Steps
+            const withSteps = series.filter(d => d.steps !== null && d.steps !== undefined);
+            document.getElementById('ins-steps-card').classList.toggle('hidden', !withSteps.length);
+            if (withSteps.length) {
+                document.getElementById('ins-steps-avg').innerText = `avg ${fmt(avg(withSteps, 'steps'))} / day`;
+                const stepsEl = document.getElementById('ins-steps-chart');
+                stepsEl.innerHTML = barChartSvg({ width: chartWidthOf(stepsEl), height: 140, bars: series.map(d => ({ ...d, segments: [{ value: d.steps || 0, color: 'var(--water)' }] })), goal: 10000, goalLabel: '', onTap: 'selectInsightsDay' });
+            }
         }
 
         // Meals are always shown expanded; kept for older saved state.
@@ -2493,11 +2823,12 @@ Copy the numbers exactly as printed — never estimate or use typical values.
                     const meta = [`${formatAmount(food.servingSize)} ${food.servingUnit || ''}`.trim(), food.store && !/^(Generic|Generic Staple|Manual Entry|Custom|AI.*)$/i.test(food.store) ? food.store : '']
                         .filter(Boolean).map(escapeHTML).join(' · ');
                     item.innerHTML = `
+                        ${foodIconHtml(food)}
                         <button type="button" class="diary-details entry-main" aria-label="Edit ${escapeHTML(food.name)}">
                             <p class="entry-name">${escapeHTML(food.name)}</p>
                             <p class="entry-meta">${meta}</p>
                         </button>
-                        <span class="entry-kcal">${Number(food.calories || 0).toLocaleString('en-US')}</span>
+                        <span class="entry-kcal">${Number(food.calories || 0).toLocaleString('en-US')}<small>kcal</small></span>
                     `;
                     item.querySelector('.diary-details').onclick = () => openNutritionLabel(food, { date: dateKey, meal, id: food.id });
                     item.onclick = e => { if (e.target === item || e.target?.classList?.contains('entry-kcal')) openNutritionLabel(food, { date: dateKey, meal, id: food.id }); };
@@ -2505,12 +2836,13 @@ Copy the numbers exactly as printed — never estimate or use typical values.
                 });
 
                 const kcalEl = document.getElementById(`badge-${meal}-cal`);
-                kcalEl.innerText = mealCal ? `${mealCal.toLocaleString('en-US')} kcal` : '';
+                kcalEl.innerText = mealCal ? `${mealCal.toLocaleString('en-US')} kcal · ${foods.length} item${foods.length === 1 ? '' : 's'}` : '';
                 document.getElementById(`badge-${meal}-protein`).innerText = `${Math.round(mealProt)}g protein`;
+                renderMealMacroBar(meal, foods);
                 renderSmartSuggestionSlot(meal);
             });
 
-            // Calorie summary + macro-split bar
+            // Rings + calorie equation
             const target = dayGoal(dateKey) || 1;
             const exerciseBonus = target - (targets.calories || 0);
             const remaining = target - totalKcal;
@@ -2518,22 +2850,21 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             const fmt = n => Number(n).toLocaleString('en-US');
             document.getElementById('calorie-big-number').innerText = fmt(consumedMode ? totalKcal : Math.abs(remaining));
             document.getElementById('calorie-state-subtitle').innerText = consumedMode ? 'Eaten' : (remaining >= 0 ? 'Remaining' : 'Over target');
+            document.getElementById('calorie-big-unit').innerText = consumedMode ? `of ${fmt(target)} kcal` : (remaining >= 0 ? `kcal left of ${fmt(target)}` : `kcal over ${fmt(target)}`);
             document.getElementById('calorie-target-display').innerText = fmt(targets.calories);
             document.getElementById('eq-exercise').classList.toggle('hidden', !(exerciseBonus > 0));
-            document.getElementById('calorie-exercise-display').innerText = `+${fmt(exerciseBonus)}`;
+            document.getElementById('eq-exercise-op').classList.toggle('hidden', !(exerciseBonus > 0));
+            document.getElementById('calorie-exercise-display').innerText = fmt(exerciseBonus);
             document.getElementById('calorie-eaten-display').innerText = fmt(totalKcal);
             document.getElementById('calorie-left-display').innerText = fmt(Math.abs(remaining));
             document.getElementById('calorie-left-label').innerText = remaining >= 0 ? 'Left' : 'Over';
-            document.getElementById('eq-eaten').classList.toggle('hidden', consumedMode);
-            document.getElementById('eq-left').classList.toggle('hidden', !consumedMode);
-            const eatenFraction = Math.min(1, totalKcal / target);
-            const macroKcal = { protein: totalP * 4, carbs: totalC * 4, fats: totalF * 9 };
-            const macroKcalTotal = macroKcal.protein + macroKcal.carbs + macroKcal.fats;
-            ['protein', 'carbs', 'fats'].forEach(key => {
-                const share = macroKcalTotal > 0 ? macroKcal[key] / macroKcalTotal : (key === 'carbs' ? 1 : 0);
-                document.getElementById(`kcal-seg-${key}`).style.width = `${(eatenFraction * share * 100).toFixed(2)}%`;
-            });
-            document.getElementById('calorie-bar').classList.toggle('over', remaining < 0);
+            document.getElementById('eq-left').classList.toggle('over', remaining < 0);
+            setRing('kcal', totalKcal / target);
+            setRing('protein', totalP / (targets.protein || 1));
+            setRing('carbs', totalC / (targets.carbs || 1));
+            setRing('fat', totalF / (targets.fats || 1));
+            const rings = document.getElementById('hero-rings');
+            if (rings.setAttribute) rings.setAttribute('aria-label', `${fmt(totalKcal)} of ${fmt(target)} kcal; protein ${Math.round(totalP)} of ${targets.protein} g; carbs ${Math.round(totalC)} of ${targets.carbs} g; fat ${Math.round(totalF)} of ${targets.fats} g`);
 
             const copyBtn = document.getElementById('copy-prev-day');
             const prev = new Date(dateKey + 'T12:00:00');
@@ -2546,7 +2877,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             macroRows.forEach(([key, value]) => {
                 const goal = targets[key] || 1;
                 document.getElementById(`${key}-logged`).innerText = Math.round(value);
-                document.getElementById(`${key}-progress-bar`).style.width = `${Math.min(100, (value / goal) * 100)}%`;
                 const left = Math.round(goal - value);
                 const leftEl = document.getElementById(`${key}-left`);
                 leftEl.innerText = left >= 0 ? `${left} g left` : `${-left} g over`;
@@ -2554,10 +2884,212 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             });
 
             document.getElementById('meals-summary').innerText = itemCount ? `${itemCount} item${itemCount === 1 ? '' : 's'}` : '';
+            renderQuickLog();
 
             updateMicronutrientsVisuals(microLogged);
             calculateStreak();
-            if (appState.activeTab === 'dashboard') renderMacroPieChart(totalP, totalC, totalF);
+            if (appState.activeTab === 'dashboard') renderDashboardTab();
+        }
+
+        // Activity-style rings: a full turn is 100% of the target; past 100% a second lap is drawn.
+        const RING_RADII = { kcal: 87, protein: 65, carbs: 43, fat: 21 };
+        function setRing(name, fraction) {
+            const arc = document.getElementById(`ring-${name}`);
+            const lap = document.getElementById(`ring-${name}-lap`);
+            if (!arc || !lap) return;
+            const c = 2 * Math.PI * RING_RADII[name];
+            const f = Math.max(0, Number.isFinite(fraction) ? fraction : 0);
+            const extra = Math.min(1, Math.max(0, f - 1));
+            arc.style.strokeDasharray = lap.style.strokeDasharray = `${c.toFixed(2)} ${c.toFixed(2)}`;
+            arc.style.strokeDashoffset = (c * (1 - Math.min(1, f))).toFixed(2);
+            lap.style.strokeDashoffset = (c * (1 - extra)).toFixed(2);
+            // A zero-length arc would still show its round cap as a dot.
+            arc.style.opacity = f > 0.005 ? '1' : '0';
+            lap.style.opacity = extra > 0.005 ? '1' : '0';
+        }
+
+        // Icon and colour for a food: its category, else words in its name.
+        const FOOD_TYPE_ICONS = {
+            'Fruit': ['fa-apple-whole', 'fruit'], 'Vegetable': ['fa-carrot', 'veg'], 'Dairy/Eggs': ['fa-cheese', 'dairy'], 'Grain': ['fa-wheat-awn', 'grain'],
+            'Meat': ['fa-drumstick-bite', 'meat'], 'Seafood': ['fa-fish', 'fish'], 'Nuts/Seeds': ['fa-seedling', 'nuts'], 'Legume': ['fa-seedling', 'veg'],
+            'Fats/Oils': ['fa-bottle-droplet', 'fat'], 'Condiment': ['fa-jar', 'fat'], 'Snack': ['fa-cookie', 'sweet'], 'Supplement': ['fa-capsules', 'pack']
+        };
+        const FOOD_NAME_ICONS = [
+            [/\b(coffee|latte|espresso|cappuccino|tea)\b/i, 'fa-mug-hot', 'drink'],
+            [/\b(juice|soda|cola|coke|smoothie|drink|beer|wine|milkshake|lemonade)\b/i, 'fa-bottle-water', 'drink'],
+            [/\beggs?\b|omelet/i, 'fa-egg', 'egg'],
+            [/\b(chicken|beef|pork|turkey|lamb|steak|bacon|ham|sausage|meat|mince|jerky)\b/i, 'fa-drumstick-bite', 'meat'],
+            [/\b(salmon|tuna|fish|cod|shrimp|prawns?|sardines?|trout|tilapia|mackerel|sushi)\b/i, 'fa-fish', 'fish'],
+            [/\bpizza\b/i, 'fa-pizza-slice', 'grain'],
+            [/\b(burger|hamburger|cheeseburger)\b/i, 'fa-burger', 'meat'],
+            [/\b(bread|toast|bagel|bun|wrap|tortilla|pita|croissant|sandwich)\b/i, 'fa-bread-slice', 'grain'],
+            [/\b(rice|pasta|oats?|oatmeal|porridge|cereal|granola|quinoa|noodles?|couscous|cheerios|spaghetti)\b/i, 'fa-wheat-awn', 'grain'],
+            [/\b(chocolate|cookies?|biscuits?|cake|cand(y|ies)|sweets?|ice cream|donuts?|nutella|brownies?|muffins?|bars?)\b/i, 'fa-cookie', 'sweet'],
+            [/\b(nuts?|almonds?|peanuts?|cashews?|walnuts?|pistachios?|seeds?|chia|flax)\b/i, 'fa-seedling', 'nuts'],
+            [/\b(milk|yogh?urt|cheese|cheddar|mozzarella|feta|kefir|cream|skyr|cottage|whey)\b/i, 'fa-cheese', 'dairy'],
+            [/\b(apples?|bananas?|berr(y|ies)|oranges?|grapes?|mango|melon|peach|pears?|kiwi|pineapple|cherr(y|ies)|fruit|lemon|avocado|dates?)\b/i, 'fa-apple-whole', 'fruit'],
+            [/\b(broccoli|spinach|salad|lettuce|kale|carrots?|tomato(es)?|peppers?|cucumber|onions?|veg\w*|beans?|peas|lentils?|chickpeas?|potato(es)?|corn|zucchini|cauliflower|mushrooms?)\b/i, 'fa-carrot', 'veg'],
+            [/\b(oil|olive|ghee|butter|mayo|dressing)\b/i, 'fa-bottle-droplet', 'fat']
+        ];
+
+        function foodIcon(food) {
+            const type = food?.type || '';
+            if (isAiFood(food)) return ['fa-wand-magic-sparkles', 'ai'];
+            if (/quick/i.test(type)) return ['fa-bolt', 'quick'];
+            if (FOOD_TYPE_ICONS[type]) return FOOD_TYPE_ICONS[type];
+            const hit = FOOD_NAME_ICONS.find(([re]) => re.test(food?.name || ''));
+            if (hit) return [hit[1], hit[2]];
+            if (/custom/i.test(type)) return ['fa-star', 'mine'];
+            return ['fa-basket-shopping', 'pack'];
+        }
+
+        function foodIconHtml(food, size = '') {
+            const [icon, tone] = foodIcon(food);
+            return `<span class="food-ico ${size} fi-${tone}" aria-hidden="true"><i class="fa-solid ${icon}"></i></span>`;
+        }
+
+        // Thin protein / carbs / fat split under a meal's title.
+        function renderMealMacroBar(meal, foods) {
+            const el = document.getElementById(`meal-macros-${meal}`);
+            if (!el) return;
+            const kcal = { protein: 0, carbs: 0, fats: 0 };
+            foods.forEach(f => { kcal.protein += (f.protein || 0) * 4; kcal.carbs += (f.carbs || 0) * 4; kcal.fats += (f.fats || 0) * 9; });
+            const total = kcal.protein + kcal.carbs + kcal.fats;
+            el.classList.toggle('hidden', !total);
+            el.innerHTML = total ? [['protein', 'var(--protein)'], ['carbs', 'var(--carbs)'], ['fats', 'var(--fat)']]
+                .map(([k, color]) => `<div style="width:${((kcal[k] / total) * 100).toFixed(1)}%;background:${color}"></div>`).join('') : '';
+        }
+
+        // QUICK LOG: recent foods and saved meals, one tap to log again.
+        let quickLogMeal = null; // null follows the time of day
+
+        function quickLogTargetMeal() {
+            return quickLogMeal || guessMealForNow();
+        }
+
+        function cycleQuickLogMeal() {
+            const i = MEAL_KEYS.indexOf(quickLogTargetMeal());
+            quickLogMeal = MEAL_KEYS[(i + 1) % MEAL_KEYS.length];
+            renderQuickLog();
+        }
+
+        function quickLogItems(limit = 10) {
+            const saved = (appState.savedMeals || []).slice()
+                .sort((a, b) => (b.lastUsedAt || b.createdAt || 0) - (a.lastUsedAt || a.createdAt || 0))
+                .slice(0, 3).map(meal => ({ kind: 'meal', meal }));
+            return [...saved, ...getRecentFoods(limit).map(food => ({ kind: 'food', food }))];
+        }
+
+        function quickLogFood(food, meal = quickLogTargetMeal()) {
+            const entry = logFood(food, meal, { silent: true });
+            showToast(`Added ${entry.name} to ${MEAL_LABELS[meal].toLowerCase()} · ${entry.calories} kcal`, false, { label: 'Undo', onClick: () => removeFood(entry.id, meal) });
+            return entry;
+        }
+
+        function renderQuickLog() {
+            const section = document.getElementById('quick-log-section');
+            const list = document.getElementById('quick-log-list');
+            if (!section || !list) return;
+            const items = quickLogItems();
+            section.classList.toggle('hidden', !items.length);
+            document.getElementById('quick-log-meal').innerText = MEAL_LABELS[quickLogTargetMeal()];
+            list.innerHTML = '';
+            items.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'ql-item';
+                if (item.kind === 'meal') {
+                    const kcal = item.meal.items.reduce((sum, f) => sum + (f.calories || 0), 0);
+                    el.innerHTML = `<span class="food-ico sm fi-meal" aria-hidden="true"><i class="fa-solid fa-bookmark"></i></span>
+                        <p class="ql-name">${escapeHTML(item.meal.name)}</p>
+                        <p class="ql-kcal">${item.meal.items.length} items · ${kcal.toLocaleString('en-US')} kcal</p>
+                        <button class="ql-add" aria-label="Log ${escapeHTML(item.meal.name)}"><i class="fa-solid fa-plus"></i></button>`;
+                    el.querySelector('.ql-add').onclick = () => logSavedMeal(item.meal.id, quickLogTargetMeal());
+                } else {
+                    const food = item.food;
+                    el.innerHTML = `${foodIconHtml(food, 'sm')}
+                        <p class="ql-name">${escapeHTML(food.name)}</p>
+                        <p class="ql-kcal">${Number(food.calories || 0).toLocaleString('en-US')} kcal · ${escapeHTML(`${formatAmount(food.servingSize)} ${food.servingUnit || ''}`.trim())}</p>
+                        <button class="ql-add" aria-label="Log ${escapeHTML(food.name)} again"><i class="fa-solid fa-plus"></i></button>`;
+                    el.querySelector('.ql-add').onclick = event => { event?.stopPropagation?.(); quickLogFood(food); };
+                    el.onclick = event => { if (!event?.target?.closest?.('.ql-add')) openFoodReview(food, { meal: quickLogTargetMeal() }); };
+                }
+                list.appendChild(el);
+            });
+        }
+
+        // Re-log every item a meal had on another day.
+        function repeatMealFrom(fromKey, meal) {
+            const foods = getDayLog(fromKey).meals?.[meal] || [];
+            if (!foods.length) return [];
+            const entries = foods.map(f => logFood(f, meal, { silent: true }));
+            const kcal = entries.reduce((sum, e) => sum + (e.calories || 0), 0);
+            showToast(`Added ${entries.length} item${entries.length === 1 ? '' : 's'} to ${MEAL_LABELS[meal].toLowerCase()} · ${kcal.toLocaleString('en-US')} kcal`, false, {
+                label: 'Undo',
+                onClick: () => {
+                    const log = ensureDayLog();
+                    const ids = new Set(entries.map(e => e.id));
+                    log.meals[meal] = log.meals[meal].filter(e => !ids.has(e.id));
+                    renderAll();
+                    saveStateToLocalStorage();
+                }
+            });
+            return entries;
+        }
+
+        // LOG SHEET (the + button)
+        let logSheetMeal = 'breakfast';
+
+        function openLogSheet() {
+            audioEngine.playNotification('tap');
+            setLogSheetMeal(guessMealForNow());
+            const d = appState.currentDate;
+            document.getElementById('log-sheet-date').innerText = d === localDateKey() ? 'Today' : formatDateShort(d);
+            renderLogSheetRecent();
+            showOverlay('modal-log');
+        }
+
+        function closeLogSheet() {
+            hideOverlay('modal-log');
+        }
+
+        function setLogSheetMeal(meal) {
+            logSheetMeal = MEAL_KEYS.includes(meal) ? meal : 'snacks';
+            setSegActive('log-meal-seg', logSheetMeal);
+        }
+
+        function logSheetAction(action) {
+            const meal = logSheetMeal;
+            closeLogSheet();
+            switch (action) {
+                case 'search': return openFoodSearchModal(meal);
+                case 'scan': return openScannerModal(meal);
+                case 'photo': return triggerVisionUpload(meal);
+                case 'describe': return openDescribeModal(meal);
+                case 'quick': return openQuickLogModal(meal);
+                case 'exercise': return openExerciseModal();
+                case 'water':
+                    addWater(0.25);
+                    return showToast(`Water +250 ml · ${formatAmount(getDayLog().water || 0)} L logged`);
+                case 'weight':
+                    switchTab('progress');
+                    setProgressSubTab('weight');
+                    return document.getElementById('weight-log-input').focus();
+            }
+        }
+
+        function renderLogSheetRecent() {
+            const box = document.getElementById('log-sheet-recent');
+            const foods = getRecentFoods(3);
+            box.innerHTML = foods.length ? '<p class="list-label mb-1">Log again</p>' : '';
+            foods.forEach(food => {
+                const row = document.createElement('div');
+                row.className = 'entry';
+                row.innerHTML = `${foodIconHtml(food, 'sm')}
+                    <div class="entry-main"><p class="entry-name">${escapeHTML(food.name)}</p><p class="entry-meta">${Number(food.calories || 0).toLocaleString('en-US')} kcal · ${escapeHTML(`${formatAmount(food.servingSize)} ${food.servingUnit || ''}`.trim())}</p></div>
+                    <button class="meal-plus" aria-label="Log ${escapeHTML(food.name)} again"><i class="fa-solid fa-plus"></i></button>`;
+                row.querySelector('.meal-plus').onclick = event => { event?.stopPropagation?.(); closeLogSheet(); quickLogFood(food, logSheetMeal); };
+                box.appendChild(row);
+            });
         }
 
         // FOOD LOG MUTATIONS
@@ -2648,17 +3180,24 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             const container = document.getElementById(`suggestion-slot-${meal}`);
             container.innerHTML = '';
             const count = (getDayLog().meals?.[meal] || []).length;
-            if (count >= 2) {
-                const save = document.createElement('button');
-                save.type = 'button';
-                save.className = 'suggest';
-                save.onclick = () => openSaveMealModal(meal);
-                save.innerHTML = '<i class="fa-regular fa-bookmark"></i><span>Save as a meal to log it again in one tap</span>';
-                container.appendChild(save);
-                return;
-            }
+            document.getElementById(`meal-save-${meal}`).classList.toggle('hidden', count < 2);
+            if (count >= 2) return;
             // Only suggest for an empty meal, so logged days stay uncluttered.
             if (count) return;
+            const prevKey = localDateKey(localDayOffset(-1, new Date(appState.currentDate + 'T12:00:00')));
+            const prevFoods = getDayLog(prevKey).meals?.[meal] || [];
+            if (prevFoods.length) {
+                const kcal = prevFoods.reduce((sum, f) => sum + (f.calories || 0), 0);
+                const repeat = document.createElement('button');
+                repeat.type = 'button';
+                repeat.className = 'suggest';
+                repeat.onclick = () => repeatMealFrom(prevKey, meal);
+                repeat.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i>
+                    <span class="min-w-0 truncate">Same as yesterday: <b>${escapeHTML(prevFoods.map(f => f.name).join(', '))}</b></span>
+                    <span class="plus">+ ${kcal.toLocaleString('en-US')} kcal</span>`;
+                container.appendChild(repeat);
+                return;
+            }
             const favorite = getSuggestionsForMeal(meal)[0];
             if (!favorite) return;
 
@@ -2667,6 +3206,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             card.className = "suggest";
             card.onclick = () => logFood(favorite, meal);
             card.innerHTML = `
+                <i class="fa-regular fa-star"></i>
                 <span class="min-w-0 truncate">Your usual: <b>${escapeHTML(favorite.name)}</b></span>
                 <span class="plus">+ ${favorite.calories} kcal</span>
             `;
@@ -2812,7 +3352,185 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
 
         // CHART HELPERS
-        const CHART = { grid: 'rgba(255,255,255,0.06)', text: '#7d8c84', line: '#60a5fa', brand: '#34d399', danger: '#f43f5e', warn: '#f59e0b', bg: '#0d1411' };
+        const CHART = { grid: 'rgba(255,255,255,0.06)', text: '#7f7f88', line: '#5ac8fa', brand: '#30d158', danger: '#ff453a', warn: '#ff9f0a', bg: '#141416' };
+
+        // ---------- SVG CHARTS ----------
+        // Charts are drawn as SVG strings sized to their container, so they stay
+        // crisp on any screen and redraw on resize.
+        const svgNum = n => Math.round(n * 10) / 10;
+
+        function chartWidthOf(el, fallback = 330) {
+            const w = el && (el.clientWidth || (el.getBoundingClientRect ? el.getBoundingClientRect().width : 0));
+            return Math.max(240, Math.round(w > 0 ? w : fallback));
+        }
+
+        function niceCeil(v) {
+            if (!(v > 0)) return 1;
+            const p = Math.pow(10, Math.floor(Math.log10(v)));
+            const n = v / p;
+            return ([1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find(step => n <= step + 1e-9) || 10) * p;
+        }
+
+        // Goal line with its label on a pill at the left, clear of today's bar on the right.
+        function goalLineSvg({ width, padL, padR, y, label }) {
+            const gy = svgNum(y), lw = Math.round(label.length * 6.1 + 12);
+            return `<line class="goal" x1="${padL}" x2="${width - padR}" y1="${gy}" y2="${gy}"/>`
+                + `<rect x="${padL + 2}" y="${svgNum(gy - 8)}" width="${lw}" height="16" rx="8" fill="var(--surface-3)"/>`
+                + `<text class="goal-label" x="${svgNum(padL + 2 + lw / 2)}" y="${svgNum(gy + 3.6)}" text-anchor="middle">${escapeHTML(label)}</text>`;
+        }
+
+        function shortNum(n) {
+            const a = Math.abs(n);
+            return a >= 10000 ? `${Math.round(n / 1000)}k` : a >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(Math.round(n));
+        }
+
+        function topRoundedBar(x, y, w, h, r, fill) {
+            if (!(h > 0.2)) return '';
+            r = Math.min(r, h, w / 2);
+            return `<path d="M${svgNum(x)},${svgNum(y + h)}V${svgNum(y + r)}Q${svgNum(x)},${svgNum(y)} ${svgNum(x + r)},${svgNum(y)}H${svgNum(x + w - r)}Q${svgNum(x + w)},${svgNum(y)} ${svgNum(x + w)},${svgNum(y + r)}V${svgNum(y + h)}Z" fill="${fill}"/>`;
+        }
+
+        function chartAxes({ width, padL, padR, y, top, fmt }) {
+            return [0, 0.5, 1].map(t => {
+                const yy = svgNum(y(top * t));
+                return `<line class="grid" x1="${padL}" x2="${width - padR}" y1="${yy}" y2="${yy}"/><text x="${padL - 6}" y="${yy + 3.5}" text-anchor="end">${fmt(top * t)}</text>`;
+            }).join('');
+        }
+
+        function chartXLabels({ items, padL, slot, height }) {
+            const step = Math.max(1, Math.ceil(items.length / 7));
+            return items.map((b, i) => (items.length - 1 - i) % step ? ''
+                : `<text x="${svgNum(padL + slot * i + slot / 2)}" y="${height - 6}" text-anchor="middle"${b.selected ? ' style="fill:var(--text);font-weight:600"' : ''}>${escapeHTML(b.label)}</text>`).join('');
+        }
+
+        // Stacked bars with an optional goal line and overlay lines.
+        // bars: [{ key, label, title, segments: [{ value, color }], selected }]
+        function barChartSvg({ width, height = 176, bars, goal = null, goalLabel = 'Goal', lines = [], onTap = '', fmt = shortNum }) {
+            const padL = 34, padR = 4, padT = 18, padB = 22;
+            const w = width - padL - padR, h = height - padT - padB;
+            const totals = bars.map(b => b.segments.reduce((sum, sg) => sum + Math.max(0, sg.value || 0), 0));
+            const lineMax = Math.max(0, ...lines.flatMap(l => l.values.filter(Number.isFinite)));
+            const top = niceCeil(Math.max(goal || 0, lineMax, ...totals, 1) * 1.08);
+            const y = v => padT + h - (v / top) * h;
+            const slot = w / Math.max(1, bars.length);
+            const bw = Math.max(2.5, Math.min(24, slot * 0.64));
+            let svg = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">` + chartAxes({ width, padL, padR, y, top, fmt });
+            bars.forEach((b, i) => {
+                const x = padL + slot * i + (slot - bw) / 2;
+                const segs = b.segments.filter(sg => sg.value > 0);
+                let acc = 0;
+                segs.forEach((sg, k) => {
+                    const y1 = y(acc + sg.value), hh = y(acc) - y1;
+                    svg += k === segs.length - 1 ? topRoundedBar(x, y1, bw, hh, 4, sg.color)
+                        : `<rect x="${svgNum(x)}" y="${svgNum(y1)}" width="${svgNum(bw)}" height="${svgNum(Math.max(0, hh - 0.8))}" fill="${sg.color}"/>`;
+                    acc += sg.value;
+                });
+                if (b.selected && totals[i] > 0) svg += `<text class="sel-label" x="${svgNum(x + bw / 2)}" y="${svgNum(y(totals[i]) - 5)}" text-anchor="middle">${fmt(totals[i])}</text>`;
+            });
+            lines.forEach(line => {
+                let d = '', pen = false;
+                line.values.forEach((v, i) => {
+                    if (!Number.isFinite(v)) { pen = false; return; }
+                    d += `${pen ? 'L' : 'M'}${svgNum(padL + slot * i + slot / 2)},${svgNum(y(v))}`;
+                    pen = true;
+                });
+                if (d) svg += `<path d="${d}" fill="none" stroke="${line.color}" stroke-width="${line.width || 2}" stroke-linejoin="round" stroke-linecap="round"/>`;
+            });
+            if (goal) svg += goalLineSvg({ width, padL, padR, y: y(goal), label: `${goalLabel} ${fmt(goal)}`.trim() });
+            svg += chartXLabels({ items: bars, padL, slot, height });
+            if (onTap) bars.forEach((b, i) => {
+                svg += `<rect class="bar-hit" x="${svgNum(padL + slot * i)}" y="${padT}" width="${svgNum(slot)}" height="${h}" onclick="${onTap}('${b.key}')"><title>${escapeHTML(b.title || b.label)}</title></rect>`;
+            });
+            return svg + '</svg>';
+        }
+
+        // Two bars per day (e.g. eaten vs burned).
+        function pairBarChartSvg({ width, height = 168, items, colors, onTap = '', fmt = shortNum }) {
+            const padL = 34, padR = 4, padT = 14, padB = 22;
+            const w = width - padL - padR, h = height - padT - padB;
+            const top = niceCeil(Math.max(1, ...items.flatMap(it => [it.a || 0, it.b || 0])) * 1.08);
+            const y = v => padT + h - (v / top) * h;
+            const slot = w / Math.max(1, items.length);
+            const bw = Math.max(2, Math.min(14, slot * 0.34));
+            let svg = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">` + chartAxes({ width, padL, padR, y, top, fmt });
+            items.forEach((it, i) => {
+                const cx = padL + slot * i + slot / 2;
+                if (it.a > 0) svg += topRoundedBar(cx - bw - 1, y(it.a), bw, y(0) - y(it.a), 3.5, colors[0]);
+                if (it.b > 0) svg += topRoundedBar(cx + 1, y(it.b), bw, y(0) - y(it.b), 3.5, colors[1]);
+            });
+            svg += chartXLabels({ items, padL, slot, height });
+            if (onTap) items.forEach((it, i) => {
+                svg += `<rect class="bar-hit" x="${svgNum(padL + slot * i)}" y="${padT}" width="${svgNum(slot)}" height="${h}" onclick="${onTap}('${it.key}')"><title>${escapeHTML(it.title || it.label)}</title></rect>`;
+            });
+            return svg + '</svg>';
+        }
+
+        function donutSvg(parts, size = 112, stroke = 16) {
+            const r = (size - stroke) / 2, c = 2 * Math.PI * r, total = parts.reduce((sum, p) => sum + p.value, 0);
+            let svg = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true" style="transform:rotate(-90deg)"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="${stroke}"/>`;
+            if (total > 0) {
+                let offset = 0;
+                parts.forEach(p => {
+                    const len = (p.value / total) * c;
+                    if (len > 1) svg += `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${stroke}" stroke-dasharray="${svgNum(Math.max(0, len - 2))} ${svgNum(c)}" stroke-dashoffset="${svgNum(-offset)}"/>`;
+                    offset += len;
+                });
+            }
+            return svg + '</svg>';
+        }
+
+        function chartEmpty(icon, message, action = '') {
+            return `<div class="chart-empty"><i class="fa-solid ${icon}"></i><span>${message}</span>${action}</div>`;
+        }
+
+        function kpisHtml(items) {
+            return items.map(([value, label, color]) => `<div><b${color ? ` style="color:${color}"` : ''}>${value}</b><span>${label}</span></div>`).join('');
+        }
+
+        // Per-day totals for the last `days` days.
+        function dailySeries(days, endKey = localDateKey()) {
+            const end = new Date(endKey + 'T12:00:00');
+            const out = [];
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(end);
+                d.setDate(end.getDate() - i);
+                const key = localDateKey(d);
+                const t = dayTotals(key);
+                const act = appState.activity?.[key] || {};
+                out.push({
+                    key, date: d,
+                    label: days <= 7 ? d.toLocaleDateString('en-US', { weekday: 'narrow' }) : days <= 14 ? String(d.getDate()) : `${d.getMonth() + 1}/${d.getDate()}`,
+                    title: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                    kcal: t.calories, protein: t.protein, carbs: t.carbs, fats: t.fats,
+                    goal: dayGoal(key), burned: act.caloriesOut || null, steps: act.steps ?? null
+                });
+            }
+            return out;
+        }
+
+        // A day's calories split by macro; anything not covered by macros (e.g. quick adds) is grey.
+        function macroSegments(day) {
+            const p = day.protein * 4, c = day.carbs * 4, f = day.fats * 9, mt = p + c + f;
+            const scale = mt > day.kcal && mt > 0 ? day.kcal / mt : 1;
+            return [
+                { value: p * scale, color: 'var(--protein)' },
+                { value: c * scale, color: 'var(--carbs)' },
+                { value: f * scale, color: 'var(--fat)' },
+                { value: Math.max(0, day.kcal - mt * scale), color: '#8e8e93' }
+            ];
+        }
+
+        // Hacker's-Diet style trend: 10% smoothing per day, so missing days are handled.
+        function weightTrend(points, alpha = 0.1) {
+            let trend = null, prevT = null;
+            return points.map(p => {
+                const t = new Date(p.date + 'T12:00:00').getTime();
+                if (trend === null) trend = p.value;
+                else trend += (1 - Math.pow(1 - alpha, Math.max(1, Math.round((t - prevT) / 86400000)))) * (p.value - trend);
+                prevT = t;
+                return Math.round(trend * 100) / 100;
+            });
+        }
 
         function prepareCanvas(canvas) {
             const ctx = canvas.getContext('2d');
@@ -2888,43 +3606,71 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             return (appState.weightHistory || []).filter(x => x.date >= cutoff).sort((a, b) => a.date.localeCompare(b.date));
         }
 
+        // Weigh-ins in the profile's unit, oldest first.
+        function weightPointsInUnit() {
+            const unit = appState.bodyProfile.unit || 'lbs';
+            return (appState.weightHistory || []).slice().sort((a, b) => a.date.localeCompare(b.date)).map(x => {
+                let value = Number(x.value);
+                if (x.unit && x.unit !== unit) value = unit === 'kg' ? value / 2.20462 : value * 2.20462;
+                return { date: x.date, value: Math.round(value * 10) / 10 };
+            });
+        }
+
         function drawWeightChart() {
-            const canvas = document.getElementById('weight-sparkline-canvas');
-            if (!canvas) return;
-            const { ctx, w: W, h: H } = prepareCanvas(canvas);
-            const data = getFilteredWeightHistory();
-            if (data.length < 2) return drawEmptyChart(ctx, W, H, 'Log at least two weigh-ins to see a trend');
+            const el = document.getElementById('weight-chart');
+            if (!el) return;
+            const unit = appState.bodyProfile.unit || 'lbs';
+            const all = weightPointsInUnit();
+            const trendAll = weightTrend(all);
+            const cutoff = rangeCutoffKey();
+            const idx = all.map((p, i) => i).filter(i => all[i].date >= cutoff);
+            const pts = idx.map(i => ({ ...all[i], trend: trendAll[i] }));
+            const kpis = document.getElementById('weight-kpis');
+            const goal = Number(appState.goalWeight) || null;
+            document.getElementById('weight-goal-legend').classList.toggle('hidden', !goal);
+            if (pts.length < 2) {
+                kpis.innerHTML = '';
+                document.getElementById('weight-trend-rate').innerText = '';
+                el.innerHTML = chartEmpty('fa-weight-scale', 'Log at least two weigh-ins to see your trend.');
+                return;
+            }
+            const first = pts[0], last = pts[pts.length - 1];
+            const spanDays = Math.max(1, Math.round((new Date(last.date + 'T12:00:00') - new Date(first.date + 'T12:00:00')) / 86400000));
+            const rate = (last.trend - first.trend) / spanDays * 7;
+            const sign = v => v > 0 ? '+' : v < 0 ? '−' : '';
+            document.getElementById('weight-trend-rate').innerText = spanDays >= 7 ? `${sign(rate)}${Math.abs(rate).toFixed(1)} ${unit}/week` : '';
+            kpis.innerHTML = kpisHtml([
+                [`${last.trend.toFixed(1)}<small>${unit}</small>`, 'trend weight', 'var(--kcal)'],
+                [`${sign(last.trend - first.trend)}${Math.abs(last.trend - first.trend).toFixed(1)}<small>${unit}</small>`, `change, ${appState.progressRange || 30} days`],
+                ...(goal ? [[`${Math.abs(last.trend - goal).toFixed(1)}<small>${unit}</small>`, 'to goal']] : [])
+            ]);
 
-            const padL = 40, padR = 16, padT = 22, padB = 24;
-            const w = W - padL - padR, h = H - padT - padB;
-            const values = data.map(d => d.value);
-            const min = Math.min(...values) - 0.5;
-            const max = Math.max(...values) + 0.5;
-            const range = max - min || 1;
-            const getX = i => padL + (i / (data.length - 1)) * w;
-            const getY = v => padT + h - ((v - min) / range) * h;
-
-            ctx.strokeStyle = CHART.grid; ctx.lineWidth = 1;
-            [0, 0.5, 1].forEach(t => { ctx.beginPath(); ctx.moveTo(padL, padT + h * t); ctx.lineTo(padL + w, padT + h * t); ctx.stroke(); });
-            ctx.fillStyle = CHART.text; ctx.font = '11px "Plus Jakarta Sans", sans-serif'; ctx.textAlign = 'right';
-            ctx.fillText(max.toFixed(1), padL - 6, padT + 4);
-            ctx.fillText(((max + min) / 2).toFixed(1), padL - 6, padT + h / 2 + 4);
-            ctx.fillText(min.toFixed(1), padL - 6, padT + h + 4);
-
-            const ma = values.map((_, i) => { const s = values.slice(Math.max(0, i - 6), i + 1); return s.reduce((a, b) => a + b, 0) / s.length; });
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(52, 211, 153, 0.55)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
-            ma.forEach((v, i) => i ? ctx.lineTo(getX(i), getY(v)) : ctx.moveTo(getX(i), getY(v))); ctx.stroke(); ctx.setLineDash([]);
-
-            ctx.beginPath(); ctx.strokeStyle = CHART.line; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
-            values.forEach((v, i) => i ? ctx.lineTo(getX(i), getY(v)) : ctx.moveTo(getX(i), getY(v))); ctx.stroke();
-            values.forEach((v, i) => { ctx.beginPath(); ctx.fillStyle = CHART.line; ctx.arc(getX(i), getY(v), i === values.length - 1 ? 5 : 2.5, 0, Math.PI * 2); ctx.fill(); });
-
-            const last = values[values.length - 1];
-            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(last.toFixed(1), Math.min(getX(values.length - 1), padL + w - 14), getY(last) - 10);
-            ctx.fillStyle = CHART.text; ctx.font = '11px "Plus Jakarta Sans", sans-serif';
-            ctx.textAlign = 'left'; ctx.fillText(formatDateShort(data[0].date), padL, H - 6);
-            ctx.textAlign = 'right'; ctx.fillText(formatDateShort(data[data.length - 1].date), padL + w, H - 6);
+            const width = chartWidthOf(el), height = 200;
+            const padL = 38, padR = 10, padT = 16, padB = 22;
+            const w = width - padL - padR, h = height - padT - padB;
+            const values = pts.flatMap(p => [p.value, p.trend]);
+            const showGoal = goal && Math.abs(goal - last.trend) <= Math.max(5, last.trend * 0.08);
+            if (showGoal) values.push(goal);
+            let lo = Math.min(...values), hi = Math.max(...values);
+            const padY = Math.max(0.5, (hi - lo) * 0.15);
+            lo -= padY; hi += padY;
+            const t0 = new Date(first.date + 'T12:00:00').getTime(), t1 = new Date(last.date + 'T12:00:00').getTime();
+            const x = d => padL + ((new Date(d + 'T12:00:00').getTime() - t0) / Math.max(1, t1 - t0)) * w;
+            const y = v => padT + h - ((v - lo) / (hi - lo)) * h;
+            let svg = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">
+                <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>`;
+            [0, 0.5, 1].forEach(t => {
+                const v = lo + (hi - lo) * t, yy = svgNum(y(v));
+                svg += `<line class="grid" x1="${padL}" x2="${width - padR}" y1="${yy}" y2="${yy}"/><text x="${padL - 6}" y="${yy + 3.5}" text-anchor="end">${v.toFixed(1)}</text>`;
+            });
+            const line = pts.map((p, i) => `${i ? 'L' : 'M'}${svgNum(x(p.date))},${svgNum(y(p.trend))}`).join('');
+            svg += `<path d="${line}L${svgNum(x(last.date))},${svgNum(padT + h)}L${svgNum(x(first.date))},${svgNum(padT + h)}Z" fill="url(#weight-fill)"/>`;
+            if (showGoal) svg += goalLineSvg({ width, padL, padR, y: y(goal), label: `Goal ${goal}` });
+            pts.forEach(p => { svg += `<circle cx="${svgNum(x(p.date))}" cy="${svgNum(y(p.value))}" r="3" fill="var(--carbs-2)" fill-opacity=".85"/>`; });
+            svg += `<path d="${line}" fill="none" stroke="var(--kcal)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+            svg += `<circle cx="${svgNum(x(last.date))}" cy="${svgNum(y(last.trend))}" r="5" fill="var(--kcal)" stroke="var(--surface)" stroke-width="2"/>`;
+            svg += `<text x="${padL}" y="${height - 6}">${escapeHTML(formatDateShort(first.date))}</text><text x="${width - padR}" y="${height - 6}" text-anchor="end">${escapeHTML(formatDateShort(last.date))}</text>`;
+            el.innerHTML = svg + '</svg>';
         }
 
         function calculateWeightStats() {
@@ -3084,6 +3830,8 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             document.getElementById('weight-input-unit-label').innerText = unit;
             document.getElementById('goal-weight-unit-label').innerText = unit;
             document.getElementById('weigh-in-freq-select').value = appState.weighInFrequency;
+            const goalInput = document.getElementById('goal-weight-input');
+            if (appState.goalWeight && !goalInput.value) goalInput.value = appState.goalWeight;
         }
 
         // --- GOAL WEIGHT ESTIMATOR ---
@@ -3100,6 +3848,9 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             const diff = currentWeight - targetVal;
             const diffAbs = Math.abs(diff);
 
+            appState.goalWeight = targetVal;
+            saveStateToLocalStorage();
+            drawWeightChart();
             document.getElementById('goal-current-weight').innerText = `${currentWeight.toFixed(1)} ${unit}`;
             document.getElementById('goal-target-weight').innerText = `${targetVal.toFixed(1)} ${unit}`;
             const diffEl = document.getElementById('goal-weight-diff');
@@ -3162,54 +3913,24 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function drawCalorieTrendChart() {
-            const canvas = document.getElementById('calorie-trend-canvas');
-            if (!canvas) return;
-            const { ctx, w: W, h: H } = prepareCanvas(canvas);
+            const el = document.getElementById('calorie-trend-chart');
+            if (!el) return;
             const days = appState.progressRange || 30;
-            const data = [];
-            const labels = [];
-            for (let i = days - 1; i >= 0; i--) {
-                const date = localDayOffset(-i);
-                data.push(dayTotals(localDateKey(date)).calories);
-                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            const series = dailySeries(days);
+            if (!series.some(d => d.kcal > 0)) {
+                el.innerHTML = chartEmpty('fa-chart-column', 'No food logged in this period yet.');
+                return;
             }
-            const padL = 40, padR = 12, padT = 16, padB = 24;
-            const w = W - padL - padR, h = H - padT - padB;
-            const target = appState.targets.calories || 2000;
-            const maxVal = Math.max(target * 1.25, ...data, 500);
-            const slot = w / days;
-            const barW = Math.max(2, Math.min(18, slot * 0.66));
-            const getY = v => padT + h - (v / maxVal) * h;
-
-            ctx.strokeStyle = CHART.grid; ctx.lineWidth = 1;
-            [0, 0.5, 1].forEach(t => { ctx.beginPath(); ctx.moveTo(padL, padT + h * t); ctx.lineTo(padL + w, padT + h * t); ctx.stroke(); });
-            ctx.fillStyle = CHART.text; ctx.font = '11px "Plus Jakarta Sans", sans-serif'; ctx.textAlign = 'right';
-            ctx.fillText(Math.round(maxVal), padL - 6, padT + 4);
-            ctx.fillText(Math.round(maxVal / 2), padL - 6, padT + h / 2 + 4);
-            ctx.fillText('0', padL - 6, padT + h + 4);
-
-            data.forEach((val, i) => {
-                if (!val) return;
-                const x = padL + slot * i + (slot - barW) / 2;
-                const y = getY(val);
-                ctx.fillStyle = val > target * 1.05 ? CHART.warn : CHART.brand;
-                ctx.globalAlpha = val > target * 1.05 ? 0.85 : 0.9;
-                if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, barW, padT + h - y, Math.min(4, barW / 2)); ctx.fill(); }
-                else ctx.fillRect(x, y, barW, padT + h - y);
-                ctx.globalAlpha = 1;
+            // Rolling 7-day average over logged days, once there are 3 of them.
+            const rolling = series.map((d, i) => {
+                const win = series.slice(Math.max(0, i - 6), i + 1).filter(x => x.kcal > 0);
+                return win.length >= 3 ? win.reduce((sum, x) => sum + x.kcal, 0) / win.length : NaN;
             });
-
-            const ty = getY(target);
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(244, 63, 94, 0.65)'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
-            ctx.moveTo(padL, ty); ctx.lineTo(padL + w, ty); ctx.stroke(); ctx.setLineDash([]);
-            ctx.fillStyle = '#fda4af'; ctx.textAlign = 'right'; ctx.fillText(`Goal ${target}`, padL + w, ty - 5);
-
-            ctx.fillStyle = CHART.text; ctx.textAlign = 'center';
-            const step = Math.max(1, Math.floor((days - 1) / 3));
-            [0, step, step * 2, days - 1].forEach((idx, k, arr) => {
-                if (k > 0 && idx === arr[k - 1]) return;
-                ctx.textAlign = idx === 0 ? 'left' : idx === days - 1 ? 'right' : 'center';
-                ctx.fillText(labels[idx], idx === 0 ? padL : idx === days - 1 ? padL + w : padL + slot * idx + slot / 2, H - 6);
+            el.innerHTML = barChartSvg({
+                width: chartWidthOf(el), height: 200,
+                bars: series.map(d => ({ ...d, segments: macroSegments(d), selected: d.key === localDateKey() })),
+                goal: appState.targets.calories || 2000,
+                lines: [{ values: rolling, color: '#fff', width: 2 }]
             });
         }
 
@@ -3346,12 +4067,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         // --- MACRO SPLIT DONUT ---
         function renderMacroPieChart(pGrams, cGrams, fGrams) {
-            const canvas = document.getElementById('macro-pie-canvas');
-            if (!canvas) return;
-            const { ctx, w, h } = prepareCanvas(canvas);
-            const cx = w / 2, cy = h / 2;
-            const radius = Math.max(1, Math.min(cx, cy) - 4);
-
             const kcalP = pGrams * 4, kcalC = cGrams * 4, kcalF = fGrams * 9;
             const total = kcalP + kcalC + kcalF;
             const pctP = total > 0 ? Math.round((kcalP / total) * 100) : 0;
@@ -3360,24 +4075,8 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             document.getElementById('pie-protein-pct').innerText = pctP;
             document.getElementById('pie-carbs-pct').innerText = pctC;
             document.getElementById('pie-fats-pct').innerText = pctF;
-
-            const ringWidth = radius * 0.32;
-            ctx.lineWidth = ringWidth;
-            ctx.lineCap = 'butt';
-            const r = radius - ringWidth / 2;
-            if (total === 0) {
-                ctx.beginPath(); ctx.strokeStyle = '#1f2b25'; ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
-                return;
-            }
-            let start = -Math.PI / 2;
-            [[kcalP, '#fb7185'], [kcalC, '#60a5fa'], [kcalF, '#fbbf24']].forEach(([val, color]) => {
-                const angle = (val / total) * Math.PI * 2;
-                if (angle <= 0) return;
-                ctx.beginPath(); ctx.strokeStyle = color;
-                ctx.arc(cx, cy, r, start + 0.02, start + angle - 0.02);
-                ctx.stroke();
-                start += angle;
-            });
+            const el = document.getElementById('ins-split-donut');
+            if (el) el.innerHTML = donutSvg([{ value: kcalP, color: 'var(--protein)' }, { value: kcalC, color: 'var(--carbs)' }, { value: kcalF, color: 'var(--fat)' }]);
         }
 
         // --- CONFETTI ANIMATION CELEBRATION ---
@@ -3544,6 +4243,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             const selected = selectedSearchFoods.includes(food);
             row.classList.toggle('is-selected', selected);
             row.innerHTML = `
+                ${foodIconHtml(food, 'sm')}
                 <div class="result-main">
                     <p class="result-name">${escapeHTML(food.name)}</p>
                     <p class="result-meta">${sourceBadge(food)}<span>${escapeHTML(portionDescription(food))}</span></p>
@@ -6167,6 +6867,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
                 const row = document.createElement('div');
                 row.className = 'entry';
                 row.innerHTML = `
+                    <span class="food-ico ${e.source === 'import' ? 'fi-meat' : 'fi-quick'}" aria-hidden="true"><i class="fa-solid ${e.source === 'import' ? 'fa-heart-pulse' : 'fa-person-running'}"></i></span>
                     <button type="button" class="entry-main" aria-label="Edit ${escapeHTML(e.name)}">
                         <p class="entry-name">${escapeHTML(e.name)}</p>
                         <p class="entry-meta">${[e.minutes ? `${e.minutes} min` : '', e.source === 'import' ? (/Apple Health/.test(e.name) ? 'Synced' : 'Imported') : ''].filter(Boolean).join(' · ')}</p>
@@ -6206,7 +6907,10 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             const target = Number(appState.targets.water) || 2.5;
             const water = getDayLog().water || 0;
             document.getElementById('water-amount').innerText = `${formatAmount(water)} of ${formatAmount(target)} L`;
-            document.getElementById('water-bar').style.width = `${Math.min(100, (water / target) * 100)}%`;
+            // One glass per 250 ml of the target.
+            const glasses = Math.max(4, Math.min(12, Math.round(target / 0.25)));
+            const full = Math.min(glasses, Math.round(water / 0.25));
+            document.getElementById('water-glasses').innerHTML = Array.from({ length: glasses }, (_, i) => `<span class="${i < full ? 'full' : ''}"></span>`).join('');
             document.getElementById('water-minus').disabled = water <= 0;
         }
 
@@ -6717,7 +7421,8 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             'modal-exercise': () => closeExerciseModal(),
             'modal-save-meal': () => closeSaveMealModal(),
             'modal-health-import': () => closeHealthImport(),
-            'modal-health-sync': () => closeHealthSync()
+            'modal-health-sync': () => closeHealthSync(),
+            'modal-log': () => closeLogSheet()
         };
 
         document.addEventListener('keydown', event => {
