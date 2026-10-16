@@ -257,6 +257,14 @@
         .micro-row .top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 7px; }
 
         .water-row { display: flex; align-items: center; gap: 8px; padding-top: 12px; }
+        .sync-row { display: flex; align-items: center; gap: 10px; padding-top: 12px; flex-wrap: wrap; }
+        .sync-row .chip { height: 34px; padding: 0 12px; }
+        .text-strong { color: var(--text); font-weight: 600; }
+        .steps-list { counter-reset: step; display: grid; gap: 10px; font-size: 14px; line-height: 1.45; color: var(--muted); }
+        .steps-list li { list-style: none; position: relative; padding-left: 30px; }
+        .steps-list li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 10px; background: var(--surface-3); color: var(--text); font-size: 12px; font-weight: 600; display: grid; place-items: center; }
+        .steps-list b { color: var(--text); font-weight: 600; }
+        .code-block { font-family: var(--mono); font-size: 12px; line-height: 1.5; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; white-space: pre; overflow-x: auto; color: var(--text); }
         .water-bar { flex: 1; height: 8px; }
         .water-row .chip { height: 34px; padding: 0 12px; font-variant-numeric: tabular-nums; }
         #exercise-section .entry-kcal { color: var(--brand); }
@@ -383,6 +391,19 @@
         @keyframes pulse { 50% { opacity: .35; } }
         .scan-hint { font-size: 14px; color: var(--muted); margin-top: 6px; }
         .scan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+        .batch-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+        .batch-card .bc-main { flex: 1; min-width: 0; }
+        .batch-card .bc-name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .batch-card .bc-meta { font-size: 13px; color: var(--muted); }
+        .batch-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .label-steps { display: grid; gap: 8px; }
+        .label-step { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
+        .label-step .ls-text { flex: 1; }
+        .label-step .ls-done { color: var(--brand); }
+        .label-step img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; }
+        .label-step .btn { background: var(--surface-3); }
+        .over-scanner { z-index: 75 !important; }
+        .batch-toggle { margin-top: 14px; font-size: 14px; color: var(--muted); }
 
         /* ---------- Toasts ---------- */
         #toast-container { position: fixed; left: 16px; right: 16px; top: calc(76px + var(--safe-top)); z-index: 90; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
@@ -570,6 +591,10 @@
                     <button class="meal-plus" onclick="openExerciseModal()" aria-label="Log exercise"><i class="fa-solid fa-plus"></i>Add</button></div>
                 <div id="exercise-list"></div>
                 <p id="steps-line" class="small faint pt-2 hidden"></p>
+                <div id="health-sync-row" class="sync-row hidden">
+                    <button class="chip" onclick="syncFromAppleHealth()"><i class="fa-brands fa-apple"></i>Sync Apple Health</button>
+                    <span class="small faint" id="health-sync-status"></span>
+                </div>
                 <p id="exercise-goal-note" class="small faint pt-2 hidden">Not added to your calorie goal — you can change this in Settings.</p>
             </section>
 
@@ -978,6 +1003,7 @@
             <button class="icon-btn" onclick="closeCustomFoodModal()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <form class="sheet-body" onsubmit="event.preventDefault(); saveCustomFood()">
+            <div id="custom-food-note" class="note ai hidden"></div>
             <div class="field"><label for="custom-food-name">Name *</label><input type="text" id="custom-food-name" placeholder="e.g. Homemade lasagna" class="input" required></div>
             <div class="grid-2">
                 <div class="field"><label for="custom-food-brand">Brand</label><input type="text" id="custom-food-brand" placeholder="Optional" class="input"></div>
@@ -1113,18 +1139,32 @@
                     <button class="btn btn-ghost btn-sm flex-1" onclick="testGeminiKey()" id="gemini-test-btn"><i class="fa-solid fa-plug"></i>Test</button>
                     <button class="btn btn-ghost btn-sm flex-1" onclick="removeGeminiKey()"><i class="fa-solid fa-trash-can"></i>Remove</button>
                 </div>
-                <div class="flex items-center justify-between gap-3 hidden">
-                    <span class="small muted">USDA FoodData Central</span>
-                    <span id="usda-status-badge" class="status-pill off">Off</span>
-                </div>
             </section>
 
             <section class="settings-section">
-                <h3><i class="fa-solid fa-heart-pulse"></i>Health data (Google Health, Fitbit, Google Fit)</h3>
-                <p class="small muted">Google isn't letting new apps connect to Google Health directly yet, so import your data instead. Download it with <a href="https://takeout.google.com" target="_blank" rel="noopener" style="color:var(--brand)">Google Takeout</a> (choose Google Health, Fitbit or Fit), or export a CSV from your health app, then choose the .zip, .csv or .json files here. Steps, calories burned and weight are imported; you'll see a preview first.</p>
-                <button class="btn btn-soft btn-block" onclick="triggerHealthImport()"><i class="fa-solid fa-file-arrow-up"></i>Import health data</button>
+                <h3><i class="fa-solid fa-barcode"></i>Food databases</h3>
                 <div class="flex items-center justify-between gap-3">
-                    <span class="small faint" id="health-import-status">No data imported yet.</span>
+                    <span class="small muted">USDA FoodData Central</span>
+                    <span id="usda-status-badge" class="status-pill off">Shared demo key</span>
+                </div>
+                <p class="small muted">Barcodes are looked up in Open Food Facts, then in USDA's database of US branded foods. USDA's shared demo key allows only a few lookups an hour; a free personal key from <a href="https://fdc.nal.usda.gov/api-key-signup" target="_blank" rel="noopener" style="color:var(--brand)">api.data.gov</a> removes that limit and adds USDA results to search.</p>
+                <form class="flex gap-2" onsubmit="event.preventDefault(); saveUsdaKeyFromSettings()">
+                    <input type="password" id="settings-usda-key" class="input flex-1 mono" placeholder="Paste USDA API key" autocomplete="off" aria-label="USDA API key">
+                    <button class="btn btn-soft" type="submit">Save</button>
+                </form>
+                <button class="btn btn-ghost btn-sm" onclick="removeUsdaKey()" id="usda-remove-btn"><i class="fa-solid fa-trash-can"></i>Remove USDA key</button>
+            </section>
+
+            <section class="settings-section">
+                <h3><i class="fa-solid fa-heart-pulse"></i>Health data (Google Health, Apple Health, Fitbit)</h3>
+                <p class="small muted"><b class="text-strong">On iPhone:</b> the Google Health app, Fitbit and Apple Watch all write to Apple Health. A one-tap Apple Shortcut copies your last 7 days (steps, active and resting calories, weight) and MacroFlow reads them. Websites can't open Apple Health themselves, so the Shortcut is the bridge.</p>
+                <button class="btn btn-primary btn-block" onclick="syncFromAppleHealth()"><i class="fa-brands fa-apple"></i>Sync from Apple Health</button>
+                <button class="btn btn-ghost btn-block" onclick="openHealthSync('guide')"><i class="fa-solid fa-list-check"></i>Set up the Shortcut</button>
+                <p class="small faint" id="health-sync-status-settings">Not synced yet.</p>
+                <p class="small muted" style="margin-top:6px"><b class="text-strong">From files:</b> download your data with <a href="https://takeout.google.com" target="_blank" rel="noopener" style="color:var(--brand)">Google Takeout</a> (Google Health, Fitbit or Fit) or any app's CSV export and choose the .zip, .csv or .json files. You'll see a preview first.</p>
+                <button class="btn btn-soft btn-block" onclick="triggerHealthImport()"><i class="fa-solid fa-file-arrow-up"></i>Import health files</button>
+                <div class="flex items-center justify-between gap-3">
+                    <span class="small faint" id="health-import-status">No files imported yet.</span>
                     <button class="btn btn-ghost btn-sm hidden" id="health-remove-btn" onclick="removeImportedHealthData()">Remove imported</button>
                 </div>
                 <input type="file" id="health-file-input" accept=".zip,.csv,.json,.txt,application/zip,text/csv,application/json" multiple class="hidden" onchange="onHealthFilesChosen(event)">
@@ -1264,6 +1304,50 @@
     </div>
 </div>
 
+<!-- APPLE HEALTH SYNC -->
+<div id="modal-health-sync" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="health-sync-title">
+    <div class="overlay-backdrop" onclick="closeHealthSync()"></div>
+    <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-head">
+            <div><h3 id="health-sync-title">Sync from Apple Health</h3><p>Steps, calories burned and weight from Google Health (Fitbit) through Apple Health.</p></div>
+            <button class="icon-btn" onclick="closeHealthSync()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="sheet-body">
+            <p class="small muted" id="health-sync-message"></p>
+            <div class="field">
+                <label for="health-sync-paste">Shortcut output</label>
+                <textarea id="health-sync-paste" rows="3" class="textarea mono" style="min-height:80px;font-size:13px" placeholder="MacroFlow Health v1&#10;steps;2026-10-15;8432&#10;…" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+            </div>
+            <div class="grid-2">
+                <button class="btn btn-soft" onclick="syncFromAppleHealth()"><i class="fa-regular fa-clipboard"></i>Read clipboard</button>
+                <button class="btn btn-primary" onclick="syncPastedHealthData()"><i class="fa-solid fa-rotate"></i>Sync pasted</button>
+            </div>
+            <button type="button" class="disclosure" id="health-sync-guide-toggle" onclick="toggleHealthSyncGuide()" aria-expanded="false" aria-controls="health-sync-guide"><span>How to set up the Shortcut</span><i class="fa-solid fa-chevron-down"></i></button>
+            <div id="health-sync-guide" class="hidden">
+                <ol class="steps-list">
+                    <li>In the <b>Google Health</b> app (it syncs your Fitbit), open <b>Connections → Apple Health</b>, tap <b>Get started</b> and allow steps, active calories and weight. In Apple's Health app you can check that Steps, Active Energy and Weight have data.</li>
+                    <li>Open <b>Shortcuts</b>, tap <b>+</b> and name the shortcut <b>MacroFlow Health</b>.</li>
+                    <li>Add <b>Find Health Samples</b>. Set <b>Type</b> is <b>Steps</b>, <b>Start Date</b> is in the last <b>7 days</b>, <b>Group By: Day</b>, <b>Sort by: Start Date</b>. Allow access when asked.</li>
+                    <li>Add <b>Repeat with Each</b> (it repeats over the Health Samples). Inside it, add a <b>Text</b> action containing:<br><span class="mono" style="color:var(--text)">steps;</span> then the <b>Repeat Item</b> variable — tap it, choose <b>Start Date</b>, and set the date format to <b>ISO 8601</b> — then <span class="mono" style="color:var(--text)">;</span> then <b>Repeat Item</b> → <b>Value</b>, a space, and <b>Repeat Item</b> → <b>Unit</b>.</li>
+                    <li>Do steps 3–4 again for <b>Active Energy</b> (text starts with <span class="mono" style="color:var(--text)">active;</span>) and <b>Weight</b> (<span class="mono" style="color:var(--text)">weight;</span>). If you wear an Apple Watch, add <b>Resting Energy</b> (<span class="mono" style="color:var(--text)">resting;</span>) too — Fitbit doesn't send it, so MacroFlow estimates it from your profile. You can long-press the first Find/Repeat pair to duplicate it.</li>
+                    <li>After the last <b>End Repeat</b>, add a <b>Text</b> action: type <span class="mono" style="color:var(--text)">MacroFlow Health v1</span> on the first line, then insert each <b>Repeat Results</b> on its own line.</li>
+                    <li>Add <b>Copy to Clipboard</b> (it copies that Text).</li>
+                    <li>Make it automatic: in Shortcuts open <b>Automation → +</b> → <b>Time of Day</b>, pick a time, choose <b>Run Immediately</b> and select <b>MacroFlow Health</b>. Add a few (for example 7 am, 1 pm and 9 pm). Each run copies fresh data, replacing whatever you had copied.</li>
+                    <li>Open MacroFlow and tap <b>Sync Apple Health</b>, then <b>Paste</b> when your iPhone asks. iOS needs this one tap: websites can't read Apple Health or the clipboard on their own.</li>
+                </ol>
+                <p class="list-label mt-4 mb-2">The copied text looks like this</p>
+                <div class="code-block">MacroFlow Health v1
+steps;2026-10-15T00:00:00-04:00;8432 count
+active;2026-10-15T00:00:00-04:00;512.3 kcal
+resting;2026-10-15T00:00:00-04:00;1750 kcal
+weight;2026-10-15T00:00:00-04:00;78.4 kg</div>
+                <p class="small faint mt-3">Active energy is logged as exercise for that day. Total burned is active + resting energy (resting is estimated from your Settings profile when Apple Health has none, as Fitbit does) and shows as energy balance on Insights. Steps are shown on Today and weights go to Progress. Syncing again replaces the synced days, never your own entries; days with weigh-ins you entered yourself keep your number.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- BARCODE SCANNER -->
 <div id="modal-scanner" class="scanner hidden" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
     <video id="scanner-video" playsinline muted autoplay aria-hidden="true"></video>
@@ -1290,9 +1374,11 @@
                 <input type="text" id="manual-barcode-input" inputmode="numeric" autocomplete="off" placeholder="Digits under the barcode" class="input mono flex-1" aria-label="Barcode number">
                 <button class="btn btn-primary" type="submit">Look up</button>
             </form>
+            <label class="check batch-toggle"><input type="checkbox" id="scanner-batch" onchange="toggleBatchMode(this.checked)">Scan several products in a row</label>
         </div>
     </div>
     <input type="file" id="barcode-photo-input" accept="image/*" class="hidden" onchange="decodeBarcodePhoto(event)">
+    <input type="file" id="label-photo-input" accept="image/*" capture="environment" class="hidden" onchange="onLabelPhotoChosen(event)">
 </div>
 
 <input type="file" id="vision-file-input" accept="image/*" class="hidden" onchange="processVisionUpload(event)">
@@ -1300,9 +1386,20 @@
     <script>
         // CONFIG
         const CONFIG = window.MACROFLOW_CONFIG || {};
-        const usdaKey = CONFIG.usdaApiKey || '';
         const GEMINI_KEY_STORAGE = 'macroflow_gemini_key';
-        const GEMINI_MODEL = CONFIG.geminiModel || 'gemini-2.5-flash';
+        const USDA_KEY_STORAGE = 'macroflow_usda_key';
+        // gemini-flash-latest follows Google's newest Flash model; older projects that
+        // can't use it fall back to the pinned models. config.js can force one model.
+        const GEMINI_MODELS = CONFIG.geminiModel ? [CONFIG.geminiModel] : ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.5-flash'];
+        let geminiModelIndex = 0;
+
+        // A free api.data.gov key (Settings) or config.js. Barcode lookups may fall back
+        // to the shared DEMO_KEY, which allows only a few requests an hour.
+        function getUsdaKey({ allowDemo = false } = {}) {
+            let key = '';
+            try { key = localStorage.getItem(USDA_KEY_STORAGE) || ''; } catch (e) {}
+            return key || CONFIG.usdaApiKey || (allowDemo ? 'DEMO_KEY' : '');
+        }
 
 
         // Calendar keys use the browser's local day, including across DST changes.
@@ -1857,6 +1954,7 @@
         }
 
         async function queryUSDAFDC(query) {
+            const usdaKey = getUsdaKey();
             if (!usdaKey) return [];
             try {
                 const res = await fetchWithTimeout(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(usdaKey)}&query=${encodeURIComponent(query)}&pageSize=10`);
@@ -1963,22 +2061,31 @@
             return JSON.parse(cleaned);
         }
 
-        async function callGemini(parts, { timeoutMs = 45000 } = {}) {
+        async function callGemini(parts, { timeoutMs = 45000, schema = null } = {}) {
             const key = getGeminiKey();
             if (!key) throw new Error('Add your Gemini API key in Settings to use AI features.');
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`;
-            let res;
-            try {
-                res = await fetchWithTimeout(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-                    body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature: 0.2 } })
-                }, timeoutMs);
-            } catch (err) {
-                throw new Error(err?.name === 'AbortError' ? 'The AI request timed out. Try again.' : 'Could not reach Gemini. Check your connection.');
+            const generationConfig = { responseMimeType: 'application/json', temperature: 0.2 };
+            if (schema) generationConfig.responseSchema = schema;
+            let res, data;
+            for (;;) {
+                const model = GEMINI_MODELS[geminiModelIndex];
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+                try {
+                    res = await fetchWithTimeout(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+                        body: JSON.stringify({ contents: [{ parts }], generationConfig })
+                    }, timeoutMs);
+                } catch (err) {
+                    throw new Error(err?.name === 'AbortError' ? 'The AI request timed out. Try again.' : 'Could not reach Gemini. Check your connection.');
+                }
+                data = {};
+                try { data = await res.json(); } catch (e) { /* non-JSON error page */ }
+                // Model retired or not available to this key: try the next one.
+                const unavailable = res.status === 404 || (res.status === 400 && /model.*(not found|not supported|unsupported)|no longer available/i.test(data?.error?.message || ''));
+                if (unavailable && geminiModelIndex < GEMINI_MODELS.length - 1) { geminiModelIndex++; continue; }
+                break;
             }
-            let data = {};
-            try { data = await res.json(); } catch (e) { /* non-JSON error page */ }
             if (!res.ok) {
                 const msg = data?.error?.message || `Gemini error (${res.status}).`;
                 if (res.status === 400 && /api key/i.test(msg)) throw new Error('Gemini rejected the API key. Check it in Settings.');
@@ -2016,6 +2123,91 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const item = Array.isArray(result) ? result[0] : result;
             if (!item || !item.name) throw new Error('No food was recognised in that photo.');
             return { ...normalizeNutritionObject(item), type: 'AI estimate', store: 'AI photo estimate' };
+        }
+
+        // Reads a packaged food's nutrition label (copying printed numbers, not estimating).
+        const LABEL_SCHEMA = {
+            type: 'OBJECT',
+            properties: {
+                readable: { type: 'BOOLEAN' },
+                name: { type: 'STRING' },
+                brand: { type: 'STRING' },
+                basis: { type: 'STRING', enum: ['serving', '100g', '100ml'] },
+                servingSize: { type: 'NUMBER' },
+                servingUnit: { type: 'STRING', enum: ['g', 'ml'] },
+                servingLabel: { type: 'STRING' },
+                calories: { type: 'NUMBER' },
+                protein: { type: 'NUMBER' },
+                carbs: { type: 'NUMBER' },
+                fats: { type: 'NUMBER' },
+                sodiumMg: { type: 'NUMBER', nullable: true },
+                potassiumMg: { type: 'NUMBER', nullable: true },
+                calciumMg: { type: 'NUMBER', nullable: true },
+                ironMg: { type: 'NUMBER', nullable: true },
+                vitaminDMcg: { type: 'NUMBER', nullable: true }
+            },
+            required: ['readable', 'basis', 'servingSize', 'servingUnit', 'calories', 'protein', 'carbs', 'fats']
+        };
+
+        async function queryGeminiNutritionLabel(images) {
+            const prompt = `You transcribe nutrition labels from photos of packaged food. Photo 1 is the nutrition facts panel${images.length > 1 ? '; photo 2 is the front of the pack' : ''}.
+Copy the numbers exactly as printed — never estimate or use typical values.
+- If the label has a per-serving (per portion) column with a gram or ml amount, use it: basis "serving", servingSize = that amount, servingUnit "g" or "ml", servingLabel = the household measure as printed (e.g. "2/3 cup (55g)", "1 bar (40 g)").
+- Otherwise use the per 100 g / 100 ml column: basis "100g" or "100ml", servingSize 100, servingLabel "".
+- calories in kcal (if only kJ is printed, divide by 4.184). carbs = total carbohydrate as printed. fats = total fat.
+- sodiumMg in mg; if only salt is printed, sodiumMg = salt in grams × 400. potassiumMg, calciumMg, ironMg in mg and vitaminDMcg in mcg when printed, otherwise null.
+- name: the product name from the front of the pack, or "" if not visible. brand: the brand if visible, else "".
+- readable: false if photo 1 does not show a legible nutrition label; then set numbers to 0.`;
+            const parts = [{ text: prompt }, ...images.map(img => ({ inline_data: { mime_type: img.mimeType, data: img.base64 } }))];
+            const result = await callGemini(parts, { timeoutMs: 60000, schema: LABEL_SCHEMA });
+            return Array.isArray(result) ? result[0] : result;
+        }
+
+        // Validates an AI label reading and turns it into a Create-food prefill.
+        function checkLabelReading(r) {
+            if (!r || r.readable === false) throw new Error("Couldn't read a nutrition label in that photo. Retake it closer, with the whole panel in view and no glare.");
+            const num = v => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Number(v) : 0);
+            const kcal = num(r.calories), protein = num(r.protein), carbs = num(r.carbs), fats = num(r.fats);
+            const unit = r.servingUnit === 'ml' || r.basis === '100ml' ? 'ml' : 'g';
+            const size = num(r.servingSize) > 0 ? num(r.servingSize) : 100;
+            const warnings = [];
+            const fromMacros = 4 * protein + 4 * carbs + 9 * fats;
+            if (!kcal && !fromMacros) warnings.push('The label reads 0 kcal — check that this is right.');
+            else if (Math.abs(kcal - fromMacros) > Math.max(20, kcal * 0.25)) {
+                warnings.push(`${Math.round(kcal)} kcal doesn't match protein, carbs and fat (about ${Math.round(fromMacros)} kcal) — compare with the label.`);
+            }
+            if (unit === 'g' && protein + carbs + fats > size * 1.05) warnings.push(`Protein, carbs and fat add up to more than ${formatAmount(size)} g — check the serving size.`);
+            if (unit === 'g' && kcal > size * 9.2) warnings.push(`${Math.round(kcal)} kcal is more than ${formatAmount(size)} g of food can hold — check the serving size.`);
+            const micros = {};
+            if (r.sodiumMg != null) micros.sodium = num(r.sodiumMg);
+            if (r.potassiumMg != null) micros.potassium = num(r.potassiumMg);
+            if (r.calciumMg != null) micros.calcium = num(r.calciumMg);
+            if (r.ironMg != null) micros.iron = num(r.ironMg);
+            if (r.vitaminDMcg != null) micros.vitd = num(r.vitaminDMcg);
+            return {
+                prefill: {
+                    name: String(r.name || '').trim(),
+                    brand: String(r.brand || '').trim(),
+                    servingSize: Math.round(size * 10) / 10,
+                    servingUnit: unit,
+                    servingLabel: String(r.servingLabel || '').trim(),
+                    calories: Math.round(kcal),
+                    protein: Math.round(protein * 10) / 10,
+                    carbs: Math.round(carbs * 10) / 10,
+                    fats: Math.round(fats * 10) / 10,
+                    micros
+                },
+                warnings
+            };
+        }
+
+        // Reads the digits printed under a barcode. The caller checks the check digit.
+        async function queryGeminiBarcodeDigits(image) {
+            const prompt = `This photo shows a retail product barcode (EAN-13, EAN-8, UPC-A or UPC-E). Read the human-readable digits printed under or beside the bars, left to right, including the small digits at the far left and right edges. Return only digits in "digits" (no spaces). If any digit is unreadable, set readable to false and give your best reading.`;
+            const schema = { type: 'OBJECT', properties: { digits: { type: 'STRING' }, readable: { type: 'BOOLEAN' } }, required: ['digits', 'readable'] };
+            const result = await callGemini([{ text: prompt }, { inline_data: { mime_type: image.mimeType, data: image.base64 } }], { timeoutMs: 30000, schema });
+            const r = Array.isArray(result) ? result[0] : result;
+            return { digits: String(r?.digits || '').replace(/\D/g, ''), readable: r?.readable !== false };
         }
 
 
@@ -3211,6 +3403,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         function showOverlay(id) {
             const el = document.getElementById(id);
             el.classList.remove('hidden');
+            // Sheets opened from the scanner (batch adjust, create food, settings) sit above it.
+            if (id !== 'modal-scanner' && isOverlayOpen('modal-scanner')) el.classList.add('over-scanner');
             const existing = overlayStack.indexOf(id);
             if (existing >= 0) overlayStack.splice(existing, 1);
             overlayStack.push(id);
@@ -3219,6 +3413,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
 
         function hideOverlay(id) {
             document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('over-scanner');
             const existing = overlayStack.indexOf(id);
             if (existing >= 0) overlayStack.splice(existing, 1);
             if (overlayStack.length === 0) document.body.classList.remove('has-overlay');
@@ -3461,7 +3656,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             if (document.getElementById('source-toggle-staples').checked) local.push(...localFuzzyMatches(info.normalized));
 
             const wantOff = document.getElementById('source-toggle-off').checked;
-            const wantUsda = document.getElementById('source-toggle-usda').checked && usdaKey;
+            const wantUsda = document.getElementById('source-toggle-usda').checked && Boolean(getUsdaKey());
             lastSearchResults = dedupeFoods(local);
             renderSearchResults(lastSearchResults, { pending: wantOff || wantUsda });
 
@@ -3635,7 +3830,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         }
 
         function rememberBarcodeFood(food) {
-            if (!food.barcode || !/open food facts/i.test(food.type || '')) return;
+            if (!food.barcode || !/open food facts|usda branded/i.test(food.type || '')) return;
             if (!appState.barcodeCache) appState.barcodeCache = {};
             const { missingNutrition, hasName, ...stored } = food;
             appState.barcodeCache[food.barcode] = { ...stored, cachedAt: Date.now() };
@@ -3819,15 +4014,34 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         let customFoodContext = null;
         const CUSTOM_MICROS = ['vita', 'vitc', 'vitd', 'vite', 'vitk', 'vitb12', 'folate', 'sodium', 'calcium', 'iron', 'magnesium', 'potassium', 'zinc'];
 
+        // prefill: { name, brand, barcode, meal } and, from an AI label reading,
+        // { servingSize, servingUnit, calories, protein, carbs, fats, micros, aiWarnings }.
         function openCustomFoodModal(prefill = null) {
             customFoodContext = prefill;
+            const note = document.getElementById('custom-food-note');
+            note.classList.add('hidden');
+            note.innerHTML = '';
             if (prefill) {
                 document.getElementById('custom-food-name').value = prefill.name || '';
                 document.getElementById('custom-food-brand').value = prefill.brand || '';
                 document.getElementById('custom-food-barcode').value = prefill.barcode || '';
+                const fromLabel = prefill.calories !== undefined;
+                if (fromLabel) {
+                    document.getElementById('custom-food-size').value = formatAmount(prefill.servingSize || 100);
+                    document.getElementById('custom-food-unit').value = prefill.servingUnit === 'ml' ? 'ml' : 'g';
+                    ['calories', 'protein', 'carbs', 'fats'].forEach(k => { document.getElementById(`custom-food-${k}`).value = formatAmount(prefill[k] || 0); });
+                    Object.entries(prefill.micros || {}).forEach(([m, v]) => {
+                        const input = document.getElementById(`custom-micro-${m}`);
+                        if (input) input.value = formatAmount(v);
+                    });
+                    const lines = [`Read from your photo by AI${prefill.servingLabel ? ` · serving: ${prefill.servingLabel}` : ''}. Compare with the label before saving.`, ...(prefill.aiWarnings || [])];
+                    note.className = `note ${prefill.aiWarnings?.length ? '' : 'ai'}`;
+                    note.innerHTML = `<i class="fa-solid ${prefill.aiWarnings?.length ? 'fa-triangle-exclamation' : 'fa-wand-magic-sparkles'}"></i><span>${lines.map(escapeHTML).join('<br>')}</span>`;
+                }
             }
             showOverlay('modal-custom-food');
-            if (prefersPointer() || prefill) document.getElementById(prefill?.name ? 'custom-food-calories' : 'custom-food-name').focus();
+            const focusId = !prefill ? 'custom-food-name' : !prefill.name ? 'custom-food-name' : prefill.calories === undefined ? 'custom-food-calories' : null;
+            if (focusId && (prefersPointer() || prefill)) document.getElementById(focusId).focus();
         }
 
         function closeCustomFoodModal() {
@@ -3835,6 +4049,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             customFoodContext = null;
             ['name', 'brand', 'barcode', 'calories', 'protein', 'carbs', 'fats'].forEach(k => document.getElementById(`custom-food-${k}`).value = '');
             document.getElementById('custom-food-size').value = '100';
+            document.getElementById('custom-food-unit').value = 'g';
+            document.getElementById('custom-food-note').classList.add('hidden');
             CUSTOM_MICROS.forEach(m => { document.getElementById(`custom-micro-${m}`).value = ''; });
         }
 
@@ -3879,6 +4095,11 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 micros,
                 type: 'Custom Import'
             };
+            const ctx = customFoodContext;
+            if (ctx?.servingLabel && Number(ctx.servingSize) === size && foodItem.servingUnit === ctx.servingUnit) {
+                foodItem.servingLabel = ctx.servingLabel;
+                foodItem.servingQuantity = size;
+            }
 
             if (!appState.customPacks) appState.customPacks = [];
             if (barcode) appState.customPacks = appState.customPacks.filter(f => f.barcode !== barcode);
@@ -3886,9 +4107,11 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             saveStateToLocalStorage();
             audioEngine.playNotification('success');
             const meal = customFoodContext?.meal || currentSearchMealSlot;
+            const onSaved = customFoodContext?.onSaved;
             closeCustomFoodModal();
             showToast(`Saved "${name}" to My foods.`);
-            openFoodReview(foodItem, { meal, closeSearchOnAdd: true });
+            if (onSaved) onSaved(foodItem);
+            else openFoodReview(foodItem, { meal, closeSearchOnAdd: true });
             if (isOverlayOpen('modal-food-search')) renderOftenLoggedSection();
         }
 
@@ -4165,8 +4388,15 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             frames: 0,
             devices: [],
             zoomLevels: [],
-            zoomIndex: 0
+            zoomIndex: 0,
+            batch: false,       // keep the camera on and log several products in a row
+            batchCount: 0,
+            ignoreCode: null,   // the product just handled, ignored briefly after resuming
+            ignoreUntil: 0,
+            lastPhoto: null,
+            autoLensDone: false
         };
+        const BATCH_IGNORE_MS = 3000;
 
         // --- GTIN helpers ---------------------------------------------------------
         function gtinCheckDigit(body) {
@@ -4246,15 +4476,62 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             return c;
         }
 
+        // USDA stores GTINs as 11–14 digits; one OR query covers every spelling.
+        function usdaGtinSpellings(rawCode) {
+            const out = new Set();
+            for (const c of barcodeCandidates(rawCode)) {
+                const bare = c.replace(/^0+/, '');
+                for (let len = Math.max(bare.length, 11); len <= 14; len++) out.add(bare.padStart(len, '0'));
+            }
+            return [...out];
+        }
+
+        function titleCaseIfShouting(text) {
+            const t = String(text || '').trim();
+            if (!t || t !== t.toUpperCase() || !/[A-Z]{3}/.test(t)) return t;
+            return t.toLowerCase().replace(/(^|[\s(/-])([a-z])/g, (m, p, c) => p + c.toUpperCase());
+        }
+
+        function foodFromUsdaBranded(item, code) {
+            const unit = /^(ml|mlt)$/i.test(item.servingSizeUnit || '') ? 'ml' : 'g';
+            const food = normalizeUSDANutrients({ ...item, servingSizeUnit: unit });
+            const brand = titleCaseIfShouting(item.brandName || item.brandOwner || '');
+            Object.assign(food, {
+                name: titleCaseIfShouting(item.description) || 'USDA product',
+                brand,
+                store: brand || 'USDA',
+                type: 'USDA Branded',
+                barcode: code,
+                servingQuantity: food.servingSize,
+                servingLabel: String(item.householdServingFullText || '').trim()
+            });
+            return food;
+        }
+
+        // Exact GTIN match in USDA Branded Foods, or null.
+        async function lookupUsdaBarcode(rawCode, fetchImpl) {
+            const spellings = usdaGtinSpellings(rawCode);
+            const wanted = new Set(spellings.map(c => c.replace(/^0+/, '')));
+            const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(getUsdaKey({ allowDemo: true }))}&dataType=Branded&requireAllWords=false&pageSize=10&query=${encodeURIComponent(spellings.join(' '))}`;
+            const res = await fetchImpl(url, { headers: { Accept: 'application/json' } });
+            if (res.status === 429) throw new Error('USDA lookup limit reached');
+            if (!res.ok) throw new Error(`USDA error ${res.status}`);
+            const data = await res.json();
+            const hit = (data.foods || []).find(f => f.gtinUpc && wanted.has(String(f.gtinUpc).replace(/\D/g, '').replace(/^0+/, '')));
+            return hit ? foodFromUsdaBranded(hit, cleanBarcode(rawCode)) : null;
+        }
+
         // --- Product lookup -------------------------------------------------------
-        // Exact barcode lookup only. Never guesses: an unknown code is reported
-        // as "not found" so the user can add it themselves.
+        // Exact barcode lookup only: My foods, then Open Food Facts, then USDA Branded
+        // Foods, then the offline copy. Never guesses: an unknown code is reported as
+        // "not found" so the user can add it from the label.
         async function lookupBarcode(rawCode, { fetchImpl = (u, o) => fetchWithTimeout(u, o, 10000) } = {}) {
             const candidates = barcodeCandidates(rawCode);
             const custom = (appState.customPacks || []).find(f => f.barcode && candidates.includes(cleanBarcode(f.barcode)));
             if (custom) return { status: 'found', food: { ...custom, type: 'Custom Import' }, source: 'custom' };
 
             let networkError = null;
+            let partial = null; // in Open Food Facts but without nutrition facts
             for (const code of candidates) {
                 try {
                     const res = await fetchImpl(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=code,product_name,product_name_en,generic_name,brands,nutriments,serving_size,serving_quantity,serving_quantity_unit,image_front_small_url,image_small_url,quantity`, { headers: { Accept: 'application/json' } });
@@ -4263,19 +4540,29 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                     const data = await res.json();
                     if (data && data.status === 1 && data.product) {
                         const food = foodFromOpenFoodFactsProduct(data.product, code);
-                        return { status: food.missingNutrition ? 'no_nutrition' : 'found', food, code };
+                        if (!food.missingNutrition) return { status: 'found', food, code, source: 'off' };
+                        partial = partial || { food, code };
                     }
                 } catch (err) {
                     networkError = err;
                 }
             }
 
+            let usdaError = null;
+            try {
+                const food = await lookupUsdaBarcode(rawCode, fetchImpl);
+                if (food) return { status: 'found', food, code: food.barcode, source: 'usda' };
+            } catch (err) {
+                usdaError = err;
+            }
+
             for (const code of candidates) {
                 const cached = appState.barcodeCache?.[code];
                 if (cached) return { status: 'found', food: { ...cached }, code, fromCache: true };
             }
+            if (partial) return { status: 'no_nutrition', food: partial.food, code: partial.code };
             if (networkError) return { status: 'error', code: candidates[0], message: typeof navigator !== 'undefined' && navigator.onLine === false ? 'You are offline.' : 'Could not reach Open Food Facts.' };
-            return { status: 'not_found', code: candidates[0] };
+            return { status: 'not_found', code: candidates[0], usdaSkipped: Boolean(usdaError) };
         }
 
         // --- Decoders -------------------------------------------------------------
@@ -4399,12 +4686,45 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             document.getElementById('manual-barcode-input').value = '';
             document.getElementById('scanner-actions').classList.remove('hidden');
             setScannerResult('');
+            scanner.batchCount = 0;
+            labelCapture = null;
+            batchPending = null;
+            updateBatchUI();
             startScannerCamera();
         }
 
         function closeScannerModal() {
             stopScannerCamera();
             hideOverlay('modal-scanner');
+            labelCapture = null;
+            batchPending = null;
+            if (scanner.batch && scanner.batchCount) {
+                showToast(`Added ${scanner.batchCount} item${scanner.batchCount === 1 ? '' : 's'} to ${MEAL_LABELS[currentSearchMealSlot].toLowerCase()}.`);
+            }
+            scanner.batchCount = 0;
+        }
+
+        function toggleBatchMode(on = !scanner.batch) {
+            scanner.batch = Boolean(on);
+            updateBatchUI();
+            if (scanner.running) setScannerStatus('Point at a barcode', 'live', scanner.batch ? batchHint() : SCAN_HINT);
+        }
+
+        function batchHint() {
+            return `Each product you add goes to ${MEAL_LABELS[currentSearchMealSlot]}. The camera stays on for the next one.`;
+        }
+
+        function updateBatchUI() {
+            const toggle = document.getElementById('scanner-batch');
+            if (toggle) toggle.checked = scanner.batch;
+            document.getElementById('scanner-title').innerText = scanner.batch
+                ? (scanner.batchCount ? `${scanner.batchCount} added` : 'Batch scan') : 'Scan barcode';
+        }
+
+        // Batch mode: stop reading frames but keep the camera running.
+        function pauseScanning() {
+            scanner.running = false;
+            if (scanner.timer) { clearTimeout(scanner.timer); scanner.timer = null; }
         }
 
         function stopScannerCamera() {
@@ -4493,7 +4813,18 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 setupZoom(caps);
                 navigator.mediaDevices.enumerateDevices?.().then(list => {
                     scanner.devices = list.filter(d => d.kind === 'videoinput');
-                    if (session === scanner.session) document.getElementById('scanner-switch').classList.toggle('hidden', scanner.devices.length < 2);
+                    if (session !== scanner.session) return;
+                    document.getElementById('scanner-switch').classList.toggle('hidden', scanner.devices.length < 2);
+                    // iPhone Pro models: the multi-lens camera switches to the macro lens for
+                    // close-ups, where the default wide lens can't focus. Chosen once; the
+                    // switch-camera button still overrides it.
+                    const lens = !preferredId && !scanner.autoLensDone && isAppleMobile() ? pickIosCloseUpCamera(scanner.devices) : null;
+                    scanner.autoLensDone = true;
+                    const current = scanner.track?.getSettings ? scanner.track.getSettings().deviceId : null;
+                    if (lens && lens.deviceId && lens.deviceId !== current) {
+                        try { localStorage.setItem(CAMERA_PREF_KEY, lens.deviceId); } catch (e) {}
+                        startScannerCamera();
+                    }
                 }).catch(() => {});
 
                 scanner.decoder = await decoderPromise;
@@ -4501,7 +4832,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 scanner.running = true;
                 scanner.startedAt = Date.now();
                 scanner.hinted = false;
-                setScannerStatus('Point at a barcode', 'live', SCAN_HINT);
+                setScannerStatus('Point at a barcode', 'live', scanner.batch ? batchHint() : SCAN_HINT);
                 scheduleScanFrame(session);
             } catch (err) {
                 if (session !== scanner.session) return;
@@ -4510,6 +4841,12 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 windowEl.classList.add('is-paused');
                 setScannerStatus('Camera unavailable', 'error', err && err.message && !err.name ? err.message : cameraErrorMessage(err));
             }
+        }
+
+        function pickIosCloseUpCamera(devices) {
+            return devices.find(d => /back triple camera/i.test(d.label || ''))
+                || devices.find(d => /back dual wide camera/i.test(d.label || ''))
+                || null;
         }
 
         function scheduleScanFrame(session) {
@@ -4569,7 +4906,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                     const extras = [];
                     if (!document.getElementById('scanner-torch').classList.contains('hidden')) extras.push('turn on the light');
                     if (!document.getElementById('scanner-switch').classList.contains('hidden')) extras.push('try another camera');
-                    setScannerStatus('Still looking…', 'live', `If the bars look blurry, move the phone back a little so it can focus${extras.length ? `, ${extras.join(' or ')}` : ''}. You can also tap "Type number".`);
+                    setScannerStatus('Still looking…', 'live', `If the bars look blurry, move the phone back a little so it can focus${extras.length ? `, ${extras.join(' or ')}` : ''}. Or let AI read the printed numbers.`);
+                    offerAiDigits('camera');
                 }
             } catch (err) {
                 console.warn('Frame decode failed:', err);
@@ -4584,6 +4922,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const code = cleanBarcode(text);
             if (!isAcceptableBarcode(code, format)) return false;
             const now = Date.now();
+            if (code === scanner.ignoreCode && now < scanner.ignoreUntil) return false;
             scanner.reads = scanner.reads.filter(r => now - r.at < SCAN_WINDOW_MS);
             scanner.reads.push({ code, at: now });
             const hits = scanner.reads.filter(r => r.code === code).length;
@@ -4600,7 +4939,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const code = cleanBarcode(decodedText);
             audioEngine.playNotification('success');
             if (navigator.vibrate) navigator.vibrate(60);
-            stopScannerCamera();
+            if (scanner.batch && scanner.stream) pauseScanning();
+            else stopScannerCamera();
             document.getElementById('scanner-window').classList.add('is-found', 'is-paused');
             await handleScannedCode(code);
         }
@@ -4614,6 +4954,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             if (session !== scanner.session || !isOverlayOpen('modal-scanner')) return;
 
             if (result.status === 'found') {
+                if (scanner.batch) return showBatchCard(result.food, result.code || code, result.fromCache);
                 closeScannerModal();
                 openFoodReview(result.food, {
                     meal: currentSearchMealSlot,
@@ -4623,34 +4964,282 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 });
                 return;
             }
+            scanner.lastMiss = { result, code };
+            renderMissPanel();
+        }
 
+        // Unknown product, or no nutrition facts: read the label with AI, or type it in.
+        function renderMissPanel() {
+            const { result, code } = scanner.lastMiss;
             const pretty = escapeHTML(formatBarcode(result.code || code));
-            const prefill = encodeURIComponent(JSON.stringify({ barcode: result.code || code, name: result.food?.hasName ? result.food.name : '', brand: result.food?.brand || '' }));
             if (result.status === 'no_nutrition') {
-                setScannerStatus('No nutrition facts for this product', 'error', `${result.food.name} (${pretty}) is in Open Food Facts but has no nutrition data yet. Add it from the package label.`);
+                setScannerStatus('No nutrition facts for this product', 'error', `${result.food.name} (${pretty}) is in Open Food Facts but has no nutrition data yet. Snap the label and it's saved for next time.`);
             } else if (result.status === 'not_found') {
-                setScannerStatus('Product not found', 'error', `Nothing in Open Food Facts matches ${pretty}. Check the digits, or add it from the package label so it scans next time.`);
+                setScannerStatus('Product not found', 'error', `${pretty} isn't in Open Food Facts${result.usdaSkipped ? '' : ' or USDA'}. Snap the nutrition label and it's saved to My foods, so it scans instantly next time.`);
             } else {
                 setScannerStatus('Lookup failed', 'error', `${result.message} The barcode ${pretty} was read correctly — try again when you are online.`);
             }
+            const offline = result.status === 'error';
             setScannerResult(`
-                <div class="grid grid-cols-2 gap-2">
-                    <button class="btn btn-primary" onclick="createFoodFromScan('${prefill}')"><i class="fa-solid fa-pen"></i>Add from label</button>
-                    <button class="btn btn-soft" onclick="resumeScanning()"><i class="fa-solid fa-rotate-right"></i>Scan again</button>
+                <div class="grid gap-2">
+                    ${offline ? '' : `<button class="btn btn-primary btn-block" onclick="startLabelCapture()"><i class="fa-solid fa-wand-magic-sparkles"></i>Snap the nutrition label (AI)</button>`}
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="btn btn-soft" onclick="createFoodFromScan()"><i class="fa-solid fa-pen"></i>Type it in</button>
+                        <button class="btn btn-soft" onclick="scanAgainAfterMiss()"><i class="fa-solid fa-rotate-right"></i>Scan again</button>
+                    </div>
                 </div>`);
             document.getElementById('scanner-actions').classList.add('hidden');
+            document.getElementById('manual-barcode-form').classList.add('hidden');
         }
 
-        function createFoodFromScan(encoded) {
-            const prefill = JSON.parse(decodeURIComponent(encoded));
-            closeScannerModal();
-            openCustomFoodModal({ ...prefill, meal: currentSearchMealSlot });
+        // Don't immediately re-read the unknown code that's still in front of the camera.
+        function scanAgainAfterMiss() {
+            const miss = scanner.lastMiss;
+            if (miss && miss.result.status !== 'error') {
+                scanner.ignoreCode = cleanBarcode(miss.result.code || miss.code);
+                scanner.ignoreUntil = Date.now() + BATCH_IGNORE_MS;
+            }
+            resumeScanning();
+        }
+
+        function missPrefill() {
+            const { result, code } = scanner.lastMiss || { result: {}, code: '' };
+            return { barcode: result.code || code, name: result.food?.hasName ? result.food.name : '', brand: result.food?.brand || '', meal: currentSearchMealSlot };
+        }
+
+        function createFoodFromScan() {
+            openCreateFoodFromScanner(missPrefill());
+        }
+
+        // Batch mode keeps the scanner open behind the form; otherwise the scanner closes.
+        function openCreateFoodFromScanner(prefill) {
+            if (scanner.batch) {
+                if (scanner.lastMiss) renderMissPanel(); // what's left if the form is cancelled
+                openCustomFoodModal({ ...prefill, onSaved: food => showBatchCard({ ...food }, food.barcode) });
+            } else {
+                closeScannerModal();
+                openCustomFoodModal(prefill);
+            }
         }
 
         function resumeScanning() {
             setScannerResult('');
+            labelCapture = null;
+            batchPending = null;
             document.getElementById('scanner-actions').classList.remove('hidden');
-            startScannerCamera();
+            document.getElementById('manual-barcode-form').classList.add('hidden');
+            if (!scanner.stream) return startScannerCamera();
+            // Batch mode: the camera is still running, so just start reading frames again.
+            document.getElementById('scanner-window').classList.remove('is-found', 'is-paused');
+            scanner.reads = [];
+            scanner.running = true;
+            scanner.startedAt = Date.now();
+            scanner.hinted = false;
+            setScannerStatus('Point at the next barcode', 'live', batchHint());
+            scheduleScanFrame(scanner.session);
+        }
+
+        // --- Batch scanning -------------------------------------------------------
+        let batchPending = null;
+
+        function showBatchCard(food, code, fromCache = false) {
+            batchPending = { food, code };
+            const portion = defaultPortionFood(food);
+            const brand = food.brand || (food.store && !/^(Generic|Custom|USDA|Open Food Facts)$/i.test(food.store) ? food.store : '');
+            setScannerStatus(fromCache ? 'Found (saved copy)' : 'Found', 'idle', '');
+            setScannerResult(`
+                <div class="batch-card">
+                    <div class="bc-main">
+                        <p class="bc-name">${escapeHTML(food.name)}</p>
+                        <p class="bc-meta">${escapeHTML([brand, portionDescription(food)].filter(Boolean).join(' · '))} · ${Number(portion.calories).toLocaleString('en-US')} kcal</p>
+                    </div>
+                    ${sourceBadge(food)}
+                </div>
+                <div class="batch-actions">
+                    <button class="btn btn-soft" onclick="skipBatchItem()">Skip</button>
+                    <button class="btn btn-soft" onclick="adjustBatchItem()">Adjust</button>
+                    <button class="btn btn-primary" onclick="addBatchItem()"><i class="fa-solid fa-plus"></i>Add</button>
+                </div>`);
+            document.getElementById('scanner-actions').classList.add('hidden');
+            document.getElementById('manual-barcode-form').classList.add('hidden');
+        }
+
+        function finishBatchItem(food, code, added) {
+            batchPending = null;
+            if (added) scanner.batchCount++;
+            updateBatchUI();
+            scanner.ignoreCode = cleanBarcode(code);
+            scanner.ignoreUntil = Date.now() + BATCH_IGNORE_MS;
+            resumeScanning();
+            if (added) setScannerStatus(`Added ${food.name}`, 'live', 'Scan the next product, or close the scanner when you are done.');
+        }
+
+        function addBatchItem() {
+            if (!batchPending) return;
+            const { food, code } = batchPending;
+            rememberBarcodeFood(food);
+            logFood(defaultPortionFood(food), currentSearchMealSlot, { silent: true });
+            finishBatchItem(food, code, true);
+        }
+
+        function adjustBatchItem() {
+            if (!batchPending) return;
+            const { food, code } = batchPending;
+            openFoodReview(food, {
+                meal: currentSearchMealSlot,
+                onConfirm: (portion, meal) => {
+                    rememberBarcodeFood(food);
+                    logFood(portion, meal, { silent: true });
+                    finishBatchItem(food, code, true);
+                }
+            });
+        }
+
+        function skipBatchItem() {
+            if (!batchPending) return;
+            finishBatchItem(batchPending.food, batchPending.code, false);
+        }
+
+        // --- AI: read the nutrition label of an unknown product -----------------------
+        let labelCapture = null;
+
+        function startLabelCapture() {
+            if (!requireGemini()) return;
+            stopScannerCamera(); // the photo picker needs the camera
+            document.getElementById('scanner-window').classList.add('is-paused');
+            labelCapture = { prefill: missPrefill(), label: null, front: null, kind: 'label' };
+            renderLabelCapture();
+        }
+
+        function renderLabelCapture() {
+            const c = labelCapture;
+            if (!c) return;
+            const step = (kind, title, sub) => `
+                <div class="label-step">
+                    ${c[kind] ? `<img src="${c[kind].dataUrl}" alt="">` : `<i class="fa-solid ${kind === 'label' ? 'fa-table-list' : 'fa-box'}" style="width:40px;text-align:center;color:var(--faint);font-size:20px"></i>`}
+                    <span class="ls-text"><b>${title}</b><br><span class="small faint">${sub}</span></span>
+                    <button class="btn btn-soft btn-sm" onclick="captureLabelPhoto('${kind}')">${c[kind] ? 'Retake' : '<i class="fa-solid fa-camera"></i>Photo'}</button>
+                </div>`;
+            setScannerStatus('Snap the nutrition label', 'idle', 'Fill the photo with the nutrition panel, flat and without glare. AI copies the numbers; you check them before saving.');
+            setScannerResult(`
+                <div class="label-steps">
+                    ${step('label', 'Nutrition label', c.label ? 'Ready' : 'Required')}
+                    ${c.prefill.name ? '' : step('front', 'Front of pack', c.front ? 'Ready' : 'Optional — for the product name')}
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <button class="btn btn-ghost" onclick="cancelLabelCapture()">Back</button>
+                    <button class="btn btn-primary" id="label-read-btn" onclick="readLabelWithAI()" ${c.label ? '' : 'disabled'}><i class="fa-solid fa-wand-magic-sparkles"></i>Read label</button>
+                </div>`);
+            document.getElementById('scanner-actions').classList.add('hidden');
+        }
+
+        function captureLabelPhoto(kind) {
+            if (!labelCapture) return;
+            labelCapture.kind = kind;
+            const input = document.getElementById('label-photo-input');
+            input.value = '';
+            input.click();
+        }
+
+        async function onLabelPhotoChosen(event) {
+            const file = event.target.files[0];
+            const c = labelCapture;
+            if (!file || !c) return;
+            try {
+                c[c.kind] = await downscaleImage(file, 1600, 0.88);
+                if (labelCapture === c) renderLabelCapture();
+            } catch (e) {
+                showToast(e.message, true);
+            }
+        }
+
+        function cancelLabelCapture() {
+            labelCapture = null;
+            if (scanner.lastMiss) renderMissPanel();
+            else resumeScanning();
+        }
+
+        async function readLabelWithAI() {
+            const c = labelCapture;
+            if (!c?.label || !requireGemini()) return;
+            const btn = document.getElementById('label-read-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch spin"></i>Reading…';
+            setScannerStatus('Reading the label…', 'busy', 'This usually takes a few seconds.');
+            try {
+                const { prefill, warnings } = checkLabelReading(await queryGeminiNutritionLabel([c.label, c.front].filter(Boolean)));
+                if (labelCapture !== c) return;
+                labelCapture = null;
+                openCreateFoodFromScanner({
+                    ...prefill,
+                    name: c.prefill.name || prefill.name,
+                    brand: c.prefill.brand || prefill.brand,
+                    barcode: c.prefill.barcode,
+                    meal: c.prefill.meal,
+                    aiWarnings: warnings
+                });
+            } catch (e) {
+                if (labelCapture !== c) return;
+                showToast(e.message || 'Could not read the label.', true);
+                renderLabelCapture();
+            }
+        }
+
+        // --- AI: read the printed digits when the bars won't decode -------------------
+        function offerAiDigits(source) {
+            const box = document.getElementById('scanner-result');
+            if (box.innerHTML.trim() && !document.getElementById('ai-digits-btn')) {
+                if (source !== 'photo') return; // don't replace other choices on screen
+            }
+            const extra = source === 'photo' ? `<button class="btn btn-soft btn-block" onclick="resumeScanning()"><i class="fa-solid fa-camera"></i>Back to live camera</button>` : '';
+            setScannerResult(`<div class="grid gap-2">
+                <button class="btn btn-soft btn-block" id="ai-digits-btn" onclick="readDigitsWithAI('${source}')"><i class="fa-solid fa-wand-magic-sparkles"></i>Read the numbers with AI</button>${extra}</div>`);
+        }
+
+        function grabFullFrame(video, maxSide = 1600) {
+            const vw = video.videoWidth, vh = video.videoHeight;
+            if (!vw || !vh) return null;
+            const scale = Math.min(1, maxSide / Math.max(vw, vh));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(vw * scale);
+            canvas.height = Math.round(vh * scale);
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            return { dataUrl, base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' };
+        }
+
+        async function readDigitsWithAI(source) {
+            if (!requireGemini()) return;
+            const session = scanner.session;
+            let image = null;
+            try {
+                image = source === 'photo' && scanner.lastPhoto
+                    ? await downscaleImage(scanner.lastPhoto, 1600, 0.9)
+                    : grabFullFrame(document.getElementById('scanner-video'));
+            } catch (e) { /* handled below */ }
+            if (!image) return showToast('There is no picture to read yet. Point the camera at the barcode first.', true);
+            const btn = document.getElementById('ai-digits-btn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch spin"></i>Reading the numbers…'; }
+            try {
+                const { digits, readable } = await queryGeminiBarcodeDigits(image);
+                if (session !== scanner.session) return; // a live scan finished first, or the scanner closed
+                stopScannerCamera();
+                document.getElementById('scanner-window').classList.add('is-paused');
+                setScannerResult('');
+                document.getElementById('manual-barcode-form').classList.remove('hidden');
+                document.getElementById('manual-barcode-input').value = digits;
+                if (digits && readable && isAcceptableBarcode(digits)) {
+                    setScannerStatus(`AI read ${formatBarcode(digits)}`, 'idle', 'Check these digits against the package, then tap Look up.');
+                } else if (digits) {
+                    setScannerStatus("Those digits don't add up", 'error', 'At least one digit the AI read is wrong (the barcode check digit fails). Correct it from the package, then tap Look up.');
+                } else {
+                    setScannerStatus("AI couldn't read the numbers", 'error', 'Type the digits printed under the barcode.');
+                }
+            } catch (e) {
+                if (session !== scanner.session) return;
+                showToast(e.message || 'Could not read the numbers.', true);
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>Read the numbers with AI'; }
+            }
         }
 
         function onBarcodeScanFailure() {}
@@ -4776,8 +5365,9 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 const code = await decodeBarcodeFromImage(loaded.img);
                 if (session !== scanner.session) return;
                 if (!code) {
-                    setScannerStatus('No barcode found in that photo', 'error', 'Take a sharp, well-lit photo with the barcode filling most of the picture, or type the number.');
-                    setScannerResult(`<button class="btn btn-soft btn-block" onclick="resumeScanning()"><i class="fa-solid fa-camera"></i>Back to live camera</button>`);
+                    scanner.lastPhoto = file;
+                    setScannerStatus('No barcode found in that photo', 'error', 'Let AI read the printed numbers, take a sharper photo with the barcode filling most of the picture, or type the number.');
+                    offerAiDigits('photo');
                     return;
                 }
                 audioEngine.playNotification('success');
@@ -4914,6 +5504,12 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
         // Parses one file into per-day values: { days: {date: {steps, calories, weight}}, meta }.
         function parseHealthFile(fileName, text) {
             const result = { days: {}, metrics: new Set(), caloriesKind: null, weightUnit: null, rows: 0, file: fileName };
+            if (SHORTCUT_HEADER.test(String(text).replace(/^\ufeff/, ''))) {
+                // A "MacroFlow Health" Shortcut output saved to Files.
+                const synced = parseShortcutPayload(text);
+                if (synced) Object.assign(result, { days: synced.days, rows: Object.keys(synced.days).length, weightUnit: 'kg', origin: 'apple-health' });
+                return result;
+            }
             const add = (date, metric, value, mode) => {
                 if (!date || value === null || value < 0) return;
                 const day = result.days[date] || (result.days[date] = {});
@@ -4990,14 +5586,17 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                     }
                 }
             }
-            const summary = { days, files, caloriesKind, weightUnit, counts: { steps: 0, calories: 0, weight: 0 }, from: null, to: null };
+            const origin = results.find(r => r.rows && r.origin)?.origin;
+            const summary = { days, files, caloriesKind, weightUnit, counts: { steps: 0, calories: 0, weight: 0 }, from: null, to: null, ...(origin ? { origin } : {}) };
             for (const [date, v] of Object.entries(days)) {
-                for (const metric of Object.keys(summary.counts)) if (v[metric] !== undefined) summary.counts[metric]++;
+                if (v.steps !== undefined) summary.counts.steps++;
+                if (v.calories !== undefined || v.active !== undefined || v.total !== undefined) summary.counts.calories++;
+                if (v.weight !== undefined) summary.counts.weight++;
                 if (!summary.from || date < summary.from) summary.from = date;
                 if (!summary.to || date > summary.to) summary.to = date;
             }
             // Guess what the calorie numbers mean when the source did not say.
-            if (!summary.caloriesKind && summary.counts.calories) {
+            if (!summary.caloriesKind && Object.values(days).some(d => d.calories !== undefined)) {
                 const values = Object.values(days).map(d => d.calories).filter(v => v > 0).sort((a, b) => a - b);
                 summary.caloriesKind = values[Math.floor(values.length / 2)] > 1200 ? 'total' : 'active';
             }
@@ -5009,42 +5608,60 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             return summary;
         }
 
+        // Days may carry `calories` (meaning set by caloriesKind) or, from Apple Health,
+        // separate `active` and `total` values. Re-importing a day replaces what an
+        // earlier import wrote; manual exercise and weigh-ins are never touched.
         function applyHealthImport(summary, { caloriesKind = summary.caloriesKind, weightUnit = summary.weightUnit } = {}) {
             if (!appState.activity) appState.activity = {};
             const userUnit = appState.bodyProfile.unit || 'lbs';
+            const origin = summary.origin || 'import';
+            const activityName = origin === 'apple-health' ? 'Activity from Apple Health' : 'Activity from your tracker';
             let weightCount = 0;
             for (const [date, v] of Object.entries(summary.days)) {
+                const active = v.active !== undefined ? v.active : (caloriesKind === 'active' ? v.calories : undefined);
+                let total = v.total !== undefined ? v.total : (caloriesKind === 'total' ? v.calories : undefined);
+                // Google Health (Fitbit) sends active but not resting calories to Apple Health,
+                // and only an Apple Watch adds resting energy there. Like Fitbit's own total,
+                // add resting calories estimated from the profile.
+                const estimated = total === undefined && v.active !== undefined && origin === 'apple-health';
+                if (estimated) total = restingKcalFor(date) + v.active;
                 const activity = appState.activity[date] || {};
                 if (v.steps !== undefined) activity.steps = Math.round(v.steps);
-                if (v.calories !== undefined && caloriesKind === 'total') activity.caloriesOut = Math.round(v.calories);
-                if (Object.keys(activity).length) appState.activity[date] = { ...activity, source: 'import' };
-                if (v.calories !== undefined && caloriesKind === 'active') {
+                if (total !== undefined) {
+                    activity.caloriesOut = Math.round(total);
+                    if (estimated) activity.caloriesOutEstimated = true;
+                    else delete activity.caloriesOutEstimated;
+                }
+                if (Object.keys(activity).length) appState.activity[date] = { ...activity, source: origin };
+                if (active !== undefined) {
                     const log = ensureDayLog(date);
                     if (!Array.isArray(log.exercise)) log.exercise = [];
                     log.exercise = log.exercise.filter(e => e.source !== 'import');
-                    if (v.calories > 0) log.exercise.push({ id: `import-${date}`, name: 'Activity from your tracker', calories: Math.round(v.calories), minutes: null, source: 'import' });
+                    if (active > 0) log.exercise.push({ id: `import-${date}`, name: activityName, calories: Math.round(active), minutes: null, source: 'import' });
                 }
-                if (v.weight !== undefined && v.weight > 0) {
+                const history = appState.weightHistory || [];
+                if (v.weight !== undefined && v.weight > 0 && !history.some(x => x.date === date && x.source !== 'import')) {
                     let value = v.weight;
                     if (weightUnit === 'kg' && userUnit === 'lbs') value *= 2.20462;
                     if (weightUnit === 'lbs' && userUnit === 'kg') value /= 2.20462;
                     value = Math.round(value * 10) / 10;
-                    appState.weightHistory = (appState.weightHistory || []).filter(x => x.date !== date);
+                    appState.weightHistory = history.filter(x => x.date !== date);
                     appState.weightHistory.push({ date, value, unit: userUnit, source: 'import' });
                     weightCount++;
                 }
             }
             if (weightCount) appState.weightHistory.sort((a, b) => a.date.localeCompare(b.date));
-            appState.lastHealthImport = { at: new Date().toISOString(), files: summary.files.length, from: summary.from, to: summary.to, counts: summary.counts, caloriesKind };
+            appState.lastHealthImport = { at: new Date().toISOString(), files: summary.files.length, from: summary.from, to: summary.to, counts: summary.counts, caloriesKind, origin };
             saveStateToLocalStorage();
         }
 
         function removeImportedHealthData() {
-            if (!confirm('Remove all imported steps, calories burned and imported weights? Your food log and manual entries stay.')) return;
+            if (!confirm('Remove all imported and synced steps, calories burned and weights? Your food log and manual entries stay.')) return;
             appState.activity = {};
             Object.values(appState.dailyLogs || {}).forEach(log => { if (Array.isArray(log.exercise)) log.exercise = log.exercise.filter(e => e.source !== 'import'); });
             appState.weightHistory = (appState.weightHistory || []).filter(x => x.source !== 'import');
             appState.lastHealthImport = null;
+            appState.lastHealthSync = null;
             saveStateToLocalStorage();
             renderAll();
             renderHealthImportStatus();
@@ -5110,13 +5727,14 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             document.getElementById('health-preview-range').innerText = `${fmt(summary.from)} – ${fmt(summary.to)} · from ${summary.files.length} file${summary.files.length === 1 ? '' : 's'}`;
             document.getElementById('health-preview-list').innerHTML = lines.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')
                 + (skipped.length ? `<p class="small faint mt-2">Skipped: ${escapeHTML(skipped.join('; '))}</p>` : '');
-            document.getElementById('health-calories-field').classList.toggle('hidden', !summary.counts.calories);
+            // Apple Health data says which calories are active and which are total.
+            document.getElementById('health-calories-field').classList.toggle('hidden', !Object.values(summary.days).some(d => d.calories !== undefined));
             document.getElementById('health-calories-kind').value = summary.caloriesKind || 'total';
             document.getElementById('health-weight-field').classList.toggle('hidden', !summary.counts.weight);
             document.getElementById('health-weight-unit').value = summary.weightUnit || 'kg';
             const latest = Object.keys(summary.days).sort().reverse().slice(0, 3).map(date => {
                 const v = summary.days[date];
-                return `<div class="row"><span>${fmt(date)}</span><span>${[v.steps !== undefined ? `${Math.round(v.steps).toLocaleString('en-US')} steps` : '', v.calories !== undefined ? `${Math.round(v.calories).toLocaleString('en-US')} kcal` : '', v.weight !== undefined ? `${v.weight} ${summary.weightUnit}` : ''].filter(Boolean).join(' · ')}</span></div>`;
+                return `<div class="row"><span>${fmt(date)}</span><span>${[v.steps !== undefined ? `${Math.round(v.steps).toLocaleString('en-US')} steps` : '', (v.calories ?? v.total ?? v.active) !== undefined ? `${Math.round(v.calories ?? v.total ?? v.active).toLocaleString('en-US')} kcal` : '', v.weight !== undefined ? `${v.weight} ${summary.weightUnit}` : ''].filter(Boolean).join(' · ')}</span></div>`;
             }).join('');
             document.getElementById('health-preview-sample').innerHTML = latest;
             showOverlay('modal-health-import');
@@ -5146,8 +5764,266 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const el = document.getElementById('health-import-status');
             if (!el) return;
             const last = appState.lastHealthImport;
-            el.innerText = last ? `Last import ${new Date(last.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${formatDateShort(last.from)} – ${formatDateShort(last.to)}` : 'No data imported yet.';
-            document.getElementById('health-remove-btn').classList.toggle('hidden', !last);
+            const fileImport = last && last.origin !== 'apple-health';
+            el.innerText = fileImport ? `Last file import ${new Date(last.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${formatDateShort(last.from)} – ${formatDateShort(last.to)}` : 'No files imported yet.';
+            document.getElementById('health-remove-btn').classList.toggle('hidden', !last && !appState.lastHealthSync);
+            renderHealthSyncStatus();
+        }
+
+        // --- Apple Health sync (through an Apple Shortcut) ------------------------
+        // iPhone websites cannot read Apple Health, but a Shortcut can. Google Health,
+        // Fitbit and Apple Watch data reach Apple Health first; the "MacroFlow Health"
+        // Shortcut copies the last days to the clipboard, one line per day and metric:
+        //   MacroFlow Health v1
+        //   steps;2026-10-15T00:00:00-04:00;8432 count
+        //   active;2026-10-15T00:00:00-04:00;512.3 kcal
+        //   resting;2026-10-15T00:00:00-04:00;1750 kcal
+        //   weight;2026-10-15T00:00:00-04:00;78.4 kg
+        // and MacroFlow reads it when you tap Sync.
+        const SHORTCUT_HEADER = /^\s*macroflow health v1\b/i;
+        const SHORTCUT_METRICS = {
+            steps: 'steps', step: 'steps', step_count: 'steps',
+            active: 'active', active_kcal: 'active', active_energy: 'active', active_calories: 'active',
+            resting: 'resting', resting_kcal: 'resting', resting_energy: 'resting', basal: 'resting', basal_energy: 'resting',
+            weight: 'weight', weight_kg: 'weight', weight_lb: 'weight', weight_lbs: 'weight', body_mass: 'weight'
+        };
+
+        // Reads "8432", "8,432", "512.3 kcal", "512,3 kcal" or "78.4 kg" (any locale).
+        function parseShortcutValue(raw, metric) {
+            const text = String(raw || '').replace(/[\s  ]+/g, ' ').trim();
+            const unitMatch = text.match(/([a-zA-Z]+)\s*$/);
+            const unit = unitMatch ? unitMatch[1].toLowerCase() : '';
+            let s = text.replace(/[a-zA-Z]+\s*$/, '').replace(/[\s']/g, '');
+            if (!/^-?[\d.,]+$/.test(s)) return null;
+            const commas = (s.match(/,/g) || []).length;
+            const dots = (s.match(/\./g) || []).length;
+            if (commas && dots) {
+                // Whichever comes last is the decimal mark.
+                s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+            } else if (commas) {
+                const grouping = commas > 1 || (/^-?\d{1,3},\d{3}$/.test(s) && metric !== 'weight');
+                s = grouping ? s.replace(/,/g, '') : s.replace(',', '.');
+            } else if (dots > 1 || (dots === 1 && metric === 'steps' && /^\d{1,3}\.\d{3}$/.test(s))) {
+                s = s.replace(/\./g, '');
+            }
+            const value = Number(s);
+            return Number.isFinite(value) ? { value, unit } : null;
+        }
+
+        function parseShortcutLine(line) {
+            const metricMatch = line.match(/^([a-zA-Z][a-zA-Z _]*?)\s*[;,\t|]\s*(.*)$/);
+            if (!metricMatch) return null;
+            const metricName = metricMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+            const metric = SHORTCUT_METRICS[metricName];
+            if (!metric) return null;
+            const rest = metricMatch[2];
+            // Prefer ; tab or | as separators; fall back to commas (decimal commas stay in the value).
+            let parts = rest.split(/\s*[;\t|]\s*/);
+            let date = null, valueText = '';
+            if (parts.length >= 2) {
+                date = parseHealthDate(parts[0]);
+                valueText = parts.slice(1).join(' ');
+            } else {
+                parts = rest.split(/\s*,\s*/);
+                date = parseHealthDate(parts[0]);
+                valueText = parts.slice(1).join(',');
+                if (!date && parts.length >= 3) { // "Oct 15, 2026, 8432"
+                    date = parseHealthDate(`${parts[0]}, ${parts[1]}`);
+                    valueText = parts.slice(2).join(',');
+                }
+            }
+            if (!date) return null;
+            const parsed = parseShortcutValue(valueText, metric);
+            if (!parsed || parsed.value < 0) return null;
+            let { value, unit } = parsed;
+            if (metric === 'weight') {
+                const lb = /^lbs?$|^pounds?$/.test(unit) || (!unit && /_lbs?$/.test(metricName));
+                if (unit === 'st') value *= 6.35029;
+                else if (lb) value /= 2.20462;
+                else if (unit === 'g') value /= 1000;
+            } else if (metric !== 'steps' && unit === 'kj') {
+                value /= 4.184;
+            }
+            return { metric, date, value };
+        }
+
+        // Returns an import summary (see applyHealthImport), or null if this isn't MacroFlow Health data.
+        function parseShortcutPayload(text, { requireHeader = true } = {}) {
+            const lines = String(text || '').replace(/^﻿/, '').split(/\r?\n|\r/).map(l => l.trim()).filter(Boolean);
+            if (!lines.length) return null;
+            const hasHeader = SHORTCUT_HEADER.test(lines[0]);
+            if (requireHeader && !hasHeader) return null;
+            const raw = {};
+            let rows = 0;
+            for (const line of hasHeader ? lines.slice(1) : lines) {
+                const r = parseShortcutLine(line);
+                if (!r) continue;
+                const day = raw[r.date] || (raw[r.date] = {});
+                // Ungrouped samples add up; weight keeps the last reading of the day.
+                day[r.metric] = r.metric === 'weight' ? r.value : (day[r.metric] || 0) + r.value;
+                rows++;
+            }
+            if (!rows) return null;
+            const days = {};
+            const counts = { steps: 0, calories: 0, weight: 0 };
+            for (const [date, d] of Object.entries(raw)) {
+                const out = {};
+                if (d.steps !== undefined) { out.steps = Math.round(d.steps); counts.steps++; }
+                if (d.active !== undefined) out.active = Math.round(d.active);
+                if (d.resting !== undefined) out.total = Math.round(d.resting + (d.active || 0));
+                if (out.active !== undefined || out.total !== undefined) counts.calories++;
+                if (d.weight > 0) { out.weight = Math.round(d.weight * 100) / 100; counts.weight++; }
+                if (Object.keys(out).length) days[date] = out;
+            }
+            const dates = Object.keys(days).sort();
+            if (!dates.length) return null;
+            return { days, files: ['Apple Health'], origin: 'apple-health', caloriesKind: null, weightUnit: 'kg', counts, from: dates[0], to: dates[dates.length - 1] };
+        }
+
+        function isAppleMobile() {
+            if (typeof navigator === 'undefined') return false;
+            return /iPhone|iPad|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        function timeAgo(iso) {
+            const ms = Date.now() - new Date(iso).getTime();
+            if (!Number.isFinite(ms)) return '';
+            const min = Math.round(ms / 60000);
+            if (min < 1) return 'just now';
+            if (min < 60) return `${min} min ago`;
+            const h = Math.round(min / 60);
+            if (h < 24) return `${h} h ago`;
+            const d = Math.round(h / 24);
+            return d === 1 ? 'yesterday' : `${d} days ago`;
+        }
+
+        function healthSyncStatusText() {
+            const sync = appState.lastHealthSync;
+            if (!sync) return '';
+            const today = appState.activity?.[localDateKey()];
+            const parts = [`Synced ${timeAgo(sync.at)}`];
+            if (today?.caloriesOut) parts.push(`today ${Number(today.caloriesOut).toLocaleString('en-US')} kcal burned so far`);
+            else if (today?.steps !== undefined) parts.push(`today ${Number(today.steps).toLocaleString('en-US')} steps`);
+            return parts.join(' · ');
+        }
+
+        function renderHealthSyncStatus() {
+            const text = healthSyncStatusText();
+            const settingsEl = document.getElementById('health-sync-status-settings');
+            if (settingsEl) settingsEl.innerText = text || 'Not synced yet.';
+            const row = document.getElementById('health-sync-row');
+            if (row) {
+                row.classList.toggle('hidden', !(appState.lastHealthSync || isAppleMobile()));
+                // The steps line above already shows today's numbers.
+                document.getElementById('health-sync-status').innerText = appState.lastHealthSync ? `Synced ${timeAgo(appState.lastHealthSync.at)}` : '';
+            }
+        }
+
+        function snapshotHealthState(dates) {
+            return JSON.parse(JSON.stringify({
+                activity: appState.activity || {},
+                weightHistory: appState.weightHistory || [],
+                exercise: Object.fromEntries(dates.map(d => [d, appState.dailyLogs[d]?.exercise || null])),
+                lastHealthImport: appState.lastHealthImport || null,
+                lastHealthSync: appState.lastHealthSync || null
+            }));
+        }
+
+        function restoreHealthState(snap) {
+            appState.activity = snap.activity;
+            appState.weightHistory = snap.weightHistory;
+            appState.lastHealthImport = snap.lastHealthImport;
+            appState.lastHealthSync = snap.lastHealthSync;
+            for (const [date, exercise] of Object.entries(snap.exercise)) {
+                const log = appState.dailyLogs[date];
+                if (!log) continue;
+                if (exercise) log.exercise = exercise;
+                else delete log.exercise;
+            }
+            saveStateToLocalStorage();
+        }
+
+        function applyShortcutSync(summary) {
+            const snapshot = snapshotHealthState(Object.keys(summary.days));
+            applyHealthImport(summary);
+            appState.lastHealthSync = { at: new Date().toISOString(), from: summary.from, to: summary.to, counts: summary.counts };
+            saveStateToLocalStorage();
+            renderAll();
+            renderHealthImportStatus();
+            if (appState.activeTab === 'progress') setProgressSubTab(appState.progressSubTab);
+            if (appState.activeTab === 'dashboard') renderDashboardTab();
+            const today = appState.activity?.[localDateKey()] || {};
+            const details = summary.days[localDateKey()] ? [
+                today.caloriesOut ? `${today.caloriesOut.toLocaleString('en-US')} kcal burned${today.caloriesOutEstimated ? ' (est.)' : ''}` : '',
+                today.steps !== undefined ? `${today.steps.toLocaleString('en-US')} steps` : ''
+            ].filter(Boolean) : [];
+            const span = summary.from === summary.to ? formatDateShort(summary.from) : `${formatDateShort(summary.from)} – ${formatDateShort(summary.to)}`;
+            showToast(`Synced Apple Health (${span})${details.length ? `\nToday: ${details.join(', ')}` : ''}`, false, {
+                label: 'Undo',
+                onClick: () => {
+                    restoreHealthState(snapshot);
+                    renderAll();
+                    renderHealthImportStatus();
+                    showToast('Sync undone.');
+                }
+            }, 7000);
+            return summary;
+        }
+
+        // Tap → read the clipboard (iOS shows a one-tap "Paste" prompt) → apply.
+        async function syncFromAppleHealth() {
+            let text = '';
+            let readable = false;
+            if (navigator.clipboard?.readText) {
+                try {
+                    text = await navigator.clipboard.readText();
+                    readable = true;
+                } catch (e) { /* blocked or dismissed: fall back to pasting by hand */ }
+            }
+            const summary = parseShortcutPayload(text);
+            if (summary) {
+                if (isOverlayOpen('modal-health-sync')) closeHealthSync();
+                return applyShortcutSync(summary);
+            }
+            openHealthSync(readable ? 'no-data' : 'paste');
+            return null;
+        }
+
+        function openHealthSync(reason = 'guide') {
+            const messages = {
+                'no-data': "Your clipboard doesn't have MacroFlow Health data yet. Run the \"MacroFlow Health\" shortcut, then tap Sync again — or paste its output below.",
+                paste: 'Run the "MacroFlow Health" shortcut, then tap and hold the box below and choose Paste.',
+                guide: 'Build this Shortcut once (about 5 minutes). After that, syncing is one tap.'
+            };
+            document.getElementById('health-sync-message').innerText = messages[reason] || messages.guide;
+            document.getElementById('health-sync-paste').value = '';
+            const guide = document.getElementById('health-sync-guide');
+            const showGuide = reason === 'guide' || !appState.lastHealthSync;
+            guide.classList.toggle('hidden', !showGuide);
+            document.getElementById('health-sync-guide-toggle').setAttribute('aria-expanded', String(showGuide));
+            showOverlay('modal-health-sync');
+        }
+
+        function toggleHealthSyncGuide() {
+            const guide = document.getElementById('health-sync-guide');
+            const open = guide.classList.contains('hidden');
+            guide.classList.toggle('hidden', !open);
+            document.getElementById('health-sync-guide-toggle').setAttribute('aria-expanded', String(open));
+        }
+
+        function closeHealthSync() {
+            hideOverlay('modal-health-sync');
+        }
+
+        function syncPastedHealthData() {
+            const text = document.getElementById('health-sync-paste').value;
+            const summary = parseShortcutPayload(text, { requireHeader: false });
+            if (!summary) {
+                showToast('No steps, calories or weight found. Paste exactly what the MacroFlow Health shortcut copied.', true);
+                return null;
+            }
+            closeHealthSync();
+            return applyShortcutSync(summary);
         }
 
 
@@ -5182,6 +6058,20 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const value = latest ? latest.value : (appState.bodyProfile.weight || 165);
             const unit = latest ? (latest.unit || appState.bodyProfile.unit) : 'lbs';
             return unit === 'kg' ? value : value / 2.20462;
+        }
+
+        // Resting energy (Mifflin-St Jeor) from the profile and the latest weigh-in.
+        function estimateBmr() {
+            const p = appState.bodyProfile || {};
+            const heightCm = (((p.heightFt || 5) * 12) + (p.heightIn ?? 10)) * 2.54;
+            return 10 * currentWeightKg() + 6.25 * heightCm - 5 * (p.age || 25) + ((p.sex || 'male') === 'male' ? 5 : -161);
+        }
+
+        // A day's resting calories; for today, only the part of the day so far.
+        function restingKcalFor(dateKey, now = new Date()) {
+            const bmr = estimateBmr();
+            if (dateKey !== localDateKey(now)) return bmr;
+            return bmr * ((now.getHours() * 60 + now.getMinutes()) / 1440);
         }
 
         function estimateExerciseKcal(type, minutes) {
@@ -5261,7 +6151,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
                 row.innerHTML = `
                     <button type="button" class="entry-main" aria-label="Edit ${escapeHTML(e.name)}">
                         <p class="entry-name">${escapeHTML(e.name)}</p>
-                        <p class="entry-meta">${[e.minutes ? `${e.minutes} min` : '', e.source === 'import' ? 'Imported' : ''].filter(Boolean).join(' · ')}</p>
+                        <p class="entry-meta">${[e.minutes ? `${e.minutes} min` : '', e.source === 'import' ? (/Apple Health/.test(e.name) ? 'Synced' : 'Imported') : ''].filter(Boolean).join(' · ')}</p>
                     </button>
                     <span class="entry-kcal">−${Number(e.calories || 0).toLocaleString('en-US')}</span>`;
                 row.onclick = () => openExerciseModal(e.id);
@@ -5273,9 +6163,10 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const stepsLine = document.getElementById('steps-line');
             const parts = [];
             if (activity?.steps !== undefined) parts.push(`${Number(activity.steps).toLocaleString('en-US')} steps`);
-            if (activity?.caloriesOut) parts.push(`${Number(activity.caloriesOut).toLocaleString('en-US')} kcal burned in total`);
-            stepsLine.innerText = parts.length ? `${parts.join(' · ')} (imported)` : '';
+            if (activity?.caloriesOut) parts.push(`${Number(activity.caloriesOut).toLocaleString('en-US')} kcal burned in total${appState.currentDate === localDateKey() && activity.source === 'apple-health' ? ' so far' : ''}${activity.caloriesOutEstimated ? ' (resting part estimated)' : ''}`);
+            stepsLine.innerText = parts.length ? `${parts.join(' · ')} (${activity.source === 'apple-health' ? 'Apple Health' : 'imported'})` : '';
             stepsLine.classList.toggle('hidden', !parts.length);
+            renderHealthSyncStatus();
             const note = document.getElementById('exercise-goal-note');
             note.classList.toggle('hidden', !total || Boolean(appState.settings?.exerciseAddsToGoal));
         }
@@ -5399,7 +6290,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const logged = rows.filter(r => r.calories > 0);
             const avg = (list, key) => list.length ? list.reduce((s, r) => s + (r[key] || 0), 0) / list.length : 0;
             const withSteps = rows.filter(r => r.steps !== undefined);
-            const withBurn = rows.filter(r => r.burned && r.calories > 0);
+            // Today's food and burn are both still growing, so the balance uses finished days.
+            const withBurn = rows.filter(r => r.burned && r.calories > 0 && r.key < localDateKey());
             return {
                 daysLogged: logged.length,
                 days,
@@ -5427,7 +6319,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             if (r.totalExercise) rows.push(['Exercise', `${fmt(r.totalExercise)} kcal`]);
             if (r.avgSteps !== null) rows.push(['Average steps', fmt(r.avgSteps)]);
             if (r.avgBalance !== null) rows.push(['Average energy balance', `${r.avgBalance > 0 ? '+' : '−'}${fmt(Math.abs(r.avgBalance))} kcal/day <span class="faint">${r.avgBalance > 0 ? 'surplus' : 'deficit'}</span>`]);
-            el.innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('');
+            el.innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')
+                + (appState.lastHealthSync ? `<p class="small faint pt-3"><i class="fa-brands fa-apple"></i> ${escapeHTML(healthSyncStatusText())}</p>` : '');
         }
 
         // SETTINGS & PROFILE CONFIG
@@ -5439,8 +6332,12 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             badge.innerText = active ? (fromDevice ? 'Key saved on this device' : 'Key from config.js') : 'Not set up';
             badge.className = `status-pill ${active ? 'on' : 'off'}`;
             const usda = document.getElementById('usda-status-badge');
-            usda.innerText = usdaKey ? 'On' : 'Off';
+            const usdaKey = getUsdaKey();
+            usda.innerText = usdaKey ? 'Your key' : 'Shared demo key';
             usda.className = `status-pill ${usdaKey ? 'on' : 'off'}`;
+            let usdaOnDevice = false;
+            try { usdaOnDevice = Boolean(localStorage.getItem(USDA_KEY_STORAGE)); } catch (e) {}
+            document.getElementById('usda-remove-btn').classList.toggle('hidden', !usdaOnDevice);
         }
 
         function saveGeminiKeyFromSettings() {
@@ -5455,6 +6352,26 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             input.value = '';
             refreshGeminiStatus();
             showToast('Gemini key saved on this device. Tap Test to check it.');
+        }
+
+        function saveUsdaKeyFromSettings() {
+            const input = document.getElementById('settings-usda-key');
+            const key = input.value.trim();
+            if (!key) return showToast('Paste your USDA API key first.', true);
+            try {
+                localStorage.setItem(USDA_KEY_STORAGE, key);
+            } catch (e) {
+                return showToast('This browser blocked saving the key.', true);
+            }
+            input.value = '';
+            refreshGeminiStatus();
+            showToast('USDA key saved on this device.');
+        }
+
+        function removeUsdaKey() {
+            try { localStorage.removeItem(USDA_KEY_STORAGE); } catch (e) {}
+            refreshGeminiStatus();
+            showToast('USDA key removed from this device.');
         }
 
         function removeGeminiKey() {
@@ -5499,6 +6416,7 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             document.getElementById('settings-profile-activity').value = p.activityLevel || 'moderate';
             document.getElementById('settings-profile-goal').value = p.goal || 'recomp';
             document.getElementById('settings-gemini-key').value = '';
+            document.getElementById('settings-usda-key').value = '';
             document.getElementById('settings-exercise-goal').checked = Boolean(appState.settings?.exerciseAddsToGoal);
             refreshGeminiStatus();
             renderHealthImportStatus();
@@ -5779,7 +6697,8 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             'modal-scanner': () => closeScannerModal(),
             'modal-exercise': () => closeExerciseModal(),
             'modal-save-meal': () => closeSaveMealModal(),
-            'modal-health-import': () => closeHealthImport()
+            'modal-health-import': () => closeHealthImport(),
+            'modal-health-sync': () => closeHealthSync()
         };
 
         document.addEventListener('keydown', event => {
@@ -5796,6 +6715,12 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             if (!isOverlayOpen('modal-scanner')) return;
             if (document.hidden) {
                 if (scanner.running) { stopScannerCamera(); scanner.resumeOnShow = true; }
+                else if (scanner.stream) {
+                    // Batch card on screen: release the camera; Add/Skip restarts it.
+                    scanner.stream.getTracks().forEach(t => t.stop());
+                    scanner.stream = null;
+                    scanner.track = null;
+                }
             } else if (scanner.resumeOnShow) {
                 scanner.resumeOnShow = false;
                 startScannerCamera();
@@ -5818,6 +6743,11 @@ Return one JSON object matching: ${AI_FOOD_SCHEMA}. ${AI_UNITS_NOTE} Set "name" 
             const local = ['localhost', '127.0.0.1'].includes(location.hostname);
             if (location.protocol !== 'https:' && !local) return;
             navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline support unavailable:', err));
+            // Hand the worker the library files this page already loaded (it only sees later requests).
+            navigator.serviceWorker.ready.then(reg => {
+                const urls = (performance.getEntriesByType?.('resource') || []).map(e => e.name).filter(u => /^https:\/\//.test(u));
+                reg.active?.postMessage({ type: 'precache', urls });
+            }).catch(() => {});
         }
 
         // Tell the user when they are offline: logging still works, lookups don't.

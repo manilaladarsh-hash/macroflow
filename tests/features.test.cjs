@@ -130,12 +130,12 @@ test('weekly report averages logged days only', () => {
         const y = localDateKey(localDayOffset(-1));
         appState.dailyLogs[today] = { meals: { breakfast: [{ id: 'a', name: 'x', calories: 1900, protein: 100, carbs: 0, fats: 0 }], lunch: [], dinner: [], snacks: [] }, water: 0 };
         appState.dailyLogs[y] = { meals: { breakfast: [{ id: 'b', name: 'y', calories: 2600, protein: 120, carbs: 0, fats: 0 }], lunch: [], dinner: [], snacks: [] }, water: 0 };
-        appState.activity = { [today]: { steps: 8000, caloriesOut: 2400 } };`);
+        appState.activity = { [today]: { steps: 8000, caloriesOut: 2400 }, [y]: { caloriesOut: 2900 } };`);
     const r = plain(a.run('weeklyReport()'));
     assert.equal(r.daysLogged, 2);
     assert.equal(r.avgCalories, 2250);
     assert.equal(r.onTarget, 1);
     assert.equal(r.avgProtein, 110);
     assert.equal(r.avgSteps, 8000);
-    assert.equal(r.avgBalance, -500);
+    assert.equal(r.avgBalance, -300); // today's still-growing burn is left out of the balance
 });
