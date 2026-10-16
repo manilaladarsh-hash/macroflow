@@ -162,3 +162,33 @@ test('on iPhone the multi-lens back camera is preferred for close-up focus', () 
     assert.equal(pick(['Front Camera', 'Back Camera', 'Back Dual Wide Camera']), 'Back Dual Wide Camera');
     assert.equal(pick(['Front Camera', 'Back Camera']), null);
 });
+
+test('Open Food Facts search is retried once; USDA search (the fallback) maps generic and branded foods', async () => {
+    const a = app();
+    a.context.setTimeout = fn => { fn(); return 0; };
+    let calls = 0;
+    a.context.fetch = async () => (++calls === 1
+        ? response(503, {})
+        : response(200, { products: [{ code: '5201054017128', product_name: 'Greek yogurt', brands: 'Fage', nutriments: { 'energy-kcal_100g': 97, proteins_100g: 9 } }] }));
+    const r = plain(await a.run("searchOpenFoodFacts('greek yogurt')"));
+    assert.equal(calls, 2);
+    assert.equal(r[0].name, 'Greek yogurt (Fage)');
+    a.context.fetch = async () => response(503, {});
+    await assert.rejects(a.run("searchOpenFoodFacts('greek yogurt')"), /not responding/);
+
+    const urls = [];
+    a.context.fetch = async url => {
+        urls.push(url);
+        return response(200, { foods: [
+            { dataType: 'Foundation', description: 'Bananas, ripe and slightly ripe, raw', foodNutrients: [{ nutrientId: 2047, value: 97 }, { nutrientId: 1003, value: 0.74 }] },
+            { ...cheerios, dataType: 'Branded' }
+        ] });
+    };
+    assert.deepEqual(plain(await a.run("queryUSDAFDC('banana')")), []); // no key: search skips USDA
+    const u = plain(await a.run("queryUSDAFDC('banana', { allowDemo: true })"));
+    assert.match(urls[0], /api_key=DEMO_KEY/);
+    assert.equal(u[0].name, 'Bananas, ripe and slightly ripe, raw');
+    assert.equal(u[0].calories, 97);             // Foundation foods report Atwater energy
+    assert.equal(u[1].name, 'Cheerios Cereal');  // branded names are no longer all caps
+    assert.equal(u[1].calories, 100);
+});

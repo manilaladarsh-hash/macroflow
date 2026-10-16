@@ -1906,7 +1906,7 @@ weight;2026-10-15T00:00:00-04:00;78.4 kg</div>
 
             const item = {
                 name: fdcFood.description,
-                calories: Math.round(findNutrient([1008]) * scale),
+                calories: Math.round(findNutrient([1008, 2047, 2048]) * scale),
                 protein: Math.round((findNutrient([1003]) * scale) * 10) / 10,
                 carbs: Math.round((findNutrient([1005]) * scale) * 10) / 10,
                 fats: Math.round((findNutrient([1004]) * scale) * 10) / 10,
@@ -1953,14 +1953,16 @@ weight;2026-10-15T00:00:00-04:00;78.4 kg</div>
             }
         }
 
-        async function queryUSDAFDC(query) {
-            const usdaKey = getUsdaKey();
+        async function queryUSDAFDC(query, { allowDemo = false } = {}) {
+            const usdaKey = getUsdaKey({ allowDemo });
             if (!usdaKey) return [];
             try {
                 const res = await fetchWithTimeout(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(usdaKey)}&query=${encodeURIComponent(query)}&pageSize=10`);
                 const data = await res.json();
                 if (!data.foods) return [];
-                return data.foods.map(normalizeUSDANutrients);
+                return data.foods.map(f => f.dataType === 'Branded'
+                    ? foodFromUsdaBranded(f, f.gtinUpc || '')
+                    : { ...normalizeUSDANutrients(f), name: titleCaseIfShouting(f.description) });
             } catch (err) {
                 console.error("USDA Search error:", err);
                 return [];
@@ -2029,7 +2031,9 @@ weight;2026-10-15T00:00:00-04:00;78.4 kg</div>
             };
         }
 
-        async function searchOpenFoodFacts(query) {
+        // Open Food Facts' search server is often overloaded (HTTP 503), so a failed
+        // search is retried once before giving up.
+        async function searchOpenFoodFacts(query, { retries = 1 } = {}) {
             try {
                 const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15&fields=code,product_name,product_name_en,generic_name,brands,nutriments,serving_quantity,serving_quantity_unit,serving_size,image_front_small_url`;
                 const res = await fetchWithTimeout(url);
@@ -2041,6 +2045,10 @@ weight;2026-10-15T00:00:00-04:00;78.4 kg</div>
                     .filter(f => f.hasName && !f.missingNutrition)
                     .map(f => ({ ...f, name: f.brand ? `${f.name} (${f.brand})` : f.name }));
             } catch (err) {
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    return searchOpenFoodFacts(query, { retries: retries - 1 });
+                }
                 console.warn("Open Food Facts search unavailable:", err);
                 throw new Error('Open Food Facts search is not responding right now.');
             }
@@ -3664,7 +3672,15 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
             if (!wantOff && !wantUsda) return;
             const promises = [];
-            if (wantOff) promises.push(searchOpenFoodFacts(info.normalized));
+            let usdaStandIn = false;
+            if (wantOff) promises.push(searchOpenFoodFacts(info.normalized).catch(async err => {
+                // Open Food Facts is down: USDA (shared demo key if none is saved) keeps search useful.
+                if (wantUsda || !document.getElementById('source-toggle-usda').checked) throw err;
+                const foods = await queryUSDAFDC(info.normalized, { allowDemo: true });
+                if (!foods.length) throw err;
+                usdaStandIn = true;
+                return foods;
+            }));
             if (wantUsda) promises.push(queryUSDAFDC(info.normalized));
             const results = await Promise.allSettled(promises);
             if (reqId !== searchRequestId) return;
@@ -3673,10 +3689,12 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             results.forEach(r => { if (r.status === 'fulfilled') online.push(...r.value); else failures.push(r.reason?.message || 'An online source failed.'); });
             lastSearchResults = dedupeFoods([...local, ...online]);
             renderSearchResults(lastSearchResults);
-            if (failures.length) {
+            const noteText = failures.length ? `${failures[0]} Packaged foods can still be added by scanning or typing their barcode.`
+                : usdaStandIn ? 'Open Food Facts is busy right now, so online results are from USDA.' : '';
+            if (noteText) {
                 const note = document.createElement('div');
                 note.className = 'note info mt-3';
-                note.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${escapeHTML(failures[0])} Packaged foods can still be added by scanning or typing their barcode.</span>`;
+                note.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${escapeHTML(noteText)}</span>`;
                 document.getElementById('search-results-container').appendChild(note);
             }
         }
@@ -6163,8 +6181,9 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             const stepsLine = document.getElementById('steps-line');
             const parts = [];
             if (activity?.steps !== undefined) parts.push(`${Number(activity.steps).toLocaleString('en-US')} steps`);
-            if (activity?.caloriesOut) parts.push(`${Number(activity.caloriesOut).toLocaleString('en-US')} kcal burned in total${appState.currentDate === localDateKey() && activity.source === 'apple-health' ? ' so far' : ''}${activity.caloriesOutEstimated ? ' (resting part estimated)' : ''}`);
-            stepsLine.innerText = parts.length ? `${parts.join(' · ')} (${activity.source === 'apple-health' ? 'Apple Health' : 'imported'})` : '';
+            if (activity?.caloriesOut) parts.push(`${Number(activity.caloriesOut).toLocaleString('en-US')} kcal burned${appState.currentDate === localDateKey() && activity.source === 'apple-health' ? ' so far' : ' in total'}${activity.caloriesOutEstimated ? ' (incl. estimated resting)' : ''}`);
+            if (parts.length) parts.push(activity.source === 'apple-health' ? 'from Apple Health' : 'imported');
+            stepsLine.innerText = parts.join(' · ');
             stepsLine.classList.toggle('hidden', !parts.length);
             renderHealthSyncStatus();
             const note = document.getElementById('exercise-goal-note');
