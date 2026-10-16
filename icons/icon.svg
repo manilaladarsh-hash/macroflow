@@ -1,6 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#141416"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#ef7a73" stroke-width="58" stroke-dasharray="255.74 942.48" stroke-dashoffset="-15.00" transform="rotate(-90 256 256)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#63a4f0" stroke-width="58" stroke-dasharray="358.04 942.48" stroke-dashoffset="-300.74" transform="rotate(-90 256 256)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#e9b44c" stroke-width="58" stroke-dasharray="238.69 942.48" stroke-dashoffset="-688.78" transform="rotate(-90 256 256)"/>
+  <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#30d158"/><stop offset="1" stop-color="#b5f23f"/></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff375f"/><stop offset="1" stop-color="#ff7a59"/></linearGradient><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5ac8fa"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="#050506"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#30d158" stroke-opacity="0.22" stroke-width="44"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="url(#g1)" stroke-width="44" stroke-linecap="round" stroke-dasharray="753.98 942.48" transform="rotate(-90 256 256)"/>
+  <circle cx="256" cy="256" r="100" fill="none" stroke="#ff375f" stroke-opacity="0.22" stroke-width="44"/>
+  <circle cx="256" cy="256" r="100" fill="none" stroke="url(#g2)" stroke-width="44" stroke-linecap="round" stroke-dasharray="414.69 628.32" transform="rotate(-90 256 256)"/>
+  <circle cx="256" cy="256" r="50" fill="none" stroke="#0a84ff" stroke-opacity="0.22" stroke-width="44"/>
+  <circle cx="256" cy="256" r="50" fill="none" stroke="url(#g3)" stroke-width="44" stroke-linecap="round" stroke-dasharray="282.74 314.16" transform="rotate(-90 256 256)"/>
 </svg>
