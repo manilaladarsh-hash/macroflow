@@ -633,6 +633,17 @@
             #micros-panel-content, .meal-content { display: block !important; }
         }
 
+        .repeat-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; border-radius: 16px; background: var(--surface-2); }
+        .repeat-row .rr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14.5px; }
+        .repeat-row .rr-main span { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .repeat-row .rr-kcal { font-size: 13px; font-weight: 650; color: var(--kcal); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .setup-card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+        .setup-card h3 { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+        .welcome-result { border-radius: 16px; background: var(--surface-2); padding: 14px 16px; }
+        .welcome-result .big { font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+        .welcome-result .macros { display: flex; gap: 14px; margin-top: 6px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .welcome-result .macros b { color: var(--text); font-weight: 650; }
+
         /* ---------- Theme: calm paper (light) / ink (dark) ---------- */
         .page-title { font-family: var(--serif); font-size: 33px; font-weight: 600; letter-spacing: -0.02em; }
         .hero-kcal, .tile .v, .chart-kpis b, .sheet-head h3, .ql-head h2, .nutri.kcal b { font-family: var(--serif); font-weight: 600; letter-spacing: -0.02em; }
@@ -717,6 +728,18 @@
     <main class="pt-5">
         <!-- ===================== TODAY ===================== -->
         <section id="tab-content-nutrition" class="tab-panel">
+
+            <section class="setup-card hidden" id="setup-card" aria-label="Set up your targets">
+                <div class="flex items-start gap-3">
+                    <span class="meal-ico mi-lunch"><i class="fa-solid fa-bullseye"></i></span>
+                    <div class="flex-1 min-w-0">
+                        <h3>Set your daily targets</h3>
+                        <p class="small muted">Answer a few questions and MacroFlow works out your calories, protein, carbs and fat.</p>
+                    </div>
+                    <button class="icon-btn" onclick="dismissSetupCard()" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <button class="btn btn-primary btn-block mt-3" onclick="openWelcome()">Set up in 30 seconds</button>
+            </section>
 
             <section class="hero" aria-label="Calories and macros">
                 <div class="hero-main">
@@ -1097,6 +1120,52 @@
 
 <!-- ==================== OVERLAYS ==================== -->
 
+<!-- FIRST-RUN SETUP -->
+<div id="modal-welcome" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="overlay-backdrop" onclick="closeWelcome()"></div>
+    <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-head">
+            <div><h3 id="welcome-title">Your daily targets</h3><p>Change any of this later in Settings.</p></div>
+            <button class="icon-btn" onclick="closeWelcome()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="sheet-body" oninput="renderWelcomePreview()" onchange="renderWelcomePreview()">
+            <div class="seg" id="welcome-unit-seg" role="group" aria-label="Units">
+                <button data-meal="metric" onclick="setWelcomeUnits('metric')">kg · cm</button>
+                <button data-meal="us" onclick="setWelcomeUnits('us')">lb · ft</button>
+            </div>
+            <div class="grid-2">
+                <div class="field"><label for="welcome-sex">Sex</label><select id="welcome-sex" class="select"><option value="female">Female</option><option value="male">Male</option></select></div>
+                <div class="field"><label for="welcome-age">Age</label><input type="number" id="welcome-age" min="13" max="100" inputmode="numeric" class="input" placeholder="30"></div>
+            </div>
+            <div class="grid-2" id="welcome-metric-height">
+                <div class="field"><label for="welcome-height-cm">Height</label><div class="input-unit"><input type="number" id="welcome-height-cm" min="120" max="230" inputmode="numeric" class="input" placeholder="175"><span>cm</span></div></div>
+                <div class="field"><label for="welcome-weight-kg">Weight</label><div class="input-unit"><input type="number" id="welcome-weight-kg" min="27" max="320" step="0.1" inputmode="decimal" class="input" placeholder="75"><span>kg</span></div></div>
+            </div>
+            <div class="grid-3 hidden" id="welcome-us-height">
+                <div class="field"><label for="welcome-height-ft">Height</label><div class="input-unit"><input type="number" id="welcome-height-ft" min="3" max="8" inputmode="numeric" class="input" placeholder="5"><span>ft</span></div></div>
+                <div class="field"><label for="welcome-height-in">&nbsp;</label><div class="input-unit"><input type="number" id="welcome-height-in" min="0" max="11" inputmode="numeric" class="input" placeholder="9"><span>in</span></div></div>
+                <div class="field"><label for="welcome-weight-lb">Weight</label><div class="input-unit"><input type="number" id="welcome-weight-lb" min="60" max="700" step="0.1" inputmode="decimal" class="input" placeholder="165"><span>lb</span></div></div>
+            </div>
+            <div class="field"><label for="welcome-activity">How active are you?</label><select id="welcome-activity" class="select"><option value="sedentary">Sedentary (desk job, little exercise)</option>
+<option value="light">Light (exercise 1–3 days/week)</option>
+<option value="moderate">Moderate (exercise 3–5 days/week)</option>
+<option value="very">Very active (hard exercise 6–7 days/week)</option>
+<option value="extreme">Extreme (physical job + training)</option></select></div>
+            <div class="field"><label for="welcome-goal">Goal</label><select id="welcome-goal" class="select"><option value="aggressive">Lose fat — faster (−25%)</option>
+<option value="moderate_loss">Lose fat — steady (−20%)</option>
+<option value="recomp">Body recomposition (−15%)</option>
+<option value="maintenance">Maintain weight</option>
+<option value="lean_bulk">Build muscle — lean bulk (+10%)</option></select></div>
+            <div class="welcome-result" id="welcome-result" aria-live="polite"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-ghost" onclick="skipWelcome()">Not now</button>
+            <button class="btn btn-primary" id="welcome-apply" onclick="applyWelcome()">Use these targets</button>
+        </div>
+    </div>
+</div>
+
 <!-- LOG SHEET (+ button) -->
 <div id="modal-log" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="log-title">
     <div class="overlay-backdrop" onclick="closeLogSheet()"></div>
@@ -1384,7 +1453,7 @@
                     <div class="field"><label for="settings-target-fats">Fat</label><div class="input-unit"><input type="number" id="settings-target-fats" min="5" max="300" inputmode="numeric" class="input"><span>g</span></div></div>
                     <div class="field"><label for="settings-target-water">Water</label><div class="input-unit"><input type="number" id="settings-target-water" step="0.1" min="0.5" max="10" inputmode="decimal" class="input"><span>L</span></div></div>
                     <div class="field"><label for="settings-weight-unit">Weight unit</label>
-                        <select id="settings-weight-unit" class="select"><option value="lbs">Pounds (lbs)</option><option value="kg">Kilograms (kg)</option></select>
+                        <select id="settings-weight-unit" class="select" onchange="onSettingsWeightUnitChange()"><option value="lbs">Pounds (lbs)</option><option value="kg">Kilograms (kg)</option></select>
                     </div>
                 </div>
             </section>
@@ -1405,7 +1474,7 @@
                 <div class="grid-3">
                     <div class="field"><label for="settings-profile-height-ft">Height ft</label><input type="number" id="settings-profile-height-ft" min="3" max="8" inputmode="numeric" class="input"></div>
                     <div class="field"><label for="settings-profile-height-in">in</label><input type="number" id="settings-profile-height-in" min="0" max="11" inputmode="numeric" class="input"></div>
-                    <div class="field"><label for="settings-profile-weight">Weight lbs</label><input type="number" id="settings-profile-weight" min="60" max="600" step="0.1" inputmode="decimal" class="input"></div>
+                    <div class="field"><label for="settings-profile-weight" id="settings-profile-weight-label">Weight lbs</label><input type="number" id="settings-profile-weight" min="60" max="600" step="0.1" inputmode="decimal" class="input"></div>
                 </div>
                 <div class="field"><label for="settings-profile-activity">Activity</label>
                     <select id="settings-profile-activity" class="select">
@@ -1783,51 +1852,6 @@ weight;2026-10-15T00:00:00-04:00;78.4 kg</div>
             expandedMeals: { breakfast: true, lunch: true, dinner: true, snacks: true },
             progressRange: 30,
             progressSubTab: 'weight'
-        };
-
-        // AUDIO GENERATION SYNTH
-        const audioEngine = {
-            ctx: null,
-            init() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-            },
-            playNotification(type) {
-                try {
-                    this.init();
-                    if (!this.ctx) return;
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    
-                    const now = this.ctx.currentTime;
-                    if (type === 'tap') {
-                        osc.frequency.setValueAtTime(450, now);
-                        gain.gain.setValueAtTime(0.08, now);
-                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                        osc.start(now);
-                        osc.stop(now + 0.08);
-                    } else if (type === 'success') {
-                        osc.frequency.setValueAtTime(523.25, now); // C5
-                        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-                        gain.gain.setValueAtTime(0.12, now);
-                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-                        osc.start(now);
-                        osc.stop(now + 0.25);
-                    } else if (type === 'delete') {
-                        osc.frequency.setValueAtTime(329.63, now); // E4
-                        osc.frequency.setValueAtTime(220, now + 0.08); // A3
-                        gain.gain.setValueAtTime(0.1, now);
-                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-                        osc.start(now);
-                        osc.stop(now + 0.2);
-                    }
-                } catch(e) {
-                    console.warn("Audio Context init blocked:", e);
-                }
-            }
         };
 
         // DYNAMIC NUTRITIONAL CONSTANTS
@@ -2620,7 +2644,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         // DATE NAVIGATION LOGIC
         function navigateDate(offset) {
-            audioEngine.playNotification('tap');
             const d = new Date(appState.currentDate + 'T12:00:00');
             d.setDate(d.getDate() + offset);
             appState.currentDate = localDateKey(d);
@@ -2639,7 +2662,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         function selectDate(dateKey) {
             if (dateKey === appState.currentDate) return;
-            audioEngine.playNotification('tap');
             appState.currentDate = dateKey;
             renderAll();
             renderFastingUI();
@@ -2720,8 +2742,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         // TAB MECHANISMS
         const TAB_TITLES = { nutrition: 'Today', dashboard: 'Insights', progress: 'Progress' };
 
-        function switchTab(tabId, { silent = false } = {}) {
-            if (!silent) audioEngine.playNotification('tap');
+        function switchTab(tabId) {
             if (!TAB_TITLES[tabId]) tabId = 'nutrition';
             appState.activeTab = tabId;
 
@@ -2758,7 +2779,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function setInsightsRange(days) {
-            audioEngine.playNotification('tap');
             appState.insightsRange = [7, 14, 30].includes(days) ? days : 7;
             renderInsightsCharts();
             saveStateToLocalStorage();
@@ -2848,7 +2868,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         function toggleMealSection() {}
 
         function setCalorieDisplayMode(mode) {
-            audioEngine.playNotification('tap');
             appState.calorieDisplayMode = mode === 'remaining' ? 'remaining' : 'consumed';
             renderAll();
             saveStateToLocalStorage();
@@ -2963,6 +2982,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
             document.getElementById('meals-summary').innerText = itemCount ? `${itemCount} item${itemCount === 1 ? '' : 's'}` : '';
             renderQuickLog();
+            renderSetupCard();
 
             updateMicronutrientsVisuals(microLogged);
             calculateStreak();
@@ -3095,6 +3115,19 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             });
         }
 
+        // The most recent earlier day (up to 30 back) on which this meal had food.
+        function lastMealBefore(meal, dateKey = appState.currentDate, maxBack = 30) {
+            const base = new Date(dateKey + 'T12:00:00');
+            for (let i = 1; i <= maxBack; i++) {
+                const d = new Date(base);
+                d.setDate(base.getDate() - i);
+                const key = localDateKey(d);
+                const foods = getDayLog(key).meals?.[meal] || [];
+                if (foods.length) return { key, foods, label: i === 1 ? 'yesterday' : d.toLocaleDateString('en-US', { weekday: 'long' }) + (i > 6 ? `, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '') };
+            }
+            return null;
+        }
+
         // Re-log every item a meal had on another day.
         function repeatMealFrom(fromKey, meal) {
             const foods = getDayLog(fromKey).meals?.[meal] || [];
@@ -3118,7 +3151,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         let logSheetMeal = 'breakfast';
 
         function openLogSheet() {
-            audioEngine.playNotification('tap');
             setLogSheetMeal(guessMealForNow());
             const d = appState.currentDate;
             document.getElementById('log-sheet-date').innerText = d === localDateKey() ? 'Today' : formatDateShort(d);
@@ -3133,6 +3165,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         function setLogSheetMeal(meal) {
             logSheetMeal = MEAL_KEYS.includes(meal) ? meal : 'snacks';
             setSegActive('log-meal-seg', logSheetMeal);
+            renderLogSheetRecent();
         }
 
         function logSheetAction(action) {
@@ -3157,8 +3190,28 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         function renderLogSheetRecent() {
             const box = document.getElementById('log-sheet-recent');
+            if (!box) return;
             const foods = getRecentFoods(3);
-            box.innerHTML = foods.length ? '<p class="list-label mb-1">Log again</p>' : '';
+            const last = lastMealBefore(logSheetMeal);
+            box.innerHTML = '';
+            if (last) {
+                const kcal = last.foods.reduce((sum, f) => sum + (f.calories || 0), 0);
+                const row = document.createElement('button');
+                row.type = 'button';
+                row.className = 'repeat-row';
+                row.innerHTML = `<span class="food-ico fi-meal" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <span class="rr-main"><b>Repeat ${escapeHTML(MEAL_LABELS[logSheetMeal].toLowerCase())} from ${escapeHTML(last.label)}</b>
+                    <span>${escapeHTML(last.foods.map(f => f.name).join(', '))}</span></span>
+                    <span class="rr-kcal">+${kcal.toLocaleString('en-US')} kcal</span>`;
+                row.onclick = () => { closeLogSheet(); repeatMealFrom(last.key, logSheetMeal); };
+                box.appendChild(row);
+            }
+            if (foods.length) {
+                const heading = document.createElement('p');
+                heading.className = 'list-label mb-1 mt-4';
+                heading.innerText = 'Log again';
+                box.appendChild(heading);
+            }
             foods.forEach(food => {
                 const row = document.createElement('div');
                 row.className = 'entry';
@@ -3172,7 +3225,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         // FOOD LOG MUTATIONS
         function logFood(food, meal, { silent = false } = {}) {
-            audioEngine.playNotification('success');
             if (!MEAL_KEYS.includes(meal)) meal = guessMealForNow();
             const dateKey = appState.currentDate;
             const log = ensureDayLog(dateKey);
@@ -3201,7 +3253,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         let lastRemovedEntry = null;
 
         function removeFood(id, meal, dateKey = appState.currentDate) {
-            audioEngine.playNotification('delete');
             const entries = appState.dailyLogs[dateKey]?.meals?.[meal];
             if (entries) {
                 const index = entries.findIndex(x => x.id === id);
@@ -3262,16 +3313,15 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             if (count >= 2) return;
             // Only suggest for an empty meal, so logged days stay uncluttered.
             if (count) return;
-            const prevKey = localDateKey(localDayOffset(-1, new Date(appState.currentDate + 'T12:00:00')));
-            const prevFoods = getDayLog(prevKey).meals?.[meal] || [];
-            if (prevFoods.length) {
-                const kcal = prevFoods.reduce((sum, f) => sum + (f.calories || 0), 0);
+            const last = lastMealBefore(meal);
+            if (last) {
+                const kcal = last.foods.reduce((sum, f) => sum + (f.calories || 0), 0);
                 const repeat = document.createElement('button');
                 repeat.type = 'button';
                 repeat.className = 'suggest';
-                repeat.onclick = () => repeatMealFrom(prevKey, meal);
+                repeat.onclick = () => repeatMealFrom(last.key, meal);
                 repeat.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i>
-                    <span class="min-w-0 truncate">Same as yesterday: <b>${escapeHTML(prevFoods.map(f => f.name).join(', '))}</b></span>
+                    <span class="min-w-0 truncate">${last.label === 'yesterday' ? 'Same as yesterday' : `Same as ${escapeHTML(last.label)}`}: <b>${escapeHTML(last.foods.map(f => f.name).join(', '))}</b></span>
                     <span class="plus">+ ${kcal.toLocaleString('en-US')} kcal</span>`;
                 container.appendChild(repeat);
                 return;
@@ -3317,7 +3367,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function toggleMicrosPanel() {
-            audioEngine.playNotification('tap');
             const panel = document.getElementById('micros-panel-content');
             const toggle = document.getElementById('micros-toggle');
             const opening = panel.classList.contains('hidden');
@@ -3656,7 +3705,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function setProgressRange(val) {
-            audioEngine.playNotification('tap');
             appState.progressRange = val;
             [14, 30, 90].forEach(r => document.getElementById(`range-btn-${r}`).classList.toggle('is-active', r === val));
             setProgressSubTab(appState.progressSubTab || 'weight');
@@ -3675,7 +3723,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
                 showToast("Enter a valid weight.", true);
                 return;
             }
-            audioEngine.playNotification('success');
             const date = localDateKey();
             appState.weightHistory = (appState.weightHistory || []).filter(x => x.date !== date);
             appState.weightHistory.push({ date, value: val, unit: appState.bodyProfile.unit || 'lbs' });
@@ -3822,7 +3869,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         function saveStrengthCheckIn() {
             const notesInput = document.getElementById('strength-check-notes');
             const notes = notesInput.value.trim();
-            audioEngine.playNotification('success');
             const date = localDateKey();
             if (!appState.strengthHistory) appState.strengthHistory = [];
             appState.strengthHistory = appState.strengthHistory.filter(x => x.date !== date);
@@ -3867,7 +3913,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function removeStrengthCheck(date) {
-            audioEngine.playNotification('delete');
             appState.strengthHistory = (appState.strengthHistory || []).filter(x => x.date !== date);
             showToast("Check-in removed.");
             renderStrengthSubTab();
@@ -4075,7 +4120,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function toggleFastingState() {
-            audioEngine.playNotification('tap');
             if (!appState.fasting.isFasting) {
                 appState.fasting.isFasting = true;
                 appState.fasting.startDate = new Date().toISOString();
@@ -4291,7 +4335,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         let selectedSearchFoods = [];
 
         function openFoodSearchModal(meal) {
-            audioEngine.playNotification('tap');
             currentSearchMealSlot = MEAL_KEYS.includes(meal) ? meal : guessMealForNow();
             showOverlay('modal-food-search');
             document.getElementById('food-search-input').value = '';
@@ -4912,7 +4955,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             if (barcode) appState.customPacks = appState.customPacks.filter(f => f.barcode !== barcode);
             appState.customPacks.push(foodItem);
             saveStateToLocalStorage();
-            audioEngine.playNotification('success');
             const meal = customFoodContext?.meal || currentSearchMealSlot;
             const onSaved = customFoodContext?.onSaved;
             closeCustomFoodModal();
@@ -4994,7 +5036,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function openNutritionLabel(food, diaryContext = null) {
-            audioEngine.playNotification('tap');
             showOverlay('modal-nutrition-facts');
 
             activeDiaryPortion = diaryContext ? { ...diaryContext, food: JSON.parse(JSON.stringify(food)) } : null;
@@ -5486,7 +5527,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function openScannerModal(meal) {
-            audioEngine.playNotification('tap');
             if (MEAL_KEYS.includes(meal)) currentSearchMealSlot = meal;
             showOverlay('modal-scanner');
             document.getElementById('manual-barcode-form').classList.add('hidden');
@@ -5744,7 +5784,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         async function onBarcodeScanSuccess(decodedText) {
             const code = cleanBarcode(decodedText);
-            audioEngine.playNotification('success');
             if (navigator.vibrate) navigator.vibrate(60);
             if (scanner.batch && scanner.stream) pauseScanning();
             else stopScannerCamera();
@@ -6177,7 +6216,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
                     offerAiDigits('photo');
                     return;
                 }
-                audioEngine.playNotification('success');
                 await handleScannedCode(code);
             } catch (err) {
                 setScannerStatus('Could not read that photo', 'error', err.message || '');
@@ -7210,7 +7248,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         function openSettingsModal() {
-            audioEngine.playNotification('tap');
             showOverlay('modal-settings');
             const t = appState.targets;
             const p = appState.bodyProfile;
@@ -7224,7 +7261,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             document.getElementById('settings-profile-age').value = p.age || 25;
             document.getElementById('settings-profile-height-ft').value = p.heightFt || 5;
             document.getElementById('settings-profile-height-in').value = p.heightIn ?? 10;
-            document.getElementById('settings-profile-weight').value = p.weight || 165;
+            showProfileWeight(p.weight || 165, p.unit === 'kg' ? 'kg' : 'lbs');
             document.getElementById('settings-profile-activity').value = p.activityLevel || 'moderate';
             document.getElementById('settings-profile-goal').value = p.goal || 'recomp';
             document.getElementById('settings-gemini-key').value = '';
@@ -7256,7 +7293,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             p.age = readNumber('settings-profile-age', p.age || 25, { min: 13, max: 100, integer: true });
             p.heightFt = readNumber('settings-profile-height-ft', p.heightFt || 5, { min: 3, max: 8, integer: true });
             p.heightIn = readNumber('settings-profile-height-in', p.heightIn ?? 10, { min: 0, max: 11, integer: true });
-            p.weight = readNumber('settings-profile-weight', p.weight || 165, { min: 60, max: 700 });
+            p.weight = readProfileWeightLbs(p.weight || 165);
             p.activityLevel = document.getElementById('settings-profile-activity').value;
             p.goal = document.getElementById('settings-profile-goal').value;
             appState.settings = { ...(appState.settings || {}), exerciseAddsToGoal: document.getElementById('settings-exercise-goal').checked };
@@ -7286,38 +7323,178 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         }
 
         // TDEE AUTO-CALCULATOR
-        function calculateTDEETargets() {
-            audioEngine.playNotification('success');
-            const sex = document.getElementById('settings-profile-sex').value;
-            const age = readNumber('settings-profile-age', 25, { min: 13, max: 100, integer: true });
-            const heightFt = readNumber('settings-profile-height-ft', 5, { min: 3, max: 8, integer: true });
-            const heightIn = readNumber('settings-profile-height-in', 10, { min: 0, max: 11, integer: true });
-            const weightLbs = readNumber('settings-profile-weight', 165, { min: 60, max: 700 });
-            const activity = document.getElementById('settings-profile-activity').value;
-            const goal = document.getElementById('settings-profile-goal').value;
-
-            const heightCm = (heightFt * 12 + heightIn) * 2.54;
-            const weightKg = weightLbs / 2.205;
+        // Mifflin–St Jeor maintenance × activity × goal, then protein 1 g/lb and fat 0.35 g/lb,
+        // with carbs filling the rest. The profile stores weight in pounds.
+        const LB_PER_KG = 2.20462;
+        function computeTargets({ sex, age, heightCm, weightLbs, activity, goal }) {
+            const weightKg = weightLbs / LB_PER_KG;
             const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + (sex === 'male' ? 5 : -161);
             const activityFactors = { sedentary: 1.2, light: 1.375, moderate: 1.55, very: 1.725, extreme: 1.9 };
             const tdee = bmr * (activityFactors[activity] || 1.55);
             const goalModifiers = { aggressive: 0.75, moderate_loss: 0.80, recomp: 0.85, lean_bulk: 1.10, maintenance: 1.0 };
-            const targetCal = Math.round(tdee * (goalModifiers[goal] || 0.85));
+            const calories = Math.round(tdee * (goalModifiers[goal] || 0.85));
+            const protein = Math.round(weightLbs * 1.0);
+            const fats = Math.round(weightLbs * 0.35);
+            const carbs = Math.max(0, Math.round((calories - protein * 4 - fats * 9) / 4));
+            return { bmr: Math.round(bmr), tdee: Math.round(tdee), calories, protein, carbs, fats };
+        }
 
-            const proteinG = Math.round(weightLbs * 1.0);
-            const fatG = Math.round(weightLbs * 0.35);
-            const carbsG = Math.max(0, Math.round((targetCal - proteinG * 4 - fatG * 9) / 4));
+        // The Settings weight field shows the unit picked under "Weight unit".
+        function settingsWeightUnit() {
+            return document.getElementById('settings-weight-unit').value === 'kg' ? 'kg' : 'lbs';
+        }
 
-            Object.assign(appState.targets, { calories: targetCal, protein: proteinG, carbs: carbsG, fats: fatG });
+        function showProfileWeight(weightLbs, unit = settingsWeightUnit()) {
+            const input = document.getElementById('settings-profile-weight');
+            document.getElementById('settings-profile-weight-label').innerText = `Weight ${unit}`;
+            input.value = unit === 'kg' ? Math.round((weightLbs / LB_PER_KG) * 10) / 10 : Math.round(weightLbs * 10) / 10;
+            input.min = unit === 'kg' ? 27 : 60;
+            input.max = unit === 'kg' ? 320 : 700;
+        }
+
+        function readProfileWeightLbs(fallbackLbs) {
+            const kg = settingsWeightUnit() === 'kg';
+            const value = readNumber('settings-profile-weight', NaN, kg ? { min: 27, max: 320 } : { min: 60, max: 700 });
+            if (!Number.isFinite(value)) return fallbackLbs;
+            return kg ? Math.round(value * LB_PER_KG * 10) / 10 : value;
+        }
+
+        // Switching the unit converts the number already in the field.
+        function onSettingsWeightUnitChange() {
+            const input = document.getElementById('settings-profile-weight');
+            const wasKg = /kg/.test(document.getElementById('settings-profile-weight-label').innerText);
+            const value = parseFloat(input.value);
+            const lbs = Number.isFinite(value) ? (wasKg ? value * LB_PER_KG : value) : (appState.bodyProfile.weight || 165);
+            showProfileWeight(lbs);
+        }
+
+        // FIRST-RUN SETUP: a card on Today opens a short sheet that sets the targets.
+        let welcomeUnits = 'metric';
+
+        function renderSetupCard() {
+            const card = document.getElementById('setup-card');
+            if (card) card.classList.toggle('hidden', Boolean(appState.onboarded));
+        }
+
+        function dismissSetupCard() {
+            appState.onboarded = true;
+            saveStateToLocalStorage();
+            renderSetupCard();
+        }
+
+        function setWelcomeUnits(units) {
+            welcomeUnits = units === 'us' ? 'us' : 'metric';
+            setSegActive('welcome-unit-seg', welcomeUnits);
+            document.getElementById('welcome-metric-height').classList.toggle('hidden', welcomeUnits !== 'metric');
+            document.getElementById('welcome-us-height').classList.toggle('hidden', welcomeUnits !== 'us');
+            renderWelcomePreview();
+        }
+
+        function openWelcome() {
+            const p = appState.bodyProfile || {};
+            const known = appState.onboarded;
+            const totalIn = (p.heightFt || 5) * 12 + (p.heightIn ?? 10);
+            document.getElementById('welcome-sex').value = p.sex || 'female';
+            document.getElementById('welcome-age').value = known ? p.age || '' : '';
+            document.getElementById('welcome-height-cm').value = known ? Math.round(totalIn * 2.54) : '';
+            document.getElementById('welcome-weight-kg').value = known && p.weight ? Math.round((p.weight / LB_PER_KG) * 10) / 10 : '';
+            document.getElementById('welcome-height-ft').value = known ? p.heightFt || '' : '';
+            document.getElementById('welcome-height-in').value = known ? p.heightIn ?? '' : '';
+            document.getElementById('welcome-weight-lb').value = known ? p.weight || '' : '';
+            document.getElementById('welcome-activity').value = p.activityLevel || 'moderate';
+            document.getElementById('welcome-goal').value = p.goal || 'recomp';
+            setWelcomeUnits(p.unit === 'lbs' && known ? 'us' : 'metric');
+            showOverlay('modal-welcome');
+        }
+
+        function closeWelcome() {
+            hideOverlay('modal-welcome');
+        }
+
+        // The answers as a profile (weight in lb, height in ft/in), or null while incomplete.
+        function readWelcome() {
+            const num = id => { const v = parseFloat(document.getElementById(id).value); return Number.isFinite(v) ? v : null; };
+            const age = num('welcome-age');
+            let heightCm, weightLbs;
+            if (welcomeUnits === 'metric') {
+                heightCm = num('welcome-height-cm');
+                const kg = num('welcome-weight-kg');
+                weightLbs = kg ? kg * LB_PER_KG : null;
+            } else {
+                const ft = num('welcome-height-ft');
+                heightCm = ft ? (ft * 12 + (num('welcome-height-in') || 0)) * 2.54 : null;
+                weightLbs = num('welcome-weight-lb');
+            }
+            if (!(age >= 13 && age <= 100) || !(heightCm >= 120 && heightCm <= 230) || !(weightLbs >= 60 && weightLbs <= 700)) return null;
+            const totalIn = Math.round(heightCm / 2.54);
+            return {
+                sex: document.getElementById('welcome-sex').value,
+                age: Math.round(age), heightCm,
+                heightFt: Math.floor(totalIn / 12), heightIn: totalIn % 12,
+                weightLbs: Math.round(weightLbs * 10) / 10,
+                activity: document.getElementById('welcome-activity').value,
+                goal: document.getElementById('welcome-goal').value,
+                unit: welcomeUnits === 'metric' ? 'kg' : 'lbs'
+            };
+        }
+
+        function renderWelcomePreview() {
+            const box = document.getElementById('welcome-result');
+            const answers = readWelcome();
+            document.getElementById('welcome-apply').disabled = !answers;
+            if (!answers) {
+                box.innerHTML = '<p class="small muted">Enter your age, height and weight to see your targets.</p>';
+                return null;
+            }
+            const r = computeTargets(answers);
+            box.innerHTML = `<p class="small muted">Daily target · maintenance ≈ ${r.tdee.toLocaleString('en-US')} kcal</p>
+                <p class="big">${r.calories.toLocaleString('en-US')} kcal</p>
+                <p class="macros"><span>Protein <b>${r.protein} g</b></span><span>Carbs <b>${r.carbs} g</b></span><span>Fat <b>${r.fats} g</b></span></p>`;
+            return r;
+        }
+
+        function applyWelcome() {
+            const answers = readWelcome();
+            if (!answers) return;
+            const r = computeTargets(answers);
+            Object.assign(appState.targets, { calories: r.calories, protein: r.protein, carbs: r.carbs, fats: r.fats });
+            Object.assign(appState.bodyProfile, {
+                sex: answers.sex, age: answers.age, heightFt: answers.heightFt, heightIn: answers.heightIn,
+                weight: answers.weightLbs, activityLevel: answers.activity, goal: answers.goal, unit: answers.unit
+            });
+            appState.onboarded = true;
+            saveStateToLocalStorage();
+            closeWelcome();
+            renderAll();
+            showToast(`Targets set: ${r.calories.toLocaleString('en-US')} kcal · P ${r.protein} g · C ${r.carbs} g · F ${r.fats} g`);
+        }
+
+        function skipWelcome() {
+            closeWelcome();
+            dismissSetupCard();
+        }
+
+        function calculateTDEETargets() {
+            const sex = document.getElementById('settings-profile-sex').value;
+            const age = readNumber('settings-profile-age', 25, { min: 13, max: 100, integer: true });
+            const heightFt = readNumber('settings-profile-height-ft', 5, { min: 3, max: 8, integer: true });
+            const heightIn = readNumber('settings-profile-height-in', 10, { min: 0, max: 11, integer: true });
+            const weightLbs = readProfileWeightLbs(appState.bodyProfile.weight || 165);
+            const activity = document.getElementById('settings-profile-activity').value;
+            const goal = document.getElementById('settings-profile-goal').value;
+            const r = computeTargets({ sex, age, heightCm: (heightFt * 12 + heightIn) * 2.54, weightLbs, activity, goal });
+
+            Object.assign(appState.targets, { calories: r.calories, protein: r.protein, carbs: r.carbs, fats: r.fats });
             Object.assign(appState.bodyProfile, { sex, age, heightFt, heightIn, weight: weightLbs, activityLevel: activity, goal });
+            appState.onboarded = true;
 
-            document.getElementById('settings-target-cal').value = targetCal;
-            document.getElementById('settings-target-protein').value = proteinG;
-            document.getElementById('settings-target-carbs').value = carbsG;
-            document.getElementById('settings-target-fats').value = fatG;
+            document.getElementById('settings-target-cal').value = r.calories;
+            document.getElementById('settings-target-protein').value = r.protein;
+            document.getElementById('settings-target-carbs').value = r.carbs;
+            document.getElementById('settings-target-fats').value = r.fats;
 
-            const delta = targetCal - Math.round(tdee);
-            showToast(`Maintenance ≈ ${Math.round(tdee)} kcal (BMR ${Math.round(bmr)}).\nNew target: ${targetCal} kcal${delta ? ` (${delta > 0 ? '+' : ''}${delta})` : ''} · P ${proteinG}g · C ${carbsG}g · F ${fatG}g`, false, null, 7000);
+            const delta = r.calories - r.tdee;
+            showToast(`Maintenance ≈ ${r.tdee} kcal (BMR ${r.bmr}).\nNew target: ${r.calories} kcal${delta ? ` (${delta > 0 ? '+' : ''}${delta})` : ''} · P ${r.protein}g · C ${r.carbs}g · F ${r.fats}g`, false, null, 7000);
             renderAll();
             saveStateToLocalStorage();
         }
@@ -7439,7 +7616,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         // PRINT
         function printReport() {
             hideOverlay('modal-settings');
-            switchTab('nutrition', { silent: true });
+            switchTab('nutrition');
             setTimeout(() => window.print(), 150);
         }
 
@@ -7470,7 +7647,6 @@ Copy the numbers exactly as printed — never estimate or use typical values.
                 showToast("The previous day's log was empty.", true);
                 return;
             }
-            audioEngine.playNotification('success');
             showToast(`Copied ${copiedCount} item${copiedCount === 1 ? '' : 's'} from the previous day.`);
             renderAll();
             saveStateToLocalStorage();
@@ -7511,7 +7687,8 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             'modal-save-meal': () => closeSaveMealModal(),
             'modal-health-import': () => closeHealthImport(),
             'modal-health-sync': () => closeHealthSync(),
-            'modal-log': () => closeLogSheet()
+            'modal-log': () => closeLogSheet(),
+            'modal-welcome': () => closeWelcome()
         };
 
         document.addEventListener('keydown', event => {
@@ -7545,6 +7722,9 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             if (!appState.settings) appState.settings = { exerciseAddsToGoal: false };
             if (!appState.activity) appState.activity = {};
             if (!Array.isArray(appState.savedMeals)) appState.savedMeals = [];
+            if (appState.onboarded === undefined) {
+                appState.onboarded = Object.values(appState.dailyLogs || {}).some(log => Object.values(log.meals || {}).some(m => m && m.length));
+            }
             [14, 30, 90].forEach(r => document.getElementById(`range-btn-${r}`).classList.toggle('is-active', r === (appState.progressRange || 30)));
             document.getElementById('enable-multi-add').checked = Boolean(appState.multiAddEnabled);
             setStrengthCheckRating(0);
@@ -7580,7 +7760,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             renderDateNavigator();
             renderAll();
             renderFastingUI();
-            switchTab(appState.activeTab || 'nutrition', { silent: true });
+            switchTab(appState.activeTab || 'nutrition');
 
             initSwipeNavigation();
             registerServiceWorker();

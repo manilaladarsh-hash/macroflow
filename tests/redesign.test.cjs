@@ -111,3 +111,34 @@ test('insights render KPIs and charts from the logged days', () => {
     assert.equal(a.document.getElementById('ins-steps-card').classes.has('hidden'), false);
     assert.match(html('ins-split-donut'), /<svg/);
 });
+
+test('repeating a meal finds the last day it was eaten, not just yesterday', () => {
+    const a = app();
+    a.run(`const day = n => localDateKey(localDayOffset(-n, new Date(appState.currentDate + 'T12:00:00')));
+        appState.dailyLogs[day(3)] = { meals: { breakfast: [{ ...${json(oats)}, id: 'o1' }], lunch: [], dinner: [], snacks: [] }, water: 0 };
+        appState.dailyLogs[day(1)] = { meals: { breakfast: [], lunch: [{ ...${json(eggs)}, id: 'e1' }], dinner: [], snacks: [] }, water: 0 };
+        renderAll();`);
+    const b = plain(a.run(`lastMealBefore('breakfast')`));
+    assert.deepEqual(b.foods.map(f => f.name), ['Rolled Oats (Dry)']);
+    assert.notEqual(b.label, 'yesterday');
+    assert.equal(plain(a.run(`lastMealBefore('lunch')`)).label, 'yesterday');
+    assert.equal(a.run(`lastMealBefore('dinner')`), null);
+    // The empty breakfast card offers it, naming the day.
+    assert.match(a.document.getElementById('suggestion-slot-breakfast').children[0].innerHTML, /Same as [A-Z][a-z]+day[^<]*: <b>Rolled Oats/);
+});
+
+test('the + sheet offers to repeat the chosen meal even when it already has food', () => {
+    const a = app();
+    a.run(`const y = localDateKey(localDayOffset(-1, new Date(appState.currentDate + 'T12:00:00')));
+        appState.dailyLogs[y] = { meals: { breakfast: [{ ...${json(oats)}, id: 'o1' }, { ...${json(eggs)}, id: 'e1' }], lunch: [], dinner: [], snacks: [] }, water: 0 };
+        logFood(${json(eggs)}, 'breakfast', { silent: true });
+        openLogSheet(); setLogSheetMeal('breakfast');`);
+    // (The harness's fake elements keep old children, so find the row by its text.)
+    const row = a.document.getElementById('log-sheet-recent').children.filter(c => /Repeat breakfast/.test(c.innerHTML)).at(-1);
+    assert.match(row.innerHTML, /Repeat breakfast from yesterday/);
+    assert.match(row.innerHTML, /\+522 kcal/);
+    row.onclick();
+    assert.equal(a.run('appState.dailyLogs[appState.currentDate].meals.breakfast.length'), 3); // 1 existing + 2 repeated
+    a.run("setLogSheetMeal('dinner')"); // nothing to repeat for dinner
+    assert.equal(a.document.getElementById('log-sheet-recent').children.filter(c => /Repeat dinner/.test(c.innerHTML)).length, 0);
+});
