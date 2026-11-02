@@ -52,7 +52,7 @@ function app(now = '2026-10-05T02:30:00Z') {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     const core = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].at(-1)[1];
     vm.runInContext(core, context);
-    vm.runInContext('audioEngine.playNotification = () => {}; triggerConfetti = () => {};', context);
+    vm.runInContext('triggerConfetti = () => {};', context);
     return { run: code => vm.runInContext(code, context), document, storage, context };
 }
 

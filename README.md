@@ -8,8 +8,8 @@ On a phone, use your browser's **Add to Home Screen** option to open MacroFlow l
 
 ## How to use
 
-0. **Light or dark:** MacroFlow follows your phone's appearance setting: warm paper with soft cards by day, ink by night. Charts, rings and icons switch with it, even while the app is open.
-1. **Set your targets:** open **Settings** to set daily calories and macros, or use **Calculate my targets** to estimate them from your body profile.
+0. **Light or dark, and silent:** MacroFlow makes no sounds, and follows your phone's appearance setting: warm paper with soft cards by day, ink by night. Charts, rings and icons switch with it, even while the app is open.
+1. **Set your targets:** on first use, **Set up in 30 seconds** on Today asks your sex, age, height, weight (kg·cm or lb·ft), activity and goal, and shows your daily calories, protein, carbs and fat before you apply them. You can change them any time in **Settings**, where **Calculate my targets** does the same; the profile weight there is in the unit you chose under Weight unit.
 2. **Read your rings:** Today opens with four activity-style rings — calories (green, outside), protein (pink), carbs (blue) and fat (yellow, inside). A full ring means you hit that target; going past it draws a second lap. Beside the rings are the numbers, and underneath is the day's equation: goal − food (+ exercise, if you turned that on) = calories left. Tap **Eaten** to switch the big number to calories remaining.
 3. **Log fast:**
    - The colourful **Search**, **Scan**, **Photo AI** and **Quick add** buttons sit right under the rings, and the green **+** in the bottom bar opens the same options (plus describe-a-meal, exercise, water and weight) from any tab, with a meal picker and your last few foods.
