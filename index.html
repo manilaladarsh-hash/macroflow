@@ -633,6 +633,10 @@
             #micros-panel-content, .meal-content { display: block !important; }
         }
 
+        .repeat-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; border-radius: 16px; background: var(--surface-2); }
+        .repeat-row .rr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14.5px; }
+        .repeat-row .rr-main span { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .repeat-row .rr-kcal { font-size: 13px; font-weight: 650; color: var(--kcal); font-variant-numeric: tabular-nums; white-space: nowrap; }
         .setup-card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
         .setup-card h3 { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
         .welcome-result { border-radius: 16px; background: var(--surface-2); padding: 14px 16px; }
@@ -3111,6 +3115,19 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             });
         }
 
+        // The most recent earlier day (up to 30 back) on which this meal had food.
+        function lastMealBefore(meal, dateKey = appState.currentDate, maxBack = 30) {
+            const base = new Date(dateKey + 'T12:00:00');
+            for (let i = 1; i <= maxBack; i++) {
+                const d = new Date(base);
+                d.setDate(base.getDate() - i);
+                const key = localDateKey(d);
+                const foods = getDayLog(key).meals?.[meal] || [];
+                if (foods.length) return { key, foods, label: i === 1 ? 'yesterday' : d.toLocaleDateString('en-US', { weekday: 'long' }) + (i > 6 ? `, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '') };
+            }
+            return null;
+        }
+
         // Re-log every item a meal had on another day.
         function repeatMealFrom(fromKey, meal) {
             const foods = getDayLog(fromKey).meals?.[meal] || [];
@@ -3148,6 +3165,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
         function setLogSheetMeal(meal) {
             logSheetMeal = MEAL_KEYS.includes(meal) ? meal : 'snacks';
             setSegActive('log-meal-seg', logSheetMeal);
+            renderLogSheetRecent();
         }
 
         function logSheetAction(action) {
@@ -3172,8 +3190,28 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         function renderLogSheetRecent() {
             const box = document.getElementById('log-sheet-recent');
+            if (!box) return;
             const foods = getRecentFoods(3);
-            box.innerHTML = foods.length ? '<p class="list-label mb-1">Log again</p>' : '';
+            const last = lastMealBefore(logSheetMeal);
+            box.innerHTML = '';
+            if (last) {
+                const kcal = last.foods.reduce((sum, f) => sum + (f.calories || 0), 0);
+                const row = document.createElement('button');
+                row.type = 'button';
+                row.className = 'repeat-row';
+                row.innerHTML = `<span class="food-ico fi-meal" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <span class="rr-main"><b>Repeat ${escapeHTML(MEAL_LABELS[logSheetMeal].toLowerCase())} from ${escapeHTML(last.label)}</b>
+                    <span>${escapeHTML(last.foods.map(f => f.name).join(', '))}</span></span>
+                    <span class="rr-kcal">+${kcal.toLocaleString('en-US')} kcal</span>`;
+                row.onclick = () => { closeLogSheet(); repeatMealFrom(last.key, logSheetMeal); };
+                box.appendChild(row);
+            }
+            if (foods.length) {
+                const heading = document.createElement('p');
+                heading.className = 'list-label mb-1 mt-4';
+                heading.innerText = 'Log again';
+                box.appendChild(heading);
+            }
             foods.forEach(food => {
                 const row = document.createElement('div');
                 row.className = 'entry';
@@ -3275,16 +3313,15 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             if (count >= 2) return;
             // Only suggest for an empty meal, so logged days stay uncluttered.
             if (count) return;
-            const prevKey = localDateKey(localDayOffset(-1, new Date(appState.currentDate + 'T12:00:00')));
-            const prevFoods = getDayLog(prevKey).meals?.[meal] || [];
-            if (prevFoods.length) {
-                const kcal = prevFoods.reduce((sum, f) => sum + (f.calories || 0), 0);
+            const last = lastMealBefore(meal);
+            if (last) {
+                const kcal = last.foods.reduce((sum, f) => sum + (f.calories || 0), 0);
                 const repeat = document.createElement('button');
                 repeat.type = 'button';
                 repeat.className = 'suggest';
-                repeat.onclick = () => repeatMealFrom(prevKey, meal);
+                repeat.onclick = () => repeatMealFrom(last.key, meal);
                 repeat.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i>
-                    <span class="min-w-0 truncate">Same as yesterday: <b>${escapeHTML(prevFoods.map(f => f.name).join(', '))}</b></span>
+                    <span class="min-w-0 truncate">${last.label === 'yesterday' ? 'Same as yesterday' : `Same as ${escapeHTML(last.label)}`}: <b>${escapeHTML(last.foods.map(f => f.name).join(', '))}</b></span>
                     <span class="plus">+ ${kcal.toLocaleString('en-US')} kcal</span>`;
                 container.appendChild(repeat);
                 return;
