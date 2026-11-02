@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>MacroFlow — Nutrition Tracker</title>
     <meta name="description" content="Log meals, scan barcodes and track calories, macros, weight and strength. Data stays in your browser.">
-    <meta name="theme-color" content="#050506">
-    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="MacroFlow">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -19,7 +20,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,650&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             corePlugins: { preflight: true },
@@ -29,43 +30,94 @@
 
     <style>
         :root {
-            --bg: #050506;
-            --bg-2: #0e0e10;
-            --surface: #141416;
-            --surface-2: #1d1d20;
-            --surface-3: #2a2a2e;
-            --line: rgba(255, 255, 255, 0.07);
-            --line-strong: rgba(255, 255, 255, 0.13);
-            --text: #f4f4f6;
-            --muted: #9a9aa3;
-            --faint: #63636c;
-            /* Ring colours: calories, protein, carbs, fat (+ gradient ends) */
-            --kcal: #30d158;
-            --kcal-2: #b5f23f;
-            --protein: #ff375f;
-            --protein-2: #ff7a59;
-            --carbs: #0a84ff;
-            --carbs-2: #5ac8fa;
-            --fat: #ffd60a;
-            --fat-2: #ff9f0a;
-            --water: #64d2ff;
-            --burn: #ff9f0a;
-            --burn-2: #ff453a;
-            --brand: #30d158;
-            --brand-strong: #28b84c;
-            --brand-soft: rgba(48, 209, 88, 0.14);
-            --brand-ink: #032b10;
-            --ai: #bf5af2;
-            --ai-2: #7d7aff;
-            --danger: #ff453a;
-            --warn: #ff9f0a;
+            color-scheme: light dark;
+            /* Warm paper light theme; dark follows the phone (see the media query below). */
+            --bg: #f4f1ea;
+            --bg-2: #fbfaf6;
+            --surface: #ffffff;
+            --surface-2: #f2efe8;
+            --surface-3: #e7e2d7;
+            --line: rgba(60, 45, 20, 0.09);
+            --line-strong: rgba(60, 45, 20, 0.16);
+            --text: #201d18;
+            --muted: #6c675c;
+            --faint: #9f9a8d;
+            --kcal: #2c8a5b;
+            --kcal-2: #79bf92;
+            --protein: #dd5e4d;
+            --protein-2: #ee9179;
+            --carbs: #3d7ccd;
+            --carbs-2: #86b3e6;
+            --fat: #e1a12b;
+            --fat-2: #efc46c;
+            --water: #3f9fd2;
+            --burn: #e07f2e;
+            --burn-2: #cf5238;
+            --pink: #c4529a;
+            --nut: #94704a;
+            --ai: #7656cc;
+            --ai-2: #9a82e0;
+            --brand: var(--kcal);
+            --brand-strong: #247a4e;
+            --brand-soft: rgba(44, 138, 91, 0.12);
+            --on-brand: #ffffff;
+            --brand-ink: var(--on-brand);
+            --danger: #cc4137;
+            --warn: #c27a10;
+            --bar-bg: rgba(244, 241, 234, 0.88);
+            --scrim: rgba(32, 24, 10, 0.45);
+            --shadow: 0 1px 2px rgba(60, 45, 20, 0.05), 0 10px 28px -14px rgba(60, 45, 20, 0.22);
+            --chart-grid: rgba(60, 45, 20, 0.08);
+            --note-fg: #86580a;
+            --note-ai-fg: #5b3fae;
             --radius: 22px;
             --radius-sm: 13px;
             --safe-bottom: env(safe-area-inset-bottom, 0px);
             --safe-top: env(safe-area-inset-top, 0px);
             --nav-h: 64px;
             --font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --serif: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
             --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #121110;
+                --bg-2: #0d0c0b;
+                --surface: #1b1a17;
+                --surface-2: #252320;
+                --surface-3: #33302b;
+                --line: rgba(255, 245, 225, 0.08);
+                --line-strong: rgba(255, 245, 225, 0.15);
+                --text: #f2eee6;
+                --muted: #a59f92;
+                --faint: #6d685d;
+                --kcal: #62c791;
+                --kcal-2: #a6e3bb;
+                --protein: #ff8171;
+                --protein-2: #ffb09b;
+                --carbs: #72a9f2;
+                --carbs-2: #a9ccf8;
+                --fat: #f3c352;
+                --fat-2: #f8d98c;
+                --water: #72c7ef;
+                --burn: #f59a4c;
+                --burn-2: #f0735a;
+                --pink: #f08cc8;
+                --nut: #d3ae83;
+                --ai: #ad94f0;
+                --ai-2: #c7b6f6;
+                --brand-strong: #52b57f;
+                --brand-soft: rgba(98, 199, 145, 0.14);
+                --on-brand: #0a2a19;
+                --danger: #ff6b5f;
+                --warn: #f3b04a;
+                --bar-bg: rgba(18, 17, 16, 0.88);
+                --scrim: rgba(0, 0, 0, 0.6);
+                --shadow: 0 0 0 1px rgba(255, 245, 225, 0.05);
+                --chart-grid: rgba(255, 245, 225, 0.07);
+                --note-fg: #ecd3a0;
+                --note-ai-fg: #dccdfa;
+            }
         }
         /* Minimal reset so the layout holds even if the Tailwind CDN is slow or blocked */
         *, ::before, ::after { box-sizing: border-box; border: 0 solid; }
@@ -98,7 +150,7 @@
         button { cursor: pointer; }
         button:disabled { cursor: not-allowed; opacity: 0.45; }
         :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
-        ::selection { background: var(--brand-strong); color: #fff; }
+        ::selection { background: var(--kcal); color: var(--on-brand); }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 6px; }
 
@@ -107,7 +159,7 @@
         .topbar {
             position: sticky; top: 0; z-index: 30;
             margin: 0 -20px; padding: calc(10px + var(--safe-top)) 20px 0;
-            background: rgba(5, 5, 6, 0.9);
+            background: var(--bar-bg);
             backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px);
         }
         .topbar-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 6px 0 12px; }
@@ -130,7 +182,7 @@
         .day .prog { stroke: var(--kcal); stroke-linecap: round; }
         .day .prog.over { stroke: var(--fat-2); }
         .day.is-today .dow { color: var(--kcal); }
-        .day.is-selected .dnum { background: linear-gradient(135deg, var(--kcal), var(--kcal-2)); color: var(--brand-ink); border-radius: 50%; font-weight: 700; }
+        .day.is-selected .dnum { background: var(--text); color: var(--bg); border-radius: 50%; font-weight: 700; }
         .day.is-selected .dnum svg { display: none; }
         .day.is-future { opacity: 0.4; }
 
@@ -150,15 +202,15 @@
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px;
             border-radius: var(--radius-sm); font-weight: 600; font-size: 15px; border: 1px solid transparent; transition: background .15s, border-color .15s, opacity .15s; }
         .btn:active:not(:disabled) { opacity: 0.8; }
-        .btn-primary { background: linear-gradient(135deg, var(--kcal), #5fe07e); color: var(--brand-ink); }
-        .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+        .btn-primary { background: var(--kcal); color: var(--on-brand); }
+        .btn-primary:hover:not(:disabled) { filter: brightness(1.07); }
         .btn-soft { background: var(--surface-2); color: var(--text); }
         .btn-soft:hover:not(:disabled) { background: var(--surface-3); }
         .btn-ghost { background: transparent; color: var(--muted); border-color: var(--line-strong); }
         .btn-ghost:hover:not(:disabled) { color: var(--text); }
-        .btn-danger { background: transparent; color: #f08b8b; border-color: rgba(239, 94, 94, 0.3); }
-        .btn-danger:hover:not(:disabled) { background: rgba(239, 94, 94, 0.08); }
-        .btn-ai { background: linear-gradient(135deg, var(--ai), var(--ai-2)); color: #fff; }
+        .btn-danger { background: transparent; color: var(--danger); border-color: var(--line-strong); }
+        .btn-danger:hover:not(:disabled) { background: rgba(204, 65, 55, 0.08); }
+        .btn-ai { background: var(--ai); color: #fff; }
         .btn-sm { min-height: 36px; padding: 0 14px; font-size: 14px; border-radius: 10px; }
         .btn-block { width: 100%; }
         .icon-btn { width: 40px; height: 40px; border-radius: 12px; display: inline-grid; place-items: center; flex-shrink: 0;
@@ -173,7 +225,7 @@
         .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500;
             background: var(--surface-2); color: var(--muted); white-space: nowrap; }
         .badge.brand { background: var(--brand-soft); color: var(--brand); }
-        .badge.ai { background: rgba(191, 90, 242, 0.14); color: #d49cf7; }
+        .badge.ai { background: rgba(118, 86, 204, 0.12); color: var(--ai); }
         .badge.warn { background: rgba(233, 180, 76, 0.12); color: var(--warn); }
 
         .seg { display: flex; padding: 3px; gap: 2px; background: var(--surface); border-radius: 12px; }
@@ -205,7 +257,7 @@
         .bar.thin { height: 4px; }
 
         /* ---------- Today: rings hero ---------- */
-        .hero { position: relative; background: radial-gradient(120% 90% at 0% 0%, rgba(48, 209, 88, 0.10), transparent 55%), radial-gradient(90% 80% at 100% 100%, rgba(10, 132, 255, 0.10), transparent 60%), var(--surface);
+        .hero { position: relative; background: var(--surface); box-shadow: var(--shadow);
             border-radius: 26px; padding: 18px 18px 14px; overflow: hidden; }
         .hero-main { display: flex; align-items: center; gap: 16px; }
         .rings { position: relative; width: 158px; height: 158px; flex-shrink: 0; }
@@ -213,7 +265,7 @@
         .rings circle { fill: none; stroke-linecap: round; }
         .rings .ring-track { opacity: 0.2; }
         .rings .ring-arc { transition: stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1); }
-        .rings .ring-lap { transition: stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 0 2px rgba(0,0,0,.65)); }
+        .rings .ring-lap { transition: stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1); }
         .hero-stats { flex: 1; min-width: 0; display: grid; gap: 9px; }
         .kcal-label { font-size: 13px; color: var(--muted); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; }
         .kcal-label i { font-size: 10px; color: var(--faint); }
@@ -243,15 +295,7 @@
         .action { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px 10px; border-radius: 18px; background: var(--surface); color: var(--text); font-size: 12.5px; font-weight: 600; transition: transform .12s, background .15s; }
         .action:active { transform: scale(0.96); }
         .action:hover { background: var(--surface-2); }
-        .action .ai-ico { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 17px; color: #fff; box-shadow: 0 6px 16px -8px currentColor; }
-        .ico-search { background: linear-gradient(135deg, var(--kcal), #1fae7a); }
-        .ico-scan { background: linear-gradient(135deg, var(--carbs), var(--carbs-2)); }
-        .ico-photo { background: linear-gradient(135deg, var(--ai), var(--ai-2)); }
-        .ico-quick { background: linear-gradient(135deg, var(--burn), var(--burn-2)); }
-        .ico-describe { background: linear-gradient(135deg, #ff6ad5, var(--ai)); }
-        .ico-exercise { background: linear-gradient(135deg, var(--burn-2), #ff2d55); }
-        .ico-water { background: linear-gradient(135deg, var(--water), var(--carbs)); }
-        .ico-weight { background: linear-gradient(135deg, #8e8e93, #5a5a61); }
+        .action .ai-ico { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 17px; }
         /* kept for selectors used by tests and older code */
         .log-search, .log-scan { cursor: pointer; }
 
@@ -271,40 +315,18 @@
         /* Food icons */
         .food-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; font-size: 15px; }
         .food-ico.sm { width: 32px; height: 32px; border-radius: 10px; font-size: 13px; }
-        .fi-fruit { background: rgba(255, 55, 95, 0.16); color: #ff6b8a; }
-        .fi-veg { background: rgba(48, 209, 88, 0.16); color: #5be07f; }
-        .fi-dairy { background: rgba(100, 210, 255, 0.15); color: #8fdfff; }
-        .fi-egg { background: rgba(255, 214, 10, 0.15); color: #ffe066; }
-        .fi-grain { background: rgba(255, 159, 10, 0.15); color: #ffb84d; }
-        .fi-meat { background: rgba(255, 69, 58, 0.15); color: #ff7a70; }
-        .fi-fish { background: rgba(10, 132, 255, 0.16); color: #5aa9ff; }
-        .fi-nuts { background: rgba(172, 142, 104, 0.2); color: #d4b48c; }
-        .fi-fat { background: rgba(255, 214, 10, 0.13); color: #f5d34d; }
-        .fi-sweet { background: rgba(255, 106, 213, 0.15); color: #ff8ee0; }
-        .fi-drink { background: rgba(90, 200, 250, 0.15); color: #7fd4fb; }
-        .fi-pack { background: rgba(142, 142, 147, 0.18); color: #c7c7cc; }
-        .fi-ai { background: rgba(191, 90, 242, 0.16); color: #d49cf7; }
-        .fi-quick { background: rgba(255, 159, 10, 0.16); color: #ffb84d; }
-        .fi-mine { background: rgba(48, 209, 88, 0.14); color: #5be07f; }
-        .fi-meal { background: rgba(125, 122, 255, 0.16); color: #a5a3ff; }
 
         /* ---------- Meals ---------- */
         .meal { background: var(--surface); border-radius: var(--radius); padding: 14px 16px 6px; }
         .meal + .meal { margin-top: 12px; }
         .meal-head { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; }
-        .meal-ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-size: 15px; flex-shrink: 0; color: #fff; }
-        .mi-breakfast { background: linear-gradient(135deg, #ffb340, #ff7a00); }
-        .mi-lunch { background: linear-gradient(135deg, #5be07f, #1fae7a); }
-        .mi-dinner { background: linear-gradient(135deg, #7d7aff, #bf5af2); }
-        .mi-snacks { background: linear-gradient(135deg, #ff6ad5, #ff375f); }
-        .mi-exercise { background: linear-gradient(135deg, var(--burn), var(--burn-2)); }
-        .mi-water { background: linear-gradient(135deg, var(--water), var(--carbs)); }
+        .meal-ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-size: 15px; flex-shrink: 0; }
         .meal-title { flex: 1; min-width: 0; }
         .meal-head h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
         .meal-head .meal-kcal { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; display: block; margin-top: 1px; }
         .meal-head .meal-kcal:empty::before { content: 'Nothing logged yet'; color: var(--faint); }
         .meal-plus { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-soft); color: var(--kcal); font-size: 14px; flex-shrink: 0; }
-        .meal-plus:hover { background: rgba(48, 209, 88, 0.24); }
+        .meal-plus:hover { background: rgba(44, 138, 91, 0.2); }
         .meal-plus .lbl { display: none; }
         .meal-save { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); font-size: 14px; flex-shrink: 0; }
         .meal-save:hover { color: var(--text); background: var(--surface-2); }
@@ -337,8 +359,8 @@
 
         .water-row { display: flex; align-items: center; gap: 8px; padding: 2px 0 10px; }
         .water-glasses { flex: 1; display: flex; gap: 4px; min-width: 0; }
-        .water-glasses span { flex: 1; height: 22px; border-radius: 6px; background: rgba(100, 210, 255, 0.12); }
-        .water-glasses span.full { background: linear-gradient(180deg, var(--water), var(--carbs)); }
+        .water-glasses span { flex: 1; height: 22px; border-radius: 6px; background: rgba(63, 159, 210, 0.14); }
+        .water-glasses span.full { background: var(--water); }
         .sync-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
         .sync-row .chip { height: 34px; padding: 0 12px; }
         .text-strong { color: var(--text); font-weight: 600; }
@@ -354,10 +376,10 @@
 
         /* ---------- Bottom nav ---------- */
         .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 6px 12px calc(6px + var(--safe-bottom));
-            background: rgba(5, 5, 6, 0.92); backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px); border-top: 1px solid var(--line); }
+            background: var(--bar-bg); backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px); border-top: 1px solid var(--line); }
         .bottom-nav .inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; }
-        .nav-plus { justify-self: center; width: 58px; height: 58px; margin-top: -26px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; color: var(--brand-ink);
-            background: linear-gradient(135deg, var(--kcal), var(--kcal-2)); box-shadow: 0 10px 24px -8px rgba(48, 209, 88, 0.7), 0 0 0 5px var(--bg); transition: transform .12s; }
+        .nav-plus { justify-self: center; width: 58px; height: 58px; margin-top: -26px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; color: var(--on-brand);
+            background: var(--kcal); box-shadow: 0 10px 22px -8px rgba(44, 138, 91, 0.55), 0 0 0 5px var(--bg); transition: transform .12s; }
         .nav-plus:active { transform: scale(0.94); }
         .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; color: var(--faint); font-size: 11px; font-weight: 500; letter-spacing: 0.01em; }
         .nav-btn i { font-size: 18px; }
@@ -367,7 +389,7 @@
         /* ---------- Overlays ---------- */
         .overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
         .overlay.center { align-items: center; padding: 16px; }
-        .overlay-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); animation: fadeIn .2s ease; }
+        .overlay-backdrop { position: absolute; inset: 0; background: var(--scrim); animation: fadeIn .2s ease; }
         .sheet { position: relative; width: 100%; max-width: 520px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
             background: var(--surface); border-radius: 20px 20px 0 0;
             padding: 8px 20px calc(20px + var(--safe-bottom)); animation: slideUp .26s cubic-bezier(.2,.8,.2,1); }
@@ -420,7 +442,7 @@
         .result-kcal b { font-size: 15px; font-weight: 500; display: block; font-variant-numeric: tabular-nums; }
         .result-kcal span { font-size: 12px; color: var(--faint); }
         .result-add { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--kcal); background: var(--brand-soft); flex-shrink: 0; font-size: 14px; }
-        .result-add:hover { background: rgba(48, 209, 88, 0.24); }
+        .result-add:hover { background: rgba(44, 138, 91, 0.2); }
         .state-msg { text-align: center; padding: 34px 12px; color: var(--muted); font-size: 14px; }
         .state-msg i { font-size: 22px; color: var(--faint); display: block; margin-bottom: 10px; }
         .multi-bar { position: sticky; bottom: calc(12px + var(--safe-bottom)); z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -441,8 +463,8 @@
         .nutri b { display: block; font-size: 20px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
         .nutri span { font-size: 12px; color: var(--faint); }
         .nutri.kcal b { font-size: 24px; color: var(--text); }
-        .note { display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.45; background: rgba(233, 180, 76, 0.08); color: #ecd3a0; }
-        .note.ai { background: rgba(191, 90, 242, 0.1); color: #e2c2f9; }
+        .note { display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.45; background: rgba(224, 161, 43, 0.13); color: var(--note-fg); }
+        .note.ai { background: rgba(118, 86, 204, 0.1); color: var(--note-ai-fg); }
         .note.info { background: var(--surface-2); color: var(--muted); }
         .note i { margin-top: 2px; }
         .ai-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -499,8 +521,8 @@
         /* ---------- Toasts ---------- */
         #toast-container { position: fixed; left: 16px; right: 16px; top: calc(76px + var(--safe-top)); z-index: 90; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
         .toast { pointer-events: auto; width: 100%; max-width: 420px; display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px 12px 14px; border-radius: 14px;
-            background: #26262a; color: var(--text); font-size: 14px; font-weight: 500; box-shadow: 0 12px 32px -8px rgba(0,0,0,.6); animation: fadeIn .2s ease; white-space: pre-line; }
-        .toast.error { background: #3a1d1f; color: #f6c6c3; }
+            background: #2a2622; color: #f4f1ea; font-size: 14px; font-weight: 500; box-shadow: 0 12px 32px -8px rgba(0,0,0,.45); animation: fadeIn .2s ease; white-space: pre-line; }
+        .toast.error { background: #3d1f1d; color: #f8cfc9; }
         .toast > i { margin-top: 2px; color: var(--brand); }
         .toast.error > i { color: var(--danger); }
         .toast .toast-message { flex: 1; }
@@ -509,8 +531,8 @@
         /* ---------- Insights / progress ---------- */
         .stat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .tile { background: var(--surface); border-radius: var(--radius); padding: 16px; }
-        .tile.streak { background: radial-gradient(120% 120% at 0% 0%, rgba(255, 159, 10, 0.16), transparent 60%), var(--surface); }
-        .tile.today { background: radial-gradient(120% 120% at 0% 0%, rgba(48, 209, 88, 0.14), transparent 60%), var(--surface); }
+        .tile.streak { background: var(--surface); }
+        .tile.today { background: var(--surface); }
         .tile .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
         .tile .k i { color: var(--faint) !important; }
         .tile .v { font-size: 28px; font-weight: 600; margin-top: 8px; line-height: 1.05; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
@@ -520,8 +542,8 @@
         .chart { position: relative; width: 100%; }
         .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
         .chart text { font-family: var(--font); font-size: 10.5px; fill: var(--faint); font-variant-numeric: tabular-nums; }
-        .chart .grid { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
-        .chart .goal { stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.25; stroke-dasharray: 4 4; }
+        .chart .grid { stroke: var(--chart-grid); stroke-width: 1; }
+        .chart .goal { stroke: var(--muted); stroke-width: 1.25; stroke-dasharray: 4 4; }
         .chart .goal-label { fill: var(--muted); font-weight: 600; }
         .chart .bar-hit { fill: transparent; cursor: pointer; }
         .chart .sel-label { fill: var(--text); font-weight: 700; font-size: 11.5px; }
@@ -550,10 +572,10 @@
         .table tr:last-child td { border-bottom: 0; }
         .heat { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
         .heat > div { aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-variant-numeric: tabular-nums; background: var(--surface-2); color: var(--faint); }
-        .heat .h1 { background: rgba(48, 209, 88, 0.14); color: #8fe6a6; }
-        .heat .h2 { background: rgba(48, 209, 88, 0.34); color: #c8f5d4; }
-        .heat .h3 { background: linear-gradient(135deg, var(--kcal), var(--kcal-2)); color: var(--brand-ink); font-weight: 700; }
-        .heat .h4 { background: rgba(255, 159, 10, 0.36); color: #ffd699; }
+        .heat .h1 { background: rgba(44, 138, 91, 0.14); color: var(--kcal); }
+        .heat .h2 { background: rgba(44, 138, 91, 0.32); color: var(--text); }
+        .heat .h3 { background: var(--kcal); color: var(--on-brand); font-weight: 700; }
+        .heat .h4 { background: rgba(224, 161, 43, 0.34); color: var(--text); }
         .rating-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .rating { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 72px; justify-content: center; border-radius: 12px; background: var(--surface-2); border: 1px solid transparent; font-size: 14px; color: var(--muted); }
         .rating i { font-size: 16px; }
@@ -610,6 +632,62 @@
             .muted, .faint, .entry-meta { color: #333 !important; }
             #micros-panel-content, .meal-content { display: block !important; }
         }
+
+        /* ---------- Theme: calm paper (light) / ink (dark) ---------- */
+        .page-title { font-family: var(--serif); font-size: 33px; font-weight: 600; letter-spacing: -0.02em; }
+        .hero-kcal, .tile .v, .chart-kpis b, .sheet-head h3, .ql-head h2, .nutri.kcal b { font-family: var(--serif); font-weight: 600; letter-spacing: -0.02em; }
+        .hero-kcal { font-size: 42px; color: var(--text); }
+        .hm .v, .hero-eq b, .entry-kcal, .meal-head h3, .card-title { letter-spacing: -0.01em; }
+        .meal-head h3, .card-title { font-weight: 650; }
+        .rings circle { stroke-width: 13; }
+        .card, .tile, .meal, .hero, .settings-section, .ql-item, .action { box-shadow: var(--shadow); }
+        .log-grid .action { box-shadow: none; }
+        .copy-day, .seg { box-shadow: none; }
+        .kcal-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11.5px; font-weight: 600; }
+        .hm .k { letter-spacing: 0.06em; font-size: 11px; }
+        .hm.protein .k { color: var(--protein); }
+        .hm.carbs .k { color: var(--carbs); }
+        .hm.fat .k { color: var(--warn); }
+        #eq-left b, .hero-eq #eq-left b { color: var(--kcal); }
+        .week .day .dow { font-weight: 600; }
+        .nav-btn.is-active { color: var(--text); }
+        .nav-btn.is-active i { color: var(--kcal); }
+        .meal-head .meal-kcal { font-size: 13px; }
+        .entry { border-top-color: var(--line); }
+        .btn { border-radius: 14px; }
+        .btn-primary { box-shadow: 0 6px 16px -8px rgba(44, 138, 91, 0.6); }
+
+        /* Action buttons and meal icons: soft tinted chips with a coloured glyph */
+        .ico-search { background: rgba(44, 138, 91, 0.14); color: var(--kcal); }
+        .ico-scan { background: rgba(61, 124, 205, 0.14); color: var(--carbs); }
+        .ico-photo { background: rgba(118, 86, 204, 0.14); color: var(--ai); }
+        .ico-quick { background: rgba(224, 127, 46, 0.15); color: var(--burn); }
+        .ico-describe { background: rgba(196, 82, 154, 0.14); color: var(--pink); }
+        .ico-exercise { background: rgba(207, 82, 56, 0.14); color: var(--burn-2); }
+        .ico-water { background: rgba(63, 159, 210, 0.15); color: var(--water); }
+        .ico-weight { background: var(--surface-3); color: var(--muted); }
+        .mi-breakfast { background: rgba(225, 161, 43, 0.17); color: var(--fat); }
+        .mi-lunch { background: rgba(44, 138, 91, 0.15); color: var(--kcal); }
+        .mi-dinner { background: rgba(118, 86, 204, 0.14); color: var(--ai); }
+        .mi-snacks { background: rgba(196, 82, 154, 0.14); color: var(--pink); }
+        .mi-exercise { background: rgba(224, 127, 46, 0.16); color: var(--burn); }
+        .mi-water { background: rgba(63, 159, 210, 0.16); color: var(--water); }
+        .fi-fruit { background: rgba(221, 94, 77, 0.14); color: var(--protein); }
+        .fi-veg { background: rgba(44, 138, 91, 0.14); color: var(--kcal); }
+        .fi-dairy { background: rgba(63, 159, 210, 0.14); color: var(--water); }
+        .fi-egg { background: rgba(225, 161, 43, 0.16); color: var(--fat); }
+        .fi-grain { background: rgba(224, 127, 46, 0.15); color: var(--burn); }
+        .fi-meat { background: rgba(207, 82, 56, 0.14); color: var(--burn-2); }
+        .fi-fish { background: rgba(61, 124, 205, 0.14); color: var(--carbs); }
+        .fi-nuts { background: rgba(148, 112, 74, 0.16); color: var(--nut); }
+        .fi-fat { background: rgba(225, 161, 43, 0.14); color: var(--fat); }
+        .fi-sweet { background: rgba(196, 82, 154, 0.14); color: var(--pink); }
+        .fi-drink { background: rgba(63, 159, 210, 0.14); color: var(--water); }
+        .fi-pack { background: var(--surface-3); color: var(--muted); }
+        .fi-ai { background: rgba(118, 86, 204, 0.14); color: var(--ai); }
+        .fi-quick { background: rgba(224, 127, 46, 0.15); color: var(--burn); }
+        .fi-mine { background: rgba(44, 138, 91, 0.14); color: var(--kcal); }
+        .fi-meal { background: rgba(154, 130, 224, 0.18); color: var(--ai); }
     </style>
 
     <!-- Optional API settings (never commit real keys) -->
@@ -645,23 +723,23 @@
                     <div class="rings" id="hero-rings" role="img" aria-label="Calories and macros">
                         <svg viewBox="0 0 200 200" aria-hidden="true">
                             <defs>
-                                <linearGradient id="grad-kcal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#30d158"/><stop offset="1" stop-color="#b5f23f"/></linearGradient>
-                                <linearGradient id="grad-protein" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff375f"/><stop offset="1" stop-color="#ff7a59"/></linearGradient>
-                                <linearGradient id="grad-carbs" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5ac8fa"/></linearGradient>
-                                <linearGradient id="grad-fat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd60a"/><stop offset="1" stop-color="#ff9f0a"/></linearGradient>
+                                <linearGradient id="grad-kcal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--kcal)"/><stop offset="1" style="stop-color:var(--kcal-2)"/></linearGradient>
+                                <linearGradient id="grad-protein" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--protein)"/><stop offset="1" style="stop-color:var(--protein-2)"/></linearGradient>
+                                <linearGradient id="grad-carbs" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--carbs)"/><stop offset="1" style="stop-color:var(--carbs-2)"/></linearGradient>
+                                <linearGradient id="grad-fat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--fat)"/><stop offset="1" style="stop-color:var(--fat-2)"/></linearGradient>
                             </defs>
-                            <circle class="ring-track" cx="100" cy="100" r="87" stroke="#30d158" stroke-width="18"/>
+                            <circle class="ring-track" cx="100" cy="100" r="87" style="stroke:var(--kcal)" stroke-width="18"/>
                             <circle class="ring-arc" id="ring-kcal" cx="100" cy="100" r="87" stroke="url(#grad-kcal)" stroke-width="18" style="stroke-dasharray:546.64 546.64;stroke-dashoffset:546.64;opacity:0"/>
-                            <circle class="ring-lap" id="ring-kcal-lap" style="stroke-dasharray:546.64 546.64;stroke-dashoffset:546.64;opacity:0" cx="100" cy="100" r="87" stroke="#b5f23f" stroke-width="18"/>
-                            <circle class="ring-track" cx="100" cy="100" r="65" stroke="#ff375f" stroke-width="18"/>
+                            <circle class="ring-lap" id="ring-kcal-lap" style="stroke-dasharray:546.64 546.64;stroke-dashoffset:546.64;opacity:0" cx="100" cy="100" r="87" stroke="var(--kcal-2)" stroke-width="18"/>
+                            <circle class="ring-track" cx="100" cy="100" r="65" style="stroke:var(--protein)" stroke-width="18"/>
                             <circle class="ring-arc" id="ring-protein" cx="100" cy="100" r="65" stroke="url(#grad-protein)" stroke-width="18" style="stroke-dasharray:408.41 408.41;stroke-dashoffset:408.41;opacity:0"/>
-                            <circle class="ring-lap" id="ring-protein-lap" style="stroke-dasharray:408.41 408.41;stroke-dashoffset:408.41;opacity:0" cx="100" cy="100" r="65" stroke="#ff7a59" stroke-width="18"/>
-                            <circle class="ring-track" cx="100" cy="100" r="43" stroke="#0a84ff" stroke-width="18"/>
+                            <circle class="ring-lap" id="ring-protein-lap" style="stroke-dasharray:408.41 408.41;stroke-dashoffset:408.41;opacity:0" cx="100" cy="100" r="65" stroke="var(--protein-2)" stroke-width="18"/>
+                            <circle class="ring-track" cx="100" cy="100" r="43" style="stroke:var(--carbs)" stroke-width="18"/>
                             <circle class="ring-arc" id="ring-carbs" cx="100" cy="100" r="43" stroke="url(#grad-carbs)" stroke-width="18" style="stroke-dasharray:270.18 270.18;stroke-dashoffset:270.18;opacity:0"/>
-                            <circle class="ring-lap" id="ring-carbs-lap" style="stroke-dasharray:270.18 270.18;stroke-dashoffset:270.18;opacity:0" cx="100" cy="100" r="43" stroke="#5ac8fa" stroke-width="18"/>
-                            <circle class="ring-track" cx="100" cy="100" r="21" stroke="#ffd60a" stroke-width="18"/>
+                            <circle class="ring-lap" id="ring-carbs-lap" style="stroke-dasharray:270.18 270.18;stroke-dashoffset:270.18;opacity:0" cx="100" cy="100" r="43" stroke="var(--carbs-2)" stroke-width="18"/>
+                            <circle class="ring-track" cx="100" cy="100" r="21" style="stroke:var(--fat)" stroke-width="18"/>
                             <circle class="ring-arc" id="ring-fat" cx="100" cy="100" r="21" stroke="url(#grad-fat)" stroke-width="18" style="stroke-dasharray:131.95 131.95;stroke-dashoffset:131.95;opacity:0"/>
-                            <circle class="ring-lap" id="ring-fat-lap" style="stroke-dasharray:131.95 131.95;stroke-dashoffset:131.95;opacity:0" cx="100" cy="100" r="21" stroke="#ff9f0a" stroke-width="18"/>
+                            <circle class="ring-lap" id="ring-fat-lap" style="stroke-dasharray:131.95 131.95;stroke-dashoffset:131.95;opacity:0" cx="100" cy="100" r="21" stroke="var(--fat-2)" stroke-width="18"/>
                         </svg>
                     </div>
                     <div class="hero-stats">
@@ -817,7 +895,7 @@
                 <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-fire-flame-curved" style="color:var(--kcal)"></i>Calories</h3><span class="small muted" id="ins-cal-range">last 7 days</span></div>
                 <div class="chart-kpis" id="ins-cal-kpis"></div>
                 <div class="chart" id="ins-cal-chart"></div>
-                <div class="chart-legend"><span><i style="background:var(--protein)"></i>Protein</span><span><i style="background:var(--carbs)"></i>Carbs</span><span><i style="background:var(--fat)"></i>Fat</span><span><i style="background:transparent;border:1.5px dashed rgba(255,255,255,.6);width:12px;height:0;border-radius:0"></i>Goal</span></div>
+                <div class="chart-legend"><span><i style="background:var(--protein)"></i>Protein</span><span><i style="background:var(--carbs)"></i>Carbs</span><span><i style="background:var(--fat)"></i>Fat</span><span><i style="background:transparent;border:1.5px dashed var(--muted);width:12px;height:0;border-radius:0"></i>Goal</span></div>
             </div>
 
             <div class="card">
@@ -869,8 +947,8 @@
                 <div class="fast-wrap">
                     <div class="fast-ring">
                         <svg viewBox="0 0 80 80" aria-hidden="true">
-                            <defs><linearGradient id="grad-fast" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bf5af2"/><stop offset="1" stop-color="#7d7aff"/></linearGradient></defs>
-                            <circle cx="40" cy="40" r="34" stroke="rgba(191,90,242,.2)"/>
+                            <defs><linearGradient id="grad-fast" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ai)"/><stop offset="1" style="stop-color:var(--ai-2)"/></linearGradient></defs>
+                            <circle cx="40" cy="40" r="34" stroke="var(--surface-3)"/>
                             <circle id="fasting-progress-ring" cx="40" cy="40" r="34" stroke="url(#grad-fast)" stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" style="transition:stroke-dashoffset .5s"/>
                         </svg>
                         <div class="center"><span id="fasting-percent-display">0%</span></div>
@@ -928,7 +1006,7 @@
                     <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-chart-line" style="color:var(--carbs-2)"></i>Weight trend</h3><span class="small muted" id="weight-trend-rate"></span></div>
                     <div class="chart-kpis" id="weight-kpis"></div>
                     <div class="chart" id="weight-chart"></div>
-                    <div class="chart-legend"><span><i style="background:var(--carbs-2);border-radius:50%"></i>Weigh-ins</span><span><i style="background:var(--kcal);height:3px;width:14px"></i>Trend</span><span id="weight-goal-legend" class="hidden"><i style="background:transparent;border:1.5px dashed rgba(255,255,255,.6);width:12px;height:0;border-radius:0"></i>Goal</span></div>
+                    <div class="chart-legend"><span><i style="background:var(--carbs-2);border-radius:50%"></i>Weigh-ins</span><span><i style="background:var(--kcal);height:3px;width:14px"></i>Trend</span><span id="weight-goal-legend" class="hidden"><i style="background:transparent;border:1.5px dashed var(--muted);width:12px;height:0;border-radius:0"></i>Goal</span></div>
                 </div>
                 <div class="card">
                     <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-table"></i>Weekly averages</h3></div>
@@ -988,7 +1066,7 @@
                 <div class="card">
                     <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-fire" style="color:var(--kcal)"></i>Daily calories</h3><span class="small muted" id="cal-trend-avg">Avg: --</span></div>
                     <div class="chart" id="calorie-trend-chart"></div>
-                    <div class="chart-legend"><span><i style="background:var(--protein)"></i>Protein</span><span><i style="background:var(--carbs)"></i>Carbs</span><span><i style="background:var(--fat)"></i>Fat</span><span><i style="background:#fff;height:2px;width:14px"></i>7-day average</span></div>
+                    <div class="chart-legend"><span><i style="background:var(--protein)"></i>Protein</span><span><i style="background:var(--carbs)"></i>Carbs</span><span><i style="background:var(--fat)"></i>Fat</span><span><i style="background:var(--text);height:2px;width:14px"></i>7-day average</span></div>
                 </div>
                 <div class="card">
                     <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-calendar-days"></i>Last 4 weeks</h3></div>
@@ -3352,7 +3430,18 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
 
         // CHART HELPERS
-        const CHART = { grid: 'rgba(255,255,255,0.06)', text: '#7f7f88', line: '#5ac8fa', brand: '#30d158', danger: '#ff453a', warn: '#ff9f0a', bg: '#141416' };
+        // Canvas charts read the live theme colours (the SVG charts use CSS variables directly).
+        const themeColor = (name, fallback) => {
+            try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; } catch (e) { return fallback; }
+        };
+        const CHART = {
+            get grid() { return themeColor('--chart-grid', 'rgba(60,45,20,0.08)'); },
+            get text() { return themeColor('--faint', '#9f9a8d'); },
+            get line() { return themeColor('--carbs', '#3d7ccd'); },
+            get brand() { return themeColor('--kcal', '#2c8a5b'); },
+            get danger() { return themeColor('--danger', '#cc4137'); },
+            get warn() { return themeColor('--warn', '#c27a10'); }
+        };
 
         // ---------- SVG CHARTS ----------
         // Charts are drawn as SVG strings sized to their container, so they stay
@@ -3545,7 +3634,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
         function drawEmptyChart(ctx, w, h, message) {
             ctx.fillStyle = CHART.text;
-            ctx.font = '13px "Plus Jakarta Sans", sans-serif';
+            ctx.font = '13px Geist, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(message, w / 2, h / 2);
         }
@@ -3658,7 +3747,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
             const x = d => padL + ((new Date(d + 'T12:00:00').getTime() - t0) / Math.max(1, t1 - t0)) * w;
             const y = v => padT + h - ((v - lo) / (hi - lo)) * h;
             let svg = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">
-                <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>`;
+                <defs><linearGradient id="weight-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--kcal)" stop-opacity=".26"/><stop offset="1" style="stop-color:var(--kcal)" stop-opacity="0"/></linearGradient></defs>`;
             [0, 0.5, 1].forEach(t => {
                 const v = lo + (hi - lo) * t, yy = svgNum(y(v));
                 svg += `<line class="grid" x1="${padL}" x2="${width - padR}" y1="${yy}" y2="${yy}"/><text x="${padL - 6}" y="${yy + 3.5}" text-anchor="end">${v.toFixed(1)}</text>`;
@@ -3930,7 +4019,7 @@ Copy the numbers exactly as printed — never estimate or use typical values.
                 width: chartWidthOf(el), height: 200,
                 bars: series.map(d => ({ ...d, segments: macroSegments(d), selected: d.key === localDateKey() })),
                 goal: appState.targets.calories || 2000,
-                lines: [{ values: rolling, color: '#fff', width: 2 }]
+                lines: [{ values: rolling, color: 'var(--text)', width: 2 }]
             });
         }
 
@@ -7495,6 +7584,17 @@ Copy the numbers exactly as printed — never estimate or use typical values.
 
             initSwipeNavigation();
             registerServiceWorker();
+
+            // Follow the phone's light/dark setting live: redraw so canvas charts pick up the new colours.
+            if (typeof window.matchMedia === 'function') {
+                const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+                const onSchemeChange = () => {
+                    renderAll();
+                    if (appState.activeTab === 'progress') setProgressSubTab(appState.progressSubTab);
+                    else if (appState.activeTab === 'dashboard') renderDashboardTab();
+                };
+                if (scheme.addEventListener) scheme.addEventListener('change', onSchemeChange);
+            }
 
             let resizeTimer = null;
             window.addEventListener('resize', () => {
