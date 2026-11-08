@@ -562,3 +562,83 @@ pub fn weekly_report_from_rows(
         total_exercise,
     }
 }
+
+pub fn ring_stroke_metrics(name: &str, fraction: f64) -> crate::json::Value {
+    let r = match name {
+        "kcal" => 87.0,
+        "protein" => 65.0,
+        "carbs" => 43.0,
+        "fat" => 21.0,
+        _ => 65.0,
+    };
+    let c = 2.0 * std::f64::consts::PI * r;
+    let f = if fraction.is_finite() && fraction > 0.0 {
+        fraction
+    } else {
+        0.0
+    };
+    let first = f.min(1.0);
+    let over = (f - 1.0).max(0.0).min(1.0);
+    json!({
+        "dasharray": format!("{:.2} {:.2}", c, c),
+        "dashoffset": format!("{:.2}", c * (1.0 - first)),
+        "opacity": if f > 0.005 { "1" } else { "0" },
+        "lapDashoffset": format!("{:.2}", c * (1.0 - over)),
+        "lapOpacity": if over > 0.005 { "1" } else { "0" }
+    })
+}
+
+pub fn calculate_streak_metrics(log_dates: &[String], today_days: i64) -> crate::json::Value {
+    let mut days_vec: Vec<i64> = log_dates
+        .iter()
+        .filter_map(|d| parse_ymd_to_days(d))
+        .collect();
+    days_vec.sort_unstable();
+    days_vec.dedup();
+
+    if days_vec.is_empty() {
+        return json!({ "current": 0, "best": 0 });
+    }
+
+    let mut max_contig: i64 = 1;
+    let mut temp_contig: i64 = 1;
+    for i in 1..days_vec.len() {
+        let diff = days_vec[i] - days_vec[i - 1];
+        if diff == 1 {
+            temp_contig += 1;
+        } else if diff > 1 {
+            if temp_contig > max_contig {
+                max_contig = temp_contig;
+            }
+            temp_contig = 1;
+        }
+    }
+    if temp_contig > max_contig {
+        max_contig = temp_contig;
+    }
+
+    let day_set: std::collections::BTreeSet<i64> = days_vec.into_iter().collect();
+    let mut current: i64 = 0;
+    let mut cursor = if day_set.contains(&today_days) {
+        Some(today_days)
+    } else if day_set.contains(&(today_days - 1)) {
+        Some(today_days - 1)
+    } else {
+        None
+    };
+
+    while let Some(d) = cursor {
+        if day_set.contains(&d) {
+            current += 1;
+            cursor = Some(d - 1);
+        } else {
+            break;
+        }
+    }
+
+    json!({
+        "current": current,
+        "best": max_contig.max(current)
+    })
+}
+

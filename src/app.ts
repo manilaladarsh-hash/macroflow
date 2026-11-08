@@ -600,19 +600,16 @@ function renderAll() {
 
 // Activity-style rings: a full turn is 100% of the target; past 100% a second lap is drawn.
 const RING_RADII = { kcal: 87, protein: 65, carbs: 43, fat: 21 };
-function setRing(name, fraction) {
+function setRing(name: string, fraction: number) {
     const arc = document.getElementById(`ring-${name}`);
     const lap = document.getElementById(`ring-${name}-lap`);
     if (!arc || !lap) return;
-    const c = 2 * Math.PI * RING_RADII[name];
-    const f = Math.max(0, Number.isFinite(fraction) ? fraction : 0);
-    const extra = Math.min(1, Math.max(0, f - 1));
-    arc.style.strokeDasharray = lap.style.strokeDasharray = `${c.toFixed(2)} ${c.toFixed(2)}`;
-    arc.style.strokeDashoffset = (c * (1 - Math.min(1, f))).toFixed(2);
-    lap.style.strokeDashoffset = (c * (1 - extra)).toFixed(2);
-    // A zero-length arc would still show its round cap as a dot.
-    arc.style.opacity = f > 0.005 ? '1' : '0';
-    lap.style.opacity = extra > 0.005 ? '1' : '0';
+    const m = rustWasm.ringStrokeMetrics(name, fraction);
+    arc.style.strokeDasharray = lap.style.strokeDasharray = m.dasharray;
+    arc.style.strokeDashoffset = m.dashoffset;
+    lap.style.strokeDashoffset = m.lapDashoffset;
+    arc.style.opacity = m.opacity;
+    lap.style.opacity = m.lapOpacity;
 }
 
 
@@ -1598,29 +1595,7 @@ function calculateStreak() {
         return;
     }
 
-    const todayStr = localDateKey();
-    const yesterdayStr = localDateKey(localDayOffset(-1));
-    const hasToday = logDates.includes(todayStr);
-    const hasYesterday = logDates.includes(yesterdayStr);
-
-    let currentStreak = 0;
-    if (hasToday || hasYesterday) {
-        const checkDate = new Date((hasToday ? todayStr : yesterdayStr) + 'T12:00:00');
-        while (logDates.includes(localDateKey(checkDate))) {
-            currentStreak++;
-            checkDate.setDate(checkDate.getDate() - 1);
-        }
-    }
-
-    let maxContig = 0;
-    let tempContig = 1;
-    for (let i = 1; i < logDates.length; i++) {
-        const diffDays = Math.round((new Date(logDates[i] + 'T12:00:00').getTime() - new Date(logDates[i - 1] + 'T12:00:00').getTime()) / 86400000);
-        if (diffDays === 1) tempContig++;
-        else if (diffDays > 1) { maxContig = Math.max(maxContig, tempContig); tempContig = 1; }
-    }
-    maxContig = Math.max(maxContig, tempContig);
-
+    const { current: currentStreak, best: maxContig } = rustWasm.calculateStreakMetrics(logDates, localDateKey());
     const bestStreak = Math.max(appState.bestStreak || 0, currentStreak, maxContig);
     appState.bestStreak = bestStreak;
     setStreakText(currentStreak, bestStreak);

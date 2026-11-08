@@ -5,7 +5,9 @@ pub mod barcode;
 pub mod health;
 pub mod nutrition;
 pub mod search;
+pub mod staples;
 pub mod types;
+pub mod ui_shell;
 
 use crate::json::{IntoValue, Value};
 use std::cell::RefCell;
@@ -643,11 +645,86 @@ pub unsafe extern "C" fn wasm_merge_health_results(
 }
 
 // ============================================================================
+// UI Shell, Design System & Staple Food Database FFI exports
+// ============================================================================
+
+#[no_mangle]
+pub extern "C" fn wasm_app_stylesheet() -> usize {
+    set_result(ui_shell::app_stylesheet().to_string())
+}
+
+#[no_mangle]
+pub extern "C" fn wasm_app_shell_html() -> usize {
+    set_result(ui_shell::app_shell_html())
+}
+
+#[no_mangle]
+pub extern "C" fn wasm_micronutrient_definitions() -> usize {
+    set_json_result(&staples::micronutrient_definitions_value())
+}
+
+#[no_mangle]
+pub extern "C" fn wasm_upper_limits() -> usize {
+    set_json_result(&staples::upper_limits_value())
+}
+
+#[no_mangle]
+pub extern "C" fn wasm_rda_profiles() -> usize {
+    set_json_result(&staples::rda_profiles_value())
+}
+
+#[no_mangle]
+pub extern "C" fn wasm_initial_staple_foods() -> usize {
+    set_json_result(&staples::initial_staple_foods_value())
+}
+
+#[no_mangle]
+pub extern "C" fn wasm_full_staple_foods() -> usize {
+    set_json_result(&staples::full_staple_foods_value())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wasm_ring_stroke_metrics(
+    name_ptr: *const u8,
+    name_len: usize,
+    fraction: f64,
+) -> usize {
+    let name = unsafe { str_from_raw(name_ptr, name_len) };
+    set_json_result(&analytics::ring_stroke_metrics(name, fraction))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wasm_calculate_streak_metrics(
+    dates_ptr: *const u8,
+    dates_len: usize,
+    today_ptr: *const u8,
+    today_len: usize,
+) -> usize {
+    let dates_str = unsafe { str_from_raw(dates_ptr, dates_len) };
+    let today_str = unsafe { str_from_raw(today_ptr, today_len) };
+    let dates: Vec<String> = json::from_str(dates_str)
+        .ok()
+        .and_then(|v| v.as_array().cloned())
+        .map(|arr| {
+            arr.into_iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let today_days = analytics::parse_ymd_to_days(today_str).unwrap_or(0);
+    set_json_result(&analytics::calculate_streak_metrics(&dates, today_days))
+}
+
+// ============================================================================
 // Rust Self-Test Suite (callable in Wasm)
 // ============================================================================
 
 #[no_mangle]
 pub extern "C" fn wasm_run_self_tests() -> u32 {
+    assert!(!ui_shell::app_stylesheet().is_empty());
+    assert!(ui_shell::app_shell_html().contains("id=\"tab-content-nutrition\""));
+    assert_eq!(staples::MICRONUTRIENT_DEFS.len(), 26);
+    assert_eq!(staples::INITIAL_STAPLE_FOODS.len(), 44);
     // 1. Barcode tests
     assert_eq!(barcode::gtin_check_digit("301762042200"), 3);
     assert!(barcode::is_valid_gtin("3017620422003"));

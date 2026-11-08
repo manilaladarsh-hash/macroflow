@@ -72,6 +72,17 @@ interface MacroFlowWasmExports {
     wasm_parse_health_file(namePtr: number, nameLen: number, textPtr: number, textLen: number): number;
     wasm_merge_health_results(resPtr: number, resLen: number, unitPtr: number, unitLen: number): number;
 
+    // UI Shell, Design System & Staple Food Database
+    wasm_app_stylesheet(): number;
+    wasm_app_shell_html(): number;
+    wasm_micronutrient_definitions(): number;
+    wasm_upper_limits(): number;
+    wasm_rda_profiles(): number;
+    wasm_initial_staple_foods(): number;
+    wasm_full_staple_foods(): number;
+    wasm_ring_stroke_metrics(namePtr: number, nameLen: number, fraction: number): number;
+    wasm_calculate_streak_metrics(datesPtr: number, datesLen: number, todayPtr: number, todayLen: number): number;
+
     // Rust Self-Test Suite
     wasm_run_self_tests(): number;
 }
@@ -455,6 +466,66 @@ const rustWasm = (() => {
                 raw.wasm_merge_health_results(p1, l1, p2, l2)
             );
             return readResultJson<MergedHealthSummary>();
+        },
+
+        // UI Shell, Design System & Staple Food Database
+        appStylesheet(): string {
+            raw.wasm_app_stylesheet();
+            return readResultString();
+        },
+        appShellHtml(): string {
+            raw.wasm_app_shell_html();
+            return readResultString();
+        },
+        micronutrientDefinitions(): MicronutrientDefinition[] {
+            raw.wasm_micronutrient_definitions();
+            return readResultJson<MicronutrientDefinition[]>();
+        },
+        upperLimits(): Record<string, number> {
+            raw.wasm_upper_limits();
+            return readResultJson<Record<string, number>>();
+        },
+        rdaProfiles(): Record<string, Record<string, number>> {
+            raw.wasm_rda_profiles();
+            return readResultJson<Record<string, Record<string, number>>>();
+        },
+        initialStapleFoods(): FoodItem[] {
+            raw.wasm_initial_staple_foods();
+            return readResultJson<FoodItem[]>();
+        },
+        fullStapleFoods(): FoodItem[] {
+            raw.wasm_full_staple_foods();
+            return readResultJson<FoodItem[]>();
+        },
+        ringStrokeMetrics(name: string, fraction: number): {
+            dasharray: string;
+            dashoffset: string;
+            opacity: string;
+            lapDashoffset: string;
+            lapOpacity: string;
+        } {
+            withStr(String(name ?? ''), (p, l) => raw.wasm_ring_stroke_metrics(p, l, Number(fraction)));
+            return readResultJson();
+        },
+        calculateStreakMetrics(logDates: string[], todayKey: string): { current: number; best: number } {
+            withTwoStrs(JSON.stringify(logDates || []), String(todayKey ?? ''), (p1, l1, p2, l2) =>
+                raw.wasm_calculate_streak_metrics(p1, l1, p2, l2)
+            );
+            return readResultJson<{ current: number; best: number }>();
+        },
+        mountAppShell(): void {
+            if (typeof document === 'undefined') return;
+            const styleEl = document.getElementById('mf-style');
+            if (styleEl && !styleEl.textContent) {
+                styleEl.textContent = this.appStylesheet();
+            }
+            const rootEl = document.getElementById('mf-root');
+            if (rootEl && !rootEl.innerHTML) {
+                rootEl.innerHTML = this.appShellHtml();
+            }
         }
     };
 })();
+
+rustWasm.mountAppShell();
+
