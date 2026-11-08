@@ -58,123 +58,296 @@ pub fn parse_csv(text: &str) -> Vec<Vec<String>> {
     rows
 }
 
-fn month_from_name(name: &str) -> Option<u32> {
-    match name.to_ascii_lowercase().get(0..3)? {
-        "jan" => Some(1),
-        "feb" => Some(2),
-        "mar" => Some(3),
-        "apr" => Some(4),
-        "may" => Some(5),
-        "jun" => Some(6),
-        "jul" => Some(7),
-        "aug" => Some(8),
-        "sep" => Some(9),
-        "oct" => Some(10),
-        "nov" => Some(11),
-        "dec" => Some(12),
-        _ => None,
+// ---------------------------------------------------------------------------
+// Date reading (Apple Health Shortcut output and health files)
+// ---------------------------------------------------------------------------
+// The Shortcut prints dates however the iPhone is set up: "Nov 7, 2026 at
+// 12:00 AM", "11/7/26, 12:00 AM", "7.11.2026, 00:00", ISO 8601 with an
+// offset, and so on. Each one is turned into a local YYYY-MM-DD key.
+
+#[derive(Debug, Clone, Default)]
+pub struct DateOptions {
+    /// Minutes east of UTC on the user's device (e.g. -300 for EST). When set,
+    /// zoned timestamps (`Z`, `+02:00`) and Unix times become the local day.
+    pub tz_offset_min: Option<i32>,
+    /// For ambiguous `a/b/yyyy` dates: true = month first (US), false = day first.
+    pub month_first: Option<bool>,
+    /// Today's local key (YYYY-MM-DD), used to read "Today" and "Yesterday".
+    pub today: Option<String>,
+}
+
+fn days_in_month(y: i64, m: u32) -> u32 {
+    match m {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if (y % 4 == 0 && y % 100 != 0) || y % 400 == 0 => 29,
+        2 => 28,
+        _ => 0,
     }
 }
 
-pub fn parse_health_date_str(raw: &str) -> Option<String> {
-    let s = raw.trim();
+// Howard Hinnant's civil-date algorithms (proleptic Gregorian).
+pub fn days_from_civil(y: i64, m: u32, d: u32) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = (if y >= 0 { y } else { y - 399 }) / 400;
+    let yoe = y - era * 400;
+    let mp = (m as i64 + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d as i64 - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146097 + doe - 719468
+}
+
+pub fn civil_from_days(z: i64) -> (i64, u32, u32) {
+    let z = z + 719468;
+    let era = (if z >= 0 { z } else { z - 146096 }) / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = (if mp < 10 { mp + 3 } else { mp - 9 }) as u32;
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+fn ymd_key(y: i64, m: u32, d: u32) -> Option<String> {
+    if !(1900..=2200).contains(&y) || !(1..=12).contains(&m) || d == 0 || d > days_in_month(y, m) {
+        return None;
+    }
+    Some(format!("{:04}-{:02}-{:02}", y, m, d))
+}
+
+fn key_from_epoch_minutes(minutes: i64) -> Option<String> {
+    let (y, m, d) = civil_from_days(minutes.div_euclid(1440));
+    ymd_key(y, m, d)
+}
+
+fn parse_key(key: &str) -> Option<(i64, u32, u32)> {
+    let b = key.as_bytes();
+    if b.len() != 10 || b[4] != b'-' || b[7] != b'-' {
+        return None;
+    }
+    Some((key[0..4].parse().ok()?, key[5..7].parse().ok()?, key[8..10].parse().ok()?))
+}
+
+pub fn shift_date_key(key: &str, delta_days: i64) -> Option<String> {
+    let (y, m, d) = parse_key(key)?;
+    let (y2, m2, d2) = civil_from_days(days_from_civil(y, m, d) + delta_days);
+    ymd_key(y2, m2, d2)
+}
+
+fn month_from_name(name: &str) -> Option<u32> {
+    let w = name.trim_end_matches('.').to_lowercase();
+    if w.chars().count() < 3 || !w.chars().all(|c| c.is_alphabetic()) {
+        return None;
+    }
+    let p: String = w.chars().take(3).collect();
+    // English first, then common European spellings iPhones print.
+    Some(match p.as_str() {
+        "jan" | "ene" | "gen" => 1,
+        "feb" | "fév" | "fev" => 2,
+        "mar" | "mär" | "mrz" => 3,
+        "apr" | "abr" | "avr" => 4,
+        "may" | "mai" | "mag" => 5,
+        "jun" | "giu" => 6,
+        "jul" | "lug" => 7,
+        "aug" | "ago" | "aoû" | "aou" => 8,
+        "sep" | "set" => 9,
+        "oct" | "okt" | "ott" => 10,
+        "nov" => 11,
+        "dec" | "dez" | "dic" | "déc" => 12,
+        _ => return None,
+    })
+}
+
+fn is_weekday(word: &str) -> bool {
+    matches!(
+        word.trim_end_matches('.').to_lowercase().as_str(),
+        "mon" | "monday" | "tue" | "tues" | "tuesday" | "wed" | "wednesday" | "thu" | "thur"
+            | "thurs" | "thursday" | "fri" | "friday" | "sat" | "saturday" | "sun" | "sunday"
+    )
+}
+
+fn digits(s: &str) -> bool {
+    !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// A zone suffix like `Z`, `UTC`, `+02:00`, `-0500` or `+05` → minutes east of UTC.
+fn parse_zone(rest: &str) -> Option<i32> {
+    let z = rest.trim();
+    if z.eq_ignore_ascii_case("z") || z.eq_ignore_ascii_case("utc") || z.eq_ignore_ascii_case("gmt") {
+        return Some(0);
+    }
+    let z = z
+        .strip_prefix("UTC")
+        .or_else(|| z.strip_prefix("GMT"))
+        .unwrap_or(z);
+    let sign = match z.chars().next()? {
+        '+' => 1,
+        '-' | '\u{2212}' => -1,
+        _ => return None,
+    };
+    let body: String = z.chars().skip(1).filter(|c| *c != ':').collect();
+    if !digits(&body) {
+        return None;
+    }
+    let (h, m) = match body.len() {
+        1 | 2 => (body.parse::<i32>().ok()?, 0),
+        4 => (body[0..2].parse::<i32>().ok()?, body[2..4].parse::<i32>().ok()?),
+        _ => return None,
+    };
+    if h > 14 || m > 59 {
+        return None;
+    }
+    Some(sign * (h * 60 + m))
+}
+
+/// `YYYY-MM-DD` / `YYYY/MM/DD`, optionally followed by `[T ]HH:MM[:SS[.fff]]` and a zone.
+fn parse_iso_like(s: &str) -> Option<((i64, u32, u32), Option<(i64, i64)>, Option<i32>)> {
+    let b = s.as_bytes();
+    if b.len() < 10 || !(b[4] == b'-' || b[4] == b'/') || b[7] != b[4] {
+        return None;
+    }
+    if !digits(&s[0..4]) || !digits(&s[5..7]) || !digits(&s[8..10]) {
+        return None;
+    }
+    let date = (s[0..4].parse().ok()?, s[5..7].parse().ok()?, s[8..10].parse().ok()?);
+    let rest = &s[10..];
+    if rest.is_empty() {
+        return Some((date, None, None));
+    }
+    if rest.as_bytes()[0].is_ascii_digit() {
+        return None;
+    }
+    let rb = rest.as_bytes();
+    if rb.len() >= 6 && (rb[0] == b'T' || rb[0] == b' ') && rb[3] == b':' && digits(&rest[1..3]) && digits(&rest[4..6]) {
+        let h: i64 = rest[1..3].parse().ok()?;
+        let mi: i64 = rest[4..6].parse().ok()?;
+        let mut tail = &rest[6..];
+        if tail.len() >= 3 && tail.as_bytes()[0] == b':' && digits(&tail[1..3]) {
+            tail = &tail[3..];
+            if let Some(frac) = tail.strip_prefix('.') {
+                let n = frac.bytes().take_while(|c| c.is_ascii_digit()).count();
+                tail = &frac[n..];
+            }
+        }
+        return Some((date, Some((h, mi)), parse_zone(tail)));
+    }
+    Some((date, None, None))
+}
+
+/// Reads one date into a local YYYY-MM-DD key, or `None` if it isn't a date.
+pub fn parse_health_date_opts(raw: &str, opts: &DateOptions) -> Option<String> {
+    let cleaned: String = raw
+        .chars()
+        .map(|c| if matches!(c, '\u{a0}' | '\u{202f}' | '\u{2009}') { ' ' } else { c })
+        .collect();
+    let s = cleaned.trim().trim_matches(|c| c == '"' || c == '\'').trim();
     if s.is_empty() {
         return None;
     }
 
-    // 1. YYYY-MM-DD
-    if s.len() == 10 {
-        let b = s.as_bytes();
-        if b[4] == b'-'
-            && b[7] == b'-'
-            && b[0..4].iter().all(|c| c.is_ascii_digit())
-            && b[5..7].iter().all(|c| c.is_ascii_digit())
-            && b[8..10].iter().all(|c| c.is_ascii_digit())
-        {
-            return Some(s.to_string());
+    // Unix seconds or milliseconds.
+    if (10..=13).contains(&s.len()) && digits(s) {
+        let n: i64 = s.parse().ok()?;
+        let ms = if n < 1_000_000_000_000 { n * 1000 } else { n };
+        return key_from_epoch_minutes(ms.div_euclid(60_000) + opts.tz_offset_min.unwrap_or(0) as i64);
+    }
+
+    // YYYYMMDD
+    if s.len() == 8 && digits(s) {
+        return ymd_key(s[0..4].parse().ok()?, s[4..6].parse().ok()?, s[6..8].parse().ok()?);
+    }
+
+    // ISO 8601 and friends. A zoned timestamp becomes the device's local day;
+    // a naive one keeps the date it shows.
+    if let Some(((y, m, d), time, zone)) = parse_iso_like(s) {
+        if let (Some((h, mi)), Some(z), Some(local)) = (time, zone, opts.tz_offset_min) {
+            ymd_key(y, m, d)?;
+            let minutes = days_from_civil(y, m, d) * 1440 + h * 60 + mi - z as i64 + local as i64;
+            return key_from_epoch_minutes(minutes);
         }
+        return ymd_key(y, m, d);
     }
 
-    // 2. YYYYMMDD
-    if s.len() == 8 && s.bytes().all(|b| b.is_ascii_digit()) {
-        return Some(format!("{}-{}-{}", &s[0..4], &s[4..6], &s[6..8]));
-    }
-
-    // 3. YYYY-MM-DD[T ]HH:MM...
-    if s.len() >= 16 {
-        let b = s.as_bytes();
-        if b[4] == b'-'
-            && b[7] == b'-'
-            && (b[10] == b'T' || b[10] == b' ')
-            && b[13] == b':'
-            && b[0..4].iter().all(|c| c.is_ascii_digit())
-            && b[5..7].iter().all(|c| c.is_ascii_digit())
-            && b[8..10].iter().all(|c| c.is_ascii_digit())
-            && b[11..13].iter().all(|c| c.is_ascii_digit())
-            && b[14..16].iter().all(|c| c.is_ascii_digit())
-        {
-            return Some(s[0..10].to_string());
-        }
-    }
-
-    // 4. US M/D/Y (e.g. 10/09/26 08:00:00 or 10/09/2026)
-    let token = s.split_whitespace().next().unwrap_or("");
-    let slash_parts: Vec<&str> = token.split('/').collect();
-    if slash_parts.len() == 3
-        && slash_parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
-    {
-        let month: u32 = slash_parts[0].parse().ok()?;
-        let day: u32 = slash_parts[1].parse().ok()?;
-        let y_raw: u32 = slash_parts[2].parse().ok()?;
-        let year = if slash_parts[2].len() == 2 {
-            2000 + y_raw
-        } else if slash_parts[2].len() == 4 {
-            y_raw
-        } else {
-            return None;
-        };
-        if (1..=12).contains(&month) && (1..=31).contains(&day) {
-            return Some(format!("{:04}-{:02}-{:02}", year, month, day));
-        }
-    }
-
-    // 5. D.M.YYYY (e.g. 09.10.2026)
-    let dot_parts: Vec<&str> = token.split('.').collect();
-    if dot_parts.len() == 3
-        && dot_parts[2].len() == 4
-        && dot_parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
-    {
-        let day: u32 = dot_parts[0].parse().ok()?;
-        let month: u32 = dot_parts[1].parse().ok()?;
-        let year: u32 = dot_parts[2].parse().ok()?;
-        if (1..=12).contains(&month) && (1..=31).contains(&day) {
-            return Some(format!("{:04}-{:02}-{:02}", year, month, day));
-        }
-    }
-
-    // 6. Month name formats like "Oct 15, 2026" or "15 Oct 2026"
-    let cleaned: String = s
-        .chars()
-        .map(|c| if c == ',' { ' ' } else { c })
+    let words: Vec<String> = s
+        .replace(',', " ")
+        .split_whitespace()
+        .map(|w| w.to_string())
         .collect();
-    let words: Vec<&str> = cleaned.split_whitespace().collect();
-    if words.len() >= 3 {
-        if let Some(m) = month_from_name(words[0]) {
-            if let (Ok(d), Ok(y)) = (words[1].parse::<u32>(), words[2].parse::<u32>()) {
-                if (1..=31).contains(&d) && (1900..=2100).contains(&y) {
-                    return Some(format!("{:04}-{:02}-{:02}", y, m, d));
-                }
-            }
-        } else if let Some(m) = month_from_name(words[1]) {
-            if let (Ok(d), Ok(y)) = (words[0].parse::<u32>(), words[2].parse::<u32>()) {
-                if (1..=31).contains(&d) && (1900..=2100).contains(&y) {
-                    return Some(format!("{:04}-{:02}-{:02}", y, m, d));
-                }
-            }
+
+    // "Today at 7:00 AM" / "Yesterday at 12:00 AM"
+    if let (Some(first), Some(today)) = (words.first(), opts.today.as_deref()) {
+        match first.to_lowercase().as_str() {
+            "today" => return shift_date_key(today, 0),
+            "yesterday" => return shift_date_key(today, -1),
+            _ => {}
         }
     }
 
-    None
+    // Numeric dates: 11/7/26, 7.11.2026, 07-11-2026 (with or without a trailing comma).
+    let token = s
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .trim_end_matches(|c| c == ',' || c == ';' || c == '.');
+    for sep in ['/', '.', '-'] {
+        let parts: Vec<&str> = token.split(sep).collect();
+        if parts.len() != 3 || !parts.iter().all(|p| digits(p) && p.len() <= 4) {
+            continue;
+        }
+        let (a, b, c): (u32, u32, u32) = (parts[0].parse().ok()?, parts[1].parse().ok()?, parts[2].parse().ok()?);
+        if parts[0].len() == 4 {
+            return ymd_key(a as i64, b, c);
+        }
+        let year = match parts[2].len() {
+            2 => 2000 + c as i64,
+            4 => c as i64,
+            _ => return None,
+        };
+        let month_first = if a > 12 && b <= 12 {
+            false
+        } else if b > 12 && a <= 12 {
+            true
+        } else if sep == '/' {
+            opts.month_first.unwrap_or(true)
+        } else {
+            false
+        };
+        return if month_first { ymd_key(year, a, b) } else { ymd_key(year, b, a) };
+    }
+
+    // Month names: "Nov 7, 2026 at 12:00 AM", "Saturday, November 7, 2026",
+    // "7 Nov 2026 at 00:00", "7. Nov. 2026", "November 7th, 2026".
+    let tokens: Vec<String> = words
+        .iter()
+        .map(|w| w.trim_end_matches('.').to_string())
+        .filter(|w| !w.is_empty() && !is_weekday(w))
+        .collect();
+    let number = |w: &str| -> Option<u32> {
+        let t = w.trim_end_matches(|c: char| c.is_ascii_alphabetic());
+        if digits(t) && t.len() <= 4 { t.parse().ok() } else { None }
+    };
+    let month_idx = tokens.iter().position(|w| month_from_name(w).is_some())?;
+    let month = month_from_name(&tokens[month_idx])?;
+    let year_idx = tokens
+        .iter()
+        .position(|w| digits(w) && w.len() == 4 && (1900..=2200).contains(&w.parse::<u32>().unwrap_or(0)))?;
+    let year: i64 = tokens[year_idx].parse().ok()?;
+    let day_at = |i: Option<usize>| -> Option<u32> {
+        let i = i?;
+        if i == year_idx {
+            return None;
+        }
+        number(tokens.get(i)?).filter(|d| (1..=31).contains(d))
+    };
+    let day = day_at(Some(month_idx + 1)).or_else(|| day_at(month_idx.checked_sub(1)))?;
+    ymd_key(year, month, day)
+}
+
+/// Date reading for file imports (no device time zone or locale hints).
+pub fn parse_health_date_str(raw: &str) -> Option<String> {
+    parse_health_date_opts(raw, &DateOptions::default())
 }
 
 pub fn health_number(value: &Value) -> Option<f64> {
@@ -433,31 +606,61 @@ pub fn parse_shortcut_value(raw: &str, metric: &str) -> Option<ShortcutValue> {
 
 fn shortcut_metric_canonical(name: &str) -> Option<&'static str> {
     match name {
-        "steps" | "step" | "step_count" => Some("steps"),
-        "active" | "active_kcal" | "active_energy" | "active_calories" => Some("active"),
-        "resting" | "resting_kcal" | "resting_energy" | "basal" | "basal_energy" => Some("resting"),
-        "weight" | "weight_kg" | "weight_lb" | "weight_lbs" | "body_mass" => Some("weight"),
+        "steps" | "step" | "step_count" | "steps_count" => Some("steps"),
+        "active" | "active_kcal" | "active_energy" | "active_calories" | "active_energy_burned" => Some("active"),
+        "resting" | "resting_kcal" | "resting_energy" | "resting_calories" | "basal" | "basal_energy"
+        | "basal_energy_burned" => Some("resting"),
+        "weight" | "weight_kg" | "weight_lb" | "weight_lbs" | "body_mass" | "body_weight" => Some("weight"),
         _ => None,
     }
 }
 
-pub fn parse_shortcut_line(line: &str) -> Option<ShortcutLineParsed> {
-    let sep_idx = line.find(|c: char| c == ';' || c == ',' || c == '\t' || c == '|')?;
+#[derive(Debug, Clone, Default)]
+pub struct ShortcutOptions {
+    pub date: DateOptions,
+    /// Unit for weights printed without one ("kg" or "lbs"); kg when unset.
+    pub weight_unit: Option<String>,
+}
+
+impl ShortcutOptions {
+    pub fn from_value(v: &Value) -> Self {
+        let int = |k: &str| v.get(k).and_then(|x| x.as_f64()).filter(|x| x.is_finite()).map(|x| x as i32);
+        let text = |k: &str| v.get(k).and_then(|x| x.as_str()).map(|s| s.to_string()).filter(|s| !s.is_empty());
+        ShortcutOptions {
+            date: DateOptions {
+                tz_offset_min: int("tzOffsetMinutes"),
+                month_first: v.get("monthFirst").and_then(|x| x.as_bool()),
+                today: text("today"),
+            },
+            weight_unit: text("weightUnit"),
+        }
+    }
+}
+
+pub const SHORTCUT_REASON_SEPARATOR: &str = "No ; between the label, the date and the number.";
+pub const SHORTCUT_REASON_LABEL: &str = "The line should start with steps, active, resting or weight.";
+pub const SHORTCUT_REASON_DATE: &str = "The date couldn't be read. In the Text action, tap the date and pick Start Date.";
+pub const SHORTCUT_REASON_VALUE: &str = "The number couldn't be read. In the Text action, tap the last item and pick Value.";
+
+/// One Shortcut line, e.g. `steps;Nov 7, 2026 at 12:00 AM;8,432`. On failure,
+/// returns a short reason that is shown to the user.
+pub fn parse_shortcut_line_opts(line: &str, opts: &ShortcutOptions) -> Result<ShortcutLineParsed, &'static str> {
+    let sep_idx = line
+        .find(|c: char| c == ';' || c == ',' || c == '\t' || c == '|')
+        .ok_or(SHORTCUT_REASON_SEPARATOR)?;
     let raw_metric = line[..sep_idx].trim();
-    if raw_metric.is_empty()
-        || !raw_metric.chars().next()?.is_ascii_alphabetic()
-        || !raw_metric
-            .chars()
-            .all(|c| c.is_ascii_alphabetic() || c == ' ' || c == '_')
-    {
-        return None;
+    let label_ok = raw_metric.chars().next().map_or(false, |c| c.is_ascii_alphabetic())
+        && raw_metric.chars().all(|c| c.is_ascii_alphabetic() || c == ' ' || c == '_');
+    if !label_ok {
+        return Err(SHORTCUT_REASON_LABEL);
     }
     let metric_name = raw_metric
         .to_ascii_lowercase()
-        .split_whitespace()
+        .split(|c: char| c == ' ' || c == '_')
+        .filter(|w| !w.is_empty())
         .collect::<Vec<_>>()
         .join("_");
-    let metric = shortcut_metric_canonical(&metric_name)?;
+    let metric = shortcut_metric_canonical(&metric_name).ok_or(SHORTCUT_REASON_LABEL)?;
 
     let rest = line[sep_idx + 1..].trim();
     let has_primary_sep = rest.contains(';') || rest.contains('\t') || rest.contains('|');
@@ -467,38 +670,38 @@ pub fn parse_shortcut_line(line: &str) -> Option<ShortcutLineParsed> {
             .split(|c: char| c == ';' || c == '\t' || c == '|')
             .map(|s| s.trim())
             .collect();
-        if parts.len() < 2 {
-            return None;
-        }
-        (parse_health_date_str(parts[0]), parts[1..].join(" "))
+        (parse_health_date_opts(parts[0], &opts.date), parts[1..].join(" "))
     } else {
+        // Commas only: "Oct 15, 2026, 8432" keeps decimal commas in the value.
         let parts: Vec<&str> = rest.split(',').map(|s| s.trim()).collect();
-        if parts.is_empty() {
-            return None;
+        let mut found = (None, String::new());
+        for take in 1..parts.len() {
+            let candidate = parts[..take].join(", ");
+            if let Some(d) = parse_health_date_opts(&candidate, &opts.date) {
+                found = (Some(d), parts[take..].join(","));
+                break;
+            }
         }
-        let d1 = parse_health_date_str(parts[0]);
-        if d1.is_some() {
-            (d1, parts[1..].join(","))
-        } else if parts.len() >= 3 {
-            let combined = format!("{}, {}", parts[0], parts[1]);
-            (parse_health_date_str(&combined), parts[2..].join(","))
-        } else {
-            (None, String::new())
+        if found.0.is_none() && parts.len() == 1 {
+            return Err(SHORTCUT_REASON_SEPARATOR);
         }
+        found
     };
 
-    let date = date?;
-    let parsed = parse_shortcut_value(&value_text, metric)?;
+    let date = date.ok_or(SHORTCUT_REASON_DATE)?;
+    let parsed = parse_shortcut_value(&value_text, metric).ok_or(SHORTCUT_REASON_VALUE)?;
     if parsed.value < 0.0 {
-        return None;
+        return Err(SHORTCUT_REASON_VALUE);
     }
 
     let mut value = parsed.value;
     let unit = parsed.unit.as_str();
     if metric == "weight" {
+        let named_lb = metric_name.ends_with("_lb") || metric_name.ends_with("_lbs");
+        let named_kg = metric_name.ends_with("_kg");
+        let default_lb = matches!(opts.weight_unit.as_deref(), Some("lbs") | Some("lb"));
         let is_lb = matches!(unit, "lb" | "lbs" | "pound" | "pounds")
-            || (unit.is_empty()
-                && (metric_name.ends_with("_lb") || metric_name.ends_with("_lbs")));
+            || (unit.is_empty() && (named_lb || (!named_kg && default_lb)));
         if unit == "st" {
             value *= 6.35029;
         } else if is_lb {
@@ -506,67 +709,130 @@ pub fn parse_shortcut_line(line: &str) -> Option<ShortcutLineParsed> {
         } else if unit == "g" {
             value /= 1000.0;
         }
-    } else if metric != "steps" && unit == "kj" {
+    } else if metric != "steps" && (unit == "kj" || unit == "kilojoules") {
         value /= 4.184;
     }
 
-    Some(ShortcutLineParsed {
+    Ok(ShortcutLineParsed {
         metric: metric.to_string(),
         date,
         value,
     })
 }
 
+pub fn parse_shortcut_line(line: &str) -> Option<ShortcutLineParsed> {
+    parse_shortcut_line_opts(line, &ShortcutOptions::default()).ok()
+}
+
 fn is_shortcut_header(line: &str) -> bool {
     let t = line.trim().to_ascii_lowercase();
-    if let Some(rest) = t.strip_prefix("macroflow health v1") {
+    if let Some(rest) = t.strip_prefix("macroflow health") {
+        let rest = rest.trim_start();
         rest.is_empty()
-            || !rest
-                .chars()
-                .next()
-                .map(|c| c.is_ascii_alphanumeric() || c == '_')
-                .unwrap_or(false)
+            || rest.starts_with("v1")
+                && !rest[2..]
+                    .chars()
+                    .next()
+                    .map(|c| c.is_ascii_alphanumeric() || c == '_')
+                    .unwrap_or(false)
     } else {
         false
     }
 }
 
-pub fn parse_shortcut_payload(text: &str, require_header: bool) -> Option<Value> {
+/// Settles `a/b/yyyy` for the whole paste: one date with a part over 12 decides
+/// whether this iPhone prints the month or the day first.
+fn infer_month_first(lines: &[&str]) -> Option<bool> {
+    for line in lines {
+        for token in line.split(|c: char| c == ';' || c == '\t' || c == '|' || c == ',' || c.is_whitespace()) {
+            let parts: Vec<&str> = token.split('/').collect();
+            if parts.len() != 3 || !parts.iter().all(|p| digits(p)) || parts[0].len() > 2 {
+                continue;
+            }
+            let (a, b) = (parts[0].parse::<u32>().ok()?, parts[1].parse::<u32>().ok()?);
+            if a > 12 && b <= 12 {
+                return Some(false);
+            }
+            if b > 12 && a <= 12 {
+                return Some(true);
+            }
+        }
+    }
+    None
+}
+
+fn shorten(line: &str, max: usize) -> String {
+    if line.chars().count() <= max {
+        line.to_string()
+    } else {
+        let mut s: String = line.chars().take(max).collect();
+        s.push('…');
+        s
+    }
+}
+
+/// Reads the Shortcut's output and says what was understood:
+/// `{ summary, header, lines, parsed, problems: [{ line, reason }] }`.
+/// `summary` is the import summary for `applyHealthImport`, or null.
+pub fn shortcut_report(text: &str, require_header: bool, opts: &ShortcutOptions) -> Value {
     let stripped = text.strip_prefix('\u{feff}').unwrap_or(text);
     let lines: Vec<&str> = stripped
         .split(['\r', '\n'])
         .map(|l| l.trim())
         .filter(|l| !l.is_empty())
         .collect();
-    if lines.is_empty() {
-        return None;
-    }
-    let has_header = is_shortcut_header(lines[0]);
-    if require_header && !has_header {
-        return None;
+    let has_header = lines.first().map_or(false, |l| is_shortcut_header(l));
+    let data_lines: &[&str] = if has_header { &lines[1..] } else { &lines[..] };
+
+    let mut opts = opts.clone();
+    if let Some(mf) = infer_month_first(data_lines) {
+        opts.date.month_first = Some(mf);
     }
 
-    let data_lines = if has_header { &lines[1..] } else { &lines[..] };
     let mut raw: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
     let mut rows = 0usize;
+    let mut problems: Vec<Value> = Vec::new();
+    let mut problem_count = 0usize;
 
     for line in data_lines {
-        if let Some(r) = parse_shortcut_line(line) {
-            let day = raw.entry(r.date).or_default();
-            if r.metric == "weight" {
-                day.insert(r.metric, r.value);
-            } else {
-                let prev = day.get(&r.metric).copied().unwrap_or(0.0);
-                day.insert(r.metric, prev + r.value);
+        match parse_shortcut_line_opts(line, &opts) {
+            Ok(r) => {
+                let day = raw.entry(r.date).or_default();
+                // Ungrouped samples add up; weight keeps the last reading of the day.
+                if r.metric == "weight" {
+                    day.insert(r.metric, r.value);
+                } else {
+                    let prev = day.get(&r.metric).copied().unwrap_or(0.0);
+                    day.insert(r.metric, prev + r.value);
+                }
+                rows += 1;
             }
-            rows += 1;
+            Err(reason) => {
+                problem_count += 1;
+                if problems.len() < 5 {
+                    problems.push(json!({ "line": shorten(line, 90), "reason": reason }));
+                }
+            }
         }
     }
 
-    if rows == 0 {
-        return None;
-    }
+    let summary = if require_header && !has_header {
+        Value::Null
+    } else {
+        build_shortcut_summary(raw).unwrap_or(Value::Null)
+    };
 
+    json!({
+        "summary": summary,
+        "header": has_header,
+        "lines": data_lines.len(),
+        "parsed": rows,
+        "problemCount": problem_count,
+        "problems": Value::Array(problems)
+    })
+}
+
+fn build_shortcut_summary(raw: BTreeMap<String, BTreeMap<String, f64>>) -> Option<Value> {
     let mut days = Map::new();
     let mut counts = HealthCounts::default();
 
@@ -589,10 +855,7 @@ pub fn parse_shortcut_payload(text: &str, require_header: bool) -> Option<Value>
         }
         if let Some(&weight) = d.get("weight") {
             if weight > 0.0 {
-                out.insert(
-                    "weight".to_string(),
-                    json!(js_round(weight * 100.0) / 100.0),
-                );
+                out.insert("weight".to_string(), json!(js_round(weight * 100.0) / 100.0));
                 counts.weight += 1;
             }
         }
@@ -617,6 +880,84 @@ pub fn parse_shortcut_payload(text: &str, require_header: bool) -> Option<Value>
         "from": from,
         "to": to
     }))
+}
+
+pub fn parse_shortcut_payload_opts(text: &str, require_header: bool, opts: &ShortcutOptions) -> Option<Value> {
+    match shortcut_report(text, require_header, opts).get("summary") {
+        Some(Value::Null) | None => None,
+        Some(v) => Some(v.clone()),
+    }
+}
+
+pub fn parse_shortcut_payload(text: &str, require_header: bool) -> Option<Value> {
+    parse_shortcut_payload_opts(text, require_header, &ShortcutOptions::default())
+}
+
+#[cfg(test)]
+mod shortcut_tests {
+    use super::*;
+
+    fn toronto() -> DateOptions {
+        DateOptions { tz_offset_min: Some(-240), month_first: None, today: Some("2026-10-16".into()) }
+    }
+
+    #[test]
+    fn reads_every_iphone_date_style() {
+        let o = toronto();
+        for (raw, want) in [
+            ("2026-10-15T00:00:00-04:00", "2026-10-15"),
+            ("2026-10-16T02:30:00Z", "2026-10-15"),
+            ("2026-10-15 00:00:00 -0400", "2026-10-15"),
+            ("2026-10-15T00:00:00", "2026-10-15"),
+            ("10/15/26, 12:00 AM", "2026-10-15"),
+            ("10/15/2026, 12:00\u{202f}AM", "2026-10-15"),
+            ("15/10/2026, 00:00", "2026-10-15"),
+            ("15.10.2026, 00:00", "2026-10-15"),
+            ("Oct 15, 2026 at 12:00 AM", "2026-10-15"),
+            ("October 15, 2026 at 12:00 AM", "2026-10-15"),
+            ("Thursday, October 15, 2026", "2026-10-15"),
+            ("15 Oct 2026 at 00:00", "2026-10-15"),
+            ("15. Okt. 2026 um 00:00", "2026-10-15"),
+            ("October 15th, 2026", "2026-10-15"),
+            ("Today at 7:00 AM", "2026-10-16"),
+            ("Yesterday at 12:00 AM", "2026-10-15"),
+            ("1760500800", "2025-10-15"),
+            ("20261015", "2026-10-15"),
+        ] {
+            assert_eq!(parse_health_date_opts(raw, &o).as_deref(), Some(want), "{raw}");
+        }
+        assert_eq!(parse_health_date_opts("2026-02-30", &o), None);
+        assert_eq!(parse_health_date_opts("8432 count", &o), None);
+    }
+
+    #[test]
+    fn day_first_iphones_are_detected_from_the_paste() {
+        let text = "steps;13/10/2026, 00:00;9000\nsteps;05/10/2026, 00:00;8000";
+        let r = shortcut_report(text, false, &ShortcutOptions::default());
+        let days = r.pointer("/summary/days").unwrap();
+        assert!(days.get("2026-10-13").is_some());
+        assert!(days.get("2026-10-05").is_some());
+    }
+
+    #[test]
+    fn report_explains_lines_it_cannot_read() {
+        let text = "steps;Health Sample;8432\nsteps;Oct 15, 2026 at 12:00 AM;8432";
+        let r = shortcut_report(text, false, &ShortcutOptions::default());
+        assert_eq!(r.get("parsed").and_then(|v| v.as_i64()), Some(1));
+        assert_eq!(
+            r.pointer("/problems/0/reason").and_then(|v| v.as_str()),
+            Some(SHORTCUT_REASON_DATE)
+        );
+    }
+
+    #[test]
+    fn weights_without_a_unit_use_the_profile_unit() {
+        let opts = ShortcutOptions { weight_unit: Some("lbs".into()), ..Default::default() };
+        let r = parse_shortcut_line_opts("weight;2026-10-15;172.8", &opts).unwrap();
+        assert!((r.value - 78.38).abs() < 0.01);
+        let kg = parse_shortcut_line_opts("weight;2026-10-15;78.4 kg", &opts).unwrap();
+        assert!((kg.value - 78.4).abs() < 1e-9);
+    }
 }
 
 pub fn parse_health_file(file_name: &str, text: &str) -> Value {

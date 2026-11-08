@@ -3653,9 +3653,9 @@ function renderHealthSyncStatus() {
     if (settingsEl) settingsEl.innerText = text || 'Not synced yet.';
     const row = document.getElementById('health-sync-row');
     if (row) {
-        row.classList.toggle('hidden', !(appState.lastHealthSync || isAppleMobile()));
-        // The steps line above already shows today's numbers.
-        document.getElementById('health-sync-status').innerText = appState.lastHealthSync ? `Synced ${timeAgo(appState.lastHealthSync.at)}` : '';
+        row.classList.remove('hidden');
+        const statusEl = document.getElementById('health-sync-status');
+        if (statusEl) statusEl.innerText = appState.lastHealthSync ? `Synced ${timeAgo(appState.lastHealthSync.at)}` : '';
     }
 }
 
@@ -3720,28 +3720,91 @@ async function syncFromAppleHealth() {
             readable = true;
         } catch (e) { /* blocked or dismissed: fall back to pasting by hand */ }
     }
-    const summary = parseShortcutPayload(text);
-    if (summary) {
+    const report = shortcutReport(text, { requireHeader: false });
+    if (report.summary && (report.header || report.problemCount === 0)) {
         if (isOverlayOpen('modal-health-sync')) closeHealthSync();
-        return applyShortcutSync(summary);
+        return applyShortcutSync(report.summary);
+    }
+    if (readable && text.trim() && (report.header || report.parsed > 0)) {
+        openHealthSync('diagnose', text);
+        return null;
     }
     openHealthSync(readable ? 'no-data' : 'paste');
     return null;
 }
 
-function openHealthSync(reason = 'guide') {
+function openHealthSync(reason = 'guide', prefillText = '') {
     const messages = {
-        'no-data': "Your clipboard doesn't have MacroFlow Health data yet. Run the \"MacroFlow Health\" shortcut, then tap Sync again — or paste its output below.",
-        paste: 'Run the "MacroFlow Health" shortcut, then tap and hold the box below and choose Paste.',
-        guide: 'Build this Shortcut once (about 5 minutes). After that, syncing is one tap.'
+        'no-data': "Your clipboard doesn't have Apple Health lines yet. Run your \"MacroFlow Health\" Shortcut, then tap Read clipboard — or paste lines below (or tap Load sample to test).",
+        paste: 'Run the "MacroFlow Health" Shortcut on your iPhone, then paste its output below (or tap Load sample to test).',
+        diagnose: 'Found Apple Health text on your clipboard, but some lines need attention:',
+        guide: 'Set up the iPhone Shortcut once (about 2 minutes), or tap Load sample below to test syncing right now.'
     };
     document.getElementById('health-sync-message').innerText = messages[reason] || messages.guide;
-    document.getElementById('health-sync-paste').value = '';
+    const pasteEl = document.getElementById('health-sync-paste') as HTMLTextAreaElement;
+    if (pasteEl) pasteEl.value = prefillText;
+    previewPastedHealthData();
     const guide = document.getElementById('health-sync-guide');
     const showGuide = reason === 'guide' || !appState.lastHealthSync;
     guide.classList.toggle('hidden', !showGuide);
     document.getElementById('health-sync-guide-toggle').setAttribute('aria-expanded', String(showGuide));
     showOverlay('modal-health-sync');
+}
+
+function previewPastedHealthData() {
+    const previewEl = document.getElementById('health-sync-preview');
+    const pasteEl = document.getElementById('health-sync-paste') as HTMLTextAreaElement | null;
+    if (!previewEl || !pasteEl) return;
+    const text = (pasteEl.value || '').trim();
+    if (!text) {
+        previewEl.classList.add('hidden');
+        previewEl.innerHTML = '';
+        return;
+    }
+    const report = shortcutReport(text, { requireHeader: false });
+    previewEl.classList.remove('hidden');
+    const parts: string[] = [];
+    if (report.summary) {
+        const c = report.summary.counts;
+        const summaryParts = [
+            c.steps ? `${c.steps} ${c.steps === 1 ? 'day' : 'days'} of steps` : '',
+            c.calories ? `${c.calories} ${c.calories === 1 ? 'day' : 'days'} of calories` : '',
+            c.weight ? `${c.weight} ${c.weight === 1 ? 'weight' : 'weights'}` : ''
+        ].filter(Boolean);
+        parts.push(`<div style="color:var(--ok);font-weight:600">\u2713 Ready to sync: ${escapeHTML(summaryParts.join(', '))}</div>`);
+    } else {
+        parts.push(`<div style="color:var(--warn);font-weight:600">No valid health lines recognized yet.</div>`);
+    }
+    if (report.problems.length) {
+        const items = report.problems
+            .slice(0, 3)
+            .map(p => `<div class="mt-1"><span class="mono">${escapeHTML(p.line)}</span> \u2014 ${escapeHTML(p.reason)}</div>`)
+            .join('');
+        parts.push(items);
+    }
+    previewEl.innerHTML = parts.join('');
+}
+
+function loadSampleHealthData() {
+    const unit = appState.bodyProfile?.unit === 'kg' ? 'kg' : 'lb';
+    const baseWeight = unit === 'kg' ? 75.2 : 165.8;
+    const lines = ['MacroFlow Health v1'];
+    const sampleSteps = [7420, 8910, 6540, 10230, 8120, 9450, 8640];
+    const sampleActive = [410, 525, 380, 640, 470, 560, 515];
+    const sampleResting = [1710, 1720, 1705, 1735, 1715, 1725, 1720];
+    for (let i = 6; i >= 0; i--) {
+        const d = localDateKey(localDayOffset(-i));
+        const idx = 6 - i;
+        lines.push(`steps;${d};${sampleSteps[idx]} count`);
+        lines.push(`active;${d};${sampleActive[idx]} kcal`);
+        lines.push(`resting;${d};${sampleResting[idx]} kcal`);
+    }
+    lines.push(`weight;${localDateKey()};${baseWeight} ${unit}`);
+    const pasteEl = document.getElementById('health-sync-paste') as HTMLTextAreaElement | null;
+    if (pasteEl) {
+        pasteEl.value = lines.join('\n');
+        previewPastedHealthData();
+    }
 }
 
 function toggleHealthSyncGuide() {
@@ -3756,14 +3819,16 @@ function closeHealthSync() {
 }
 
 function syncPastedHealthData() {
-    const text = document.getElementById('health-sync-paste').value;
-    const summary = parseShortcutPayload(text, { requireHeader: false });
-    if (!summary) {
-        showToast('No steps, calories or weight found. Paste exactly what the MacroFlow Health shortcut copied.', true);
+    const text = (document.getElementById('health-sync-paste') as HTMLTextAreaElement).value;
+    const report = shortcutReport(text, { requireHeader: false });
+    if (!report.summary) {
+        previewPastedHealthData();
+        const hint = report.problems[0]?.reason || 'Paste lines like steps;2026-11-08;8432 (or tap Load sample to test).';
+        showToast(`No steps, calories or weight found. ${hint}`, true);
         return null;
     }
     closeHealthSync();
-    return applyShortcutSync(summary);
+    return applyShortcutSync(report.summary);
 }
 
 

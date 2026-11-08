@@ -821,8 +821,9 @@ pub fn render_today_tab() -> String {
                 </div>
                 <div id="exercise-list"></div>
                 <p id="steps-line" class="small faint hidden"></p>
-                <div id="health-sync-row" class="sync-row hidden">
+                <div id="health-sync-row" class="sync-row">
                     <button class="chip" onclick="syncFromAppleHealth()"><i class="fa-brands fa-apple"></i>Sync Apple Health</button>
+                    <button class="chip" onclick="openHealthSync('guide')"><i class="fa-regular fa-circle-question"></i>How to set up</button>
                     <span class="small faint" id="health-sync-status"></span>
                 </div>
                 <p id="exercise-goal-note" class="small faint hidden">Not added to your calorie goal — you can change this in Settings.</p>
@@ -1671,39 +1672,41 @@ pub fn render_overlays() -> &'static str {
     <div class="sheet">
         <div class="grabber"></div>
         <div class="sheet-head">
-            <div><h3 id="health-sync-title">Sync from Apple Health</h3><p>Steps, calories burned and weight from Google Health (Fitbit) through Apple Health.</p></div>
+            <div><h3 id="health-sync-title">Sync from Apple Health</h3><p>Bring in steps, calories burned and weight from Apple Watch, iPhone, Fitbit or Google Health.</p></div>
             <button class="icon-btn" onclick="closeHealthSync()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="sheet-body">
             <p class="small muted" id="health-sync-message"></p>
             <div class="field">
-                <label for="health-sync-paste">Shortcut output</label>
-                <textarea id="health-sync-paste" rows="3" class="textarea mono" style="min-height:80px;font-size:13px" placeholder="MacroFlow Health v1&#10;steps;2026-10-15;8432&#10;…" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+                <div class="flex items-center justify-between">
+                    <label for="health-sync-paste">Shortcut output (or paste lines below)</label>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="loadSampleHealthData()"><i class="fa-solid fa-flask"></i>Load sample</button>
+                </div>
+                <textarea id="health-sync-paste" rows="4" class="textarea mono" style="min-height:92px;font-size:13px" placeholder="steps;Nov 8, 2026;8432&#10;active;Nov 8, 2026;512 kcal&#10;weight;Nov 8, 2026;165 lb" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="previewPastedHealthData()"></textarea>
+                <div id="health-sync-preview" class="small muted hidden" style="margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border)"></div>
             </div>
             <div class="grid-2">
                 <button class="btn btn-soft" onclick="syncFromAppleHealth()"><i class="fa-regular fa-clipboard"></i>Read clipboard</button>
                 <button class="btn btn-primary" onclick="syncPastedHealthData()"><i class="fa-solid fa-rotate"></i>Sync pasted</button>
             </div>
-            <button type="button" class="disclosure" id="health-sync-guide-toggle" onclick="toggleHealthSyncGuide()" aria-expanded="false" aria-controls="health-sync-guide"><span>How to set up the Shortcut</span><i class="fa-solid fa-chevron-down"></i></button>
+            <button type="button" class="disclosure" id="health-sync-guide-toggle" onclick="toggleHealthSyncGuide()" aria-expanded="false" aria-controls="health-sync-guide"><span>How to set up the iPhone Shortcut (2 min)</span><i class="fa-solid fa-chevron-down"></i></button>
             <div id="health-sync-guide" class="hidden">
+                <p class="small muted mb-2">Apple doesn't allow websites to read Apple Health directly. Instead, a 4-step iPhone Shortcut copies your last 7 days to the clipboard so MacroFlow can read them in one tap.</p>
                 <ol class="steps-list">
-                    <li>In the <b>Google Health</b> app (it syncs your Fitbit), open <b>Connections → Apple Health</b>, tap <b>Get started</b> and allow steps, active calories and weight. In Apple's Health app you can check that Steps, Active Energy and Weight have data.</li>
-                    <li>Open <b>Shortcuts</b>, tap <b>+</b> and name the shortcut <b>MacroFlow Health</b>.</li>
-                    <li>Add <b>Find Health Samples</b>. Set <b>Type</b> is <b>Steps</b>, <b>Start Date</b> is in the last <b>7 days</b>, <b>Group By: Day</b>, <b>Sort by: Start Date</b>. Allow access when asked.</li>
-                    <li>Add <b>Repeat with Each</b> (it repeats over the Health Samples). Inside it, add a <b>Text</b> action containing:<br><span class="mono" style="color:var(--text)">steps;</span> then the <b>Repeat Item</b> variable — tap it, choose <b>Start Date</b>, and set the date format to <b>ISO 8601</b> — then <span class="mono" style="color:var(--text)">;</span> then <b>Repeat Item</b> → <b>Value</b>, a space, and <b>Repeat Item</b> → <b>Unit</b>.</li>
-                    <li>Do steps 3–4 again for <b>Active Energy</b> (text starts with <span class="mono" style="color:var(--text)">active;</span>) and <b>Weight</b> (<span class="mono" style="color:var(--text)">weight;</span>). If you wear an Apple Watch, add <b>Resting Energy</b> (<span class="mono" style="color:var(--text)">resting;</span>) too — Fitbit doesn't send it, so MacroFlow estimates it from your profile. You can long-press the first Find/Repeat pair to duplicate it.</li>
-                    <li>After the last <b>End Repeat</b>, add a <b>Text</b> action: type <span class="mono" style="color:var(--text)">MacroFlow Health v1</span> on the first line, then insert each <b>Repeat Results</b> on its own line.</li>
-                    <li>Add <b>Copy to Clipboard</b> (it copies that Text).</li>
-                    <li>Make it automatic: in Shortcuts open <b>Automation → +</b> → <b>Time of Day</b>, pick a time, choose <b>Run Immediately</b> and select <b>MacroFlow Health</b>. Add a few (for example 7 am, 1 pm and 9 pm). Each run copies fresh data, replacing whatever you had copied.</li>
-                    <li>Open MacroFlow and tap <b>Sync Apple Health</b>, then <b>Paste</b> when your iPhone asks. iOS needs this one tap: websites can't read Apple Health or the clipboard on their own.</li>
+                    <li><b>Create the Shortcut:</b> Open the <b>Shortcuts</b> app on your iPhone, tap <b>+</b> (top right) and name it <b>MacroFlow Health</b>.</li>
+                    <li><b>Find Steps:</b> Tap <b>Search Actions</b>, add <b>Find Health Samples</b>, and set:<br>• <b>Type</b> → <b>Steps</b><br>• <b>Start Date</b> → <b>is in the last</b> <b>7</b> <b>days</b><br>• Turn on <b>Group by</b> → <b>Day</b></li>
+                    <li><b>Format each day:</b> Add <b>Repeat with Each</b> right below it. Drag a <b>Text</b> action <i>inside</i> the Repeat block and enter:<br><span class="mono" style="color:var(--text)">steps;</span> then tap <b>Repeat Item</b> (above keyboard) → choose <b>Start Date</b> → type <span class="mono" style="color:var(--text)">;</span> → tap <b>Repeat Item</b> → choose <b>Value</b>.<br><span class="small faint">(Any iPhone date format works automatically — you do not need to change Date Format.)</span></li>
+                    <li><b>Copy &amp; Sync:</b> Drag <b>Copy to Clipboard</b> <i>below</i> <b>End Repeat</b>. Tap ▶ (<b>Run</b>) at the bottom right and allow Health access, then return to MacroFlow and tap <b>Read clipboard</b> (or <b>Sync Apple Health</b>).</li>
+                    <li><b>Optional — Add Calories &amp; Weight:</b> To also sync burned calories or weight, duplicate Steps 2–3 for:<br>• <b>Active Energy</b> — start the Text line with <span class="mono" style="color:var(--text)">active;</span><br>• <b>Resting Energy</b> (Apple Watch) — start with <span class="mono" style="color:var(--text)">resting;</span><br>• <b>Weight</b> — start with <span class="mono" style="color:var(--text)">weight;</span> (leave <b>Group by</b> off, and add a space + <b>Repeat Item → Unit</b> after Value)<br>Then place one <b>Text</b> action before <b>Copy to Clipboard</b> containing each <b>Repeat Results</b> on its own line.</li>
+                    <li><b>Fitbit / Google Health users:</b> In the <b>Google Health</b> or <b>Fitbit</b> app, enable <b>Apple Health</b> sync so your tracker writes steps, active calories and weight into Apple Health first.</li>
                 </ol>
-                <p class="list-label mt-4 mb-2">The copied text looks like this</p>
+                <p class="list-label mt-4 mb-2">Example lines the Shortcut copies (any date format works)</p>
                 <div class="code-block">MacroFlow Health v1
-steps;2026-10-15T00:00:00-04:00;8432 count
-active;2026-10-15T00:00:00-04:00;512.3 kcal
-resting;2026-10-15T00:00:00-04:00;1750 kcal
-weight;2026-10-15T00:00:00-04:00;78.4 kg</div>
-                <p class="small faint mt-3">Active energy is logged as exercise for that day. Total burned is active + resting energy (resting is estimated from your Settings profile when Apple Health has none, as Fitbit does) and shows as energy balance on Insights. Steps are shown on Today and weights go to Progress. Syncing again replaces the synced days, never your own entries; days with weigh-ins you entered yourself keep your number.</p>
+steps;Nov 8, 2026 at 12:00 AM;8,432
+active;Nov 8, 2026 at 12:00 AM;512 kcal
+resting;Nov 8, 2026 at 12:00 AM;1,750 kcal
+weight;Nov 8, 2026 at 7:30 AM;165.2 lb</div>
+                <p class="small faint mt-3">Active energy is logged as exercise for that day. Total burned is active + resting energy (estimated from your Settings profile when Resting Energy isn't present) and powers Energy Balance on Insights. Syncing again updates synced days without touching your manual food or weigh-in entries.</p>
             </div>
         </div>
     </div>

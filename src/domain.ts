@@ -246,13 +246,22 @@ function parseShortcutValue(raw: string, metric: string): ShortcutValueParsed | 
 function parseShortcutLine(line: string): { metric: string; date: string; value: number } | null {
     const parsed = rustWasm.parseShortcutLine(line);
     if (!parsed) return null;
-    const date = parseHealthDate(parsed.dateStr);
+    const rawDate = parsed.date || parsed.dateStr || '';
+    const date = parseHealthDate(rawDate) || rawDate;
     if (!date) return null;
     return { metric: parsed.metric, date, value: parsed.value };
 }
 
+function shortcutReport(text: string, { requireHeader = false }: { requireHeader?: boolean } = {}): ShortcutReport {
+    return rustWasm.shortcutReport(text, {
+        requireHeader,
+        tzOffsetMinutes: -new Date().getTimezoneOffset(),
+        today: localDateKey()
+    });
+}
+
 function parseShortcutPayload(text: string, { requireHeader = true }: { requireHeader?: boolean } = {}): ShortcutPayloadSummary | null {
-    return rustWasm.parseShortcutPayload(text, requireHeader);
+    return shortcutReport(text, { requireHeader }).summary;
 }
 
 function parseHealthFile(fileName: string, text: string): HealthFileParseResult {

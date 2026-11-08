@@ -616,6 +616,23 @@ pub unsafe extern "C" fn wasm_parse_shortcut_payload(
     set_json_result(&health::parse_shortcut_payload(s, require_header != 0))
 }
 
+/// Shortcut output + options JSON (`requireHeader`, `tzOffsetMinutes`, `monthFirst`,
+/// `today`, `weightUnit`) → `{ summary, header, lines, parsed, problemCount, problems }`.
+#[no_mangle]
+pub unsafe extern "C" fn wasm_shortcut_report(
+    text_ptr: *const u8,
+    text_len: usize,
+    opts_ptr: *const u8,
+    opts_len: usize,
+) -> usize {
+    let text = unsafe { str_from_raw(text_ptr, text_len) };
+    let opts_str = unsafe { str_from_raw(opts_ptr, opts_len) };
+    let opts_val = json::from_str(opts_str).unwrap_or(Value::Null);
+    let require_header = opts_val.get("requireHeader").and_then(|v| v.as_bool()).unwrap_or(false);
+    let opts = health::ShortcutOptions::from_value(&opts_val);
+    set_json_result(&health::shortcut_report(text, require_header, &opts))
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn wasm_parse_health_file(
     name_ptr: *const u8,
@@ -797,6 +814,41 @@ pub extern "C" fn wasm_run_self_tests() -> u32 {
             .pointer("/days/2026-10-09/steps")
             .and_then(|v| v.as_i64()),
         Some(8420)
+    );
+
+    let toronto_opts = health::DateOptions {
+        tz_offset_min: Some(-240),
+        month_first: None,
+        today: Some("2026-10-16".to_string()),
+    };
+    for (raw, want) in [
+        ("10/15/26, 12:00 AM", "2026-10-15"),
+        ("10/15/2026, 12:00\u{202f}AM", "2026-10-15"),
+        ("15.10.2026, 00:00", "2026-10-15"),
+        ("Wednesday, October 15, 2026", "2026-10-15"),
+        ("Oct 15, 2026 at 12:00 AM", "2026-10-15"),
+        ("2026-10-16T02:30:00Z", "2026-10-15"),
+        ("Today at 7:00 AM", "2026-10-16"),
+        ("Yesterday at 12:00 AM", "2026-10-15"),
+    ] {
+        assert_eq!(
+            health::parse_health_date_opts(raw, &toronto_opts).as_deref(),
+            Some(want)
+        );
+    }
+
+    let rep = health::shortcut_report(
+        "steps;13/10/2026, 00:00;9000\nsteps;05/10/2026, 00:00;8000",
+        false,
+        &health::ShortcutOptions::default(),
+    );
+    assert_eq!(
+        rep.pointer("/summary/days/2026-10-13/steps").and_then(|v| v.as_i64()),
+        Some(9000)
+    );
+    assert_eq!(
+        rep.pointer("/summary/days/2026-10-05/steps").and_then(|v| v.as_i64()),
+        Some(8000)
     );
 
     set_result("ok".to_string());

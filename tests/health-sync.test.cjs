@@ -134,3 +134,36 @@ test('Fitbit via Google Health has no resting energy: total burned adds an estim
     a.run(`applyShortcutSync(parseShortcutPayload('MacroFlow Health v1\\nactive;2026-09-30;640 kcal\\nresting;2026-09-30;1380 kcal'))`);
     assert.deepEqual(plain(a.run("appState.activity['2026-09-30']")), { steps: 11200, caloriesOut: 2020, source: 'apple-health' });
 });
+
+test('iPhone default date formats, day-first locales, diagnostic preview and sample loader work without ISO 8601 setup', () => {
+    const a = app();
+    for (const d of [
+        '10/15/26, 12:00 AM',
+        '10/15/2026, 12:00\u202fAM',
+        '15.10.2026, 00:00',
+        'Wednesday, October 15, 2026',
+        'Oct 15, 2026 at 12:00 AM',
+        '15 Oct 2026 at 00:00'
+    ]) {
+        const p = plain(a.run(`parseShortcutPayload(${json('MacroFlow Health v1\nsteps;' + d + ';8,432')})`));
+        assert.equal(p?.days?.['2026-10-15']?.steps, 8432, `failed for date format: ${d}`);
+    }
+
+    // Day-first slash dates are inferred across the batch when any day > 12.
+    const uk = plain(a.run(`parseShortcutPayload('steps;13/10/2026, 00:00;9000\\nsteps;05/10/2026, 00:00;8000', { requireHeader: false })`));
+    assert.equal(uk.days['2026-10-13'].steps, 9000);
+    assert.equal(uk.days['2026-10-05'].steps, 8000);
+
+    // Diagnostic report explains malformed lines.
+    const rep = plain(a.run(`shortcutReport('steps;Health Sample;8432\\nsteps;10/15/26, 12:00 AM;8432')`));
+    assert.equal(rep.parsed, 1);
+    assert.equal(rep.problemCount, 1);
+    assert.match(rep.problems[0].reason, /Start Date/);
+
+    // Sample data loader populates 7 days and syncs cleanly.
+    a.run('openHealthSync("guide"); loadSampleHealthData();');
+    assert.match(a.document.getElementById('health-sync-preview').innerHTML, /Ready to sync: 7 days of steps, 7 days of calories, 1 weight/);
+    const synced = plain(a.run('syncPastedHealthData()'));
+    assert.equal(synced.counts.steps, 7);
+    assert.equal(synced.counts.calories, 7);
+});

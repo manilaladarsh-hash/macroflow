@@ -417,8 +417,31 @@ interface ShortcutValueParsed {
 
 interface ShortcutLineParsed {
     metric: string;
-    dateStr: string;
+    date: string;
+    dateStr?: string;
     value: number;
+}
+
+interface ShortcutReportOptions {
+    requireHeader?: boolean;
+    tzOffsetMinutes?: number;
+    monthFirst?: boolean;
+    today?: string;
+    weightUnit?: string;
+}
+
+interface ShortcutProblem {
+    line: string;
+    reason: string;
+}
+
+interface ShortcutReport {
+    summary: ShortcutPayloadSummary | null;
+    header: boolean;
+    lines: number;
+    parsed: number;
+    problemCount: number;
+    problems: ShortcutProblem[];
 }
 
 interface HealthDayData {

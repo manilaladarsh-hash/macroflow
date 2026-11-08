@@ -69,6 +69,7 @@ interface MacroFlowWasmExports {
     wasm_parse_shortcut_value(rawPtr: number, rawLen: number, metricPtr: number, metricLen: number): number;
     wasm_parse_shortcut_line(ptr: number, len: number): number;
     wasm_parse_shortcut_payload(ptr: number, len: number, requireHeader: number): number;
+    wasm_shortcut_report(textPtr: number, textLen: number, optsPtr: number, optsLen: number): number;
     wasm_parse_health_file(namePtr: number, nameLen: number, textPtr: number, textLen: number): number;
     wasm_merge_health_results(resPtr: number, resLen: number, unitPtr: number, unitLen: number): number;
 
@@ -448,6 +449,12 @@ const rustWasm = (() => {
         parseShortcutPayload(text: string, requireHeader = true): ShortcutPayloadSummary | null {
             withStr(String(text ?? ''), (p, l) => raw.wasm_parse_shortcut_payload(p, l, requireHeader ? 1 : 0));
             return readResultJson<ShortcutPayloadSummary | null>();
+        },
+        shortcutReport(text: string, opts: ShortcutReportOptions = {}): ShortcutReport {
+            withTwoStrs(String(text ?? ''), JSON.stringify(opts || {}), (p1, l1, p2, l2) =>
+                raw.wasm_shortcut_report(p1, l1, p2, l2)
+            );
+            return readResultJson<ShortcutReport>();
         },
         parseHealthFile(fileName: string, text: string): HealthFileParseResult {
             withTwoStrs(String(fileName ?? ''), String(text ?? ''), (p1, l1, p2, l2) =>
