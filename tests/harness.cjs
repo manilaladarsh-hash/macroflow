@@ -3,8 +3,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 
-// Run the app's actual inline JavaScript in a small DOM harness. No build or
-// dependencies are needed; this suite tests state and UI behavior, not layout.
+// Run the app's compiled TypeScript + Rust WebAssembly bundle in a small DOM harness.
 function app(now = '2026-10-05T02:30:00Z') {
     const elements = new Map();
     const storage = new Map();
@@ -45,12 +44,19 @@ function app(now = '2026-10-05T02:30:00Z') {
         createElement: () => new Element(), addEventListener() {}, body: new Element()
     };
     const context = vm.createContext({
-        Date: Clock, document, console, window: { crypto: { randomUUID }, devicePixelRatio: 1, addEventListener() {} },
+        Date: Clock, document, console,
+        WebAssembly, Uint8Array, TextEncoder, TextDecoder,
+        window: { crypto: { randomUUID }, devicePixelRatio: 1, addEventListener() {} },
         localStorage: { setItem: (k, v) => storage.set(k, v), getItem: k => storage.get(k) },
         setTimeout() {}, setInterval() {}, clearInterval() {}
     });
-    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-    const core = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].at(-1)[1];
+    const rootDir = path.join(__dirname, '..');
+    const html = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
+    const lastScript = [...html.matchAll(/<script(?:\s([^>]*))?>([\s\S]*?)<\/script>/g)].at(-1);
+    const srcMatch = lastScript && lastScript[1] && lastScript[1].match(/\bsrc=["']([^"']+)["']/);
+    const core = srcMatch
+        ? fs.readFileSync(path.join(rootDir, srcMatch[1]), 'utf8')
+        : lastScript[2];
     vm.runInContext(core, context);
     vm.runInContext('triggerConfetti = () => {};', context);
     return { run: code => vm.runInContext(code, context), document, storage, context };

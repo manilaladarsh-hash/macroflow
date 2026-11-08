@@ -113,8 +113,20 @@ After the first visit, MacroFlow works offline: a service worker keeps the app, 
 
 ## Built with
 
-HTML, CSS, JavaScript, Tailwind CSS, Font Awesome, Geist, ZXing-C++ (via the `barcode-detector` WebAssembly ponyfill), ZXing, fflate, Open Food Facts, USDA FoodData Central, and Gemini. Libraries load from CDNs and are cached for offline use.
+- **Rust (`crates/macroflow-core` → `pkg/macroflow_core.wasm`):** Zero-dependency core domain engine compiled to `wasm32-unknown-unknown` WebAssembly — GTIN/UPC-E barcode validation and candidate expansion, Open Food Facts & USDA nutrient normalization, portion scaling, AI nutrition-label verification, Mifflin–St Jeor BMR/TDEE target math, smart search query normalization & fuzzy matching, Hacker's-Diet exponential weight trend smoothing, SVG chart builders, and CSV/JSON/Apple Health Shortcut parsers.
+- **TypeScript (`src/*.ts` → `dist/app.js`, `src/sw.ts` → `sw.js`):** Strictly-typed browser UI, DOM & Canvas controllers, camera/MediaStream barcode scanner orchestration, offline Service Worker, and network fetch adapters calling into the synchronous Rust WebAssembly bridge (`src/wasm.ts`).
+- **Web platform & libraries:** HTML, CSS, Tailwind CSS, Font Awesome, Geist, ZXing-C++ (via the `barcode-detector` WebAssembly ponyfill), ZXing, fflate, Open Food Facts, USDA FoodData Central, and Gemini. Prebuilt artifacts (`pkg/macroflow_core.wasm`, `dist/app.js`, `sw.js`) are committed so GitHub Pages and static servers run with zero runtime build step.
+
+### Rebuilding from source
+
+With Rust (`wasm32-unknown-unknown` target) and Node.js 18+:
+
+```sh
+npm install
+npm run build      # Compiles Rust -> pkg/macroflow_core.wasm and TypeScript -> dist/app.js + sw.js
+npm run typecheck  # Type-checks src/*.ts
+```
 
 ## Regression checks
 
-With Node.js 18 or later, run `node --test tests/*.test.cjs`. These dependency-free suites run the app's real JavaScript in a small DOM harness. They cover portion previews and persistence, repeated logs, legacy ID repair, local dates, and daylight saving boundaries, plus barcode check digits, UPC-E expansion, two-frame scan confirmation, exact barcode lookup, Open Food Facts unit conversion, health-data import (Fitbit JSON, Google Fit CSV, generic CSV), Apple Health Shortcut sync (formats from different locales, replace-on-resync, undo, manual weigh-ins kept), USDA GTIN matching, AI label checks, the Gemini model fallback, batch scanning, exercise goals, saved meals, moving entries, water, the weekly report, the calorie and macro rings (including the second lap past a target), food icons, Quick log with undo, repeating yesterday's meal, the + sheet, the weight trend, and the Insights charts. They do not test visual layout or a real camera. To exercise different time zones on macOS/Linux, prefix the command with `TZ=America/Toronto` or `TZ=Pacific/Kiritimati`.
+With Node.js 18 or later, run `npm test` (or `node --test tests/*.test.cjs`). These suites instantiate the compiled Rust WebAssembly module (`pkg/macroflow_core.wasm`) and TypeScript application bundle (`dist/app.js`) in a small DOM harness. They cover Rust Wasm self-tests, portion previews and persistence, repeated logs, legacy ID repair, local dates, and daylight saving boundaries, plus barcode check digits, UPC-E expansion, two-frame scan confirmation, exact barcode lookup, Open Food Facts unit conversion, health-data import (Fitbit JSON, Google Fit CSV, generic CSV), Apple Health Shortcut sync (formats from different locales, replace-on-resync, undo, manual weigh-ins kept), USDA GTIN matching, AI label checks, the Gemini model fallback, batch scanning, exercise goals, saved meals, moving entries, water, the weekly report, the calorie and macro rings (including the second lap past a target), food icons, Quick log with undo, repeating yesterday's meal, the + sheet, the weight trend, and the Insights charts. They do not test visual layout or a real camera. To exercise different time zones on macOS/Linux, prefix the command with `TZ=America/Toronto` or `TZ=Pacific/Kiritimati`.

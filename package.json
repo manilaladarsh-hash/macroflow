@@ -1,0 +1,16 @@
+{
+  "name": "macroflow",
+  "version": "2.0.0",
+  "private": true,
+  "description": "MacroFlow — Privacy-first offline nutrition & macro tracker powered by Rust (WebAssembly) and TypeScript",
+  "scripts": {
+    "build:wasm": "node scripts/build.mjs --wasm-only",
+    "build:ts": "node scripts/build.mjs --ts-only",
+    "build": "node scripts/build.mjs",
+    "typecheck": "npx tsc --noEmit",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}
