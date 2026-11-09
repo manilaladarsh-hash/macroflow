@@ -11,92 +11,99 @@ pub const MEAL_SLOTS: [(&str, &str); 4] = [
 pub fn app_stylesheet() -> &'static str {
     r######":root {
     color-scheme: light dark;
-    /* Warm paper light theme; dark follows the phone (see the media query below). */
-    --bg: #f4f1ea;
-    --bg-2: #fbfaf6;
+    /* iOS system colours. Dark values follow the phone (media query below). */
+    --bg: #f2f2f7;
+    --bg-2: #ffffff;
     --surface: #ffffff;
-    --surface-2: #f2efe8;
-    --surface-3: #e7e2d7;
-    --line: rgba(60, 45, 20, 0.09);
-    --line-strong: rgba(60, 45, 20, 0.16);
-    --text: #201d18;
-    --muted: #6c675c;
-    --faint: #9f9a8d;
-    --kcal: #2c8a5b;
-    --kcal-2: #79bf92;
-    --protein: #dd5e4d;
-    --protein-2: #ee9179;
-    --carbs: #3d7ccd;
-    --carbs-2: #86b3e6;
-    --fat: #e1a12b;
-    --fat-2: #efc46c;
-    --water: #3f9fd2;
-    --burn: #e07f2e;
-    --burn-2: #cf5238;
-    --pink: #c4529a;
-    --nut: #94704a;
-    --ai: #7656cc;
-    --ai-2: #9a82e0;
+    --surface-2: #f2f2f7;
+    --surface-3: #e5e5ea;
+    --fill: rgba(118, 118, 128, 0.12);
+    --line: rgba(60, 60, 67, 0.16);
+    --line-strong: rgba(60, 60, 67, 0.29);
+    --text: #000000;
+    --muted: #6c6c70;
+    --faint: #aeaeb2;
+    --kcal: #34c759;
+    --kcal-2: #6ad884;
+    --protein: #ff2d55;
+    --protein-2: #ff6a85;
+    --carbs: #007aff;
+    --carbs-2: #4aa3ff;
+    --fat: #ff9500;
+    --fat-2: #ffb340;
+    --water: #32ade6;
+    --burn: #ff9500;
+    --burn-2: #ff3b30;
+    --pink: #ff2d55;
+    --nut: #a2845e;
+    --ai: #af52de;
+    --ai-2: #5856d6;
     --brand: var(--kcal);
-    --brand-strong: #247a4e;
-    --brand-soft: rgba(44, 138, 91, 0.12);
+    --brand-strong: #248a3d;
+    --brand-soft: rgba(52, 199, 89, 0.14);
     --on-brand: #ffffff;
     --brand-ink: var(--on-brand);
-    --danger: #cc4137;
-    --warn: #c27a10;
-    --bar-bg: rgba(244, 241, 234, 0.88);
-    --scrim: rgba(32, 24, 10, 0.45);
-    --shadow: 0 1px 2px rgba(60, 45, 20, 0.05), 0 10px 28px -14px rgba(60, 45, 20, 0.22);
-    --chart-grid: rgba(60, 45, 20, 0.08);
-    --note-fg: #86580a;
-    --note-ai-fg: #5b3fae;
-    --radius: 22px;
-    --radius-sm: 13px;
+    --danger: #ff3b30;
+    --warn: #ff9500;
+    --bar-bg: rgba(249, 249, 249, 0.94);
+    --scrim: rgba(0, 0, 0, 0.4);
+    --shadow: none;
+    --chart-grid: rgba(60, 60, 67, 0.12);
+    --note-fg: #8a5300;
+    --note-ai-fg: #7a2f9c;
+    --toast-bg: rgba(255, 255, 255, 0.96);
+    --toast-fg: #000000;
+    --seg-thumb: #ffffff;
+    --radius: 14px;
+    --radius-sm: 10px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
     --nav-h: 64px;
-    --font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --serif: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
-    --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, 'Segoe UI', Roboto, sans-serif;
+    --serif: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #121110;
-        --bg-2: #0d0c0b;
-        --surface: #1b1a17;
-        --surface-2: #252320;
-        --surface-3: #33302b;
-        --line: rgba(255, 245, 225, 0.08);
-        --line-strong: rgba(255, 245, 225, 0.15);
-        --text: #f2eee6;
-        --muted: #a59f92;
-        --faint: #6d685d;
-        --kcal: #62c791;
-        --kcal-2: #a6e3bb;
-        --protein: #ff8171;
-        --protein-2: #ffb09b;
-        --carbs: #72a9f2;
-        --carbs-2: #a9ccf8;
-        --fat: #f3c352;
-        --fat-2: #f8d98c;
-        --water: #72c7ef;
-        --burn: #f59a4c;
-        --burn-2: #f0735a;
-        --pink: #f08cc8;
-        --nut: #d3ae83;
-        --ai: #ad94f0;
-        --ai-2: #c7b6f6;
-        --brand-strong: #52b57f;
-        --brand-soft: rgba(98, 199, 145, 0.14);
-        --on-brand: #0a2a19;
-        --danger: #ff6b5f;
-        --warn: #f3b04a;
-        --bar-bg: rgba(18, 17, 16, 0.88);
-        --scrim: rgba(0, 0, 0, 0.6);
-        --shadow: 0 0 0 1px rgba(255, 245, 225, 0.05);
-        --chart-grid: rgba(255, 245, 225, 0.07);
-        --note-fg: #ecd3a0;
-        --note-ai-fg: #dccdfa;
+        --bg: #000000;
+        --bg-2: #1c1c1e;
+        --surface: #1c1c1e;
+        --surface-2: #2c2c2e;
+        --surface-3: #3a3a3c;
+        --fill: rgba(118, 118, 128, 0.24);
+        --line: rgba(84, 84, 88, 0.55);
+        --line-strong: rgba(84, 84, 88, 0.75);
+        --text: #ffffff;
+        --muted: #98989f;
+        --faint: #636366;
+        --kcal: #30d158;
+        --kcal-2: #6ee28a;
+        --protein: #ff375f;
+        --protein-2: #ff7390;
+        --carbs: #0a84ff;
+        --carbs-2: #5aadff;
+        --fat: #ff9f0a;
+        --fat-2: #ffbf5a;
+        --water: #64d2ff;
+        --burn: #ff9f0a;
+        --burn-2: #ff453a;
+        --pink: #ff375f;
+        --nut: #ac8e68;
+        --ai: #bf5af2;
+        --ai-2: #5e5ce6;
+        --brand-strong: #30d158;
+        --brand-soft: rgba(48, 209, 88, 0.18);
+        --on-brand: #ffffff;
+        --danger: #ff453a;
+        --warn: #ff9f0a;
+        --bar-bg: rgba(22, 22, 23, 0.92);
+        --scrim: rgba(0, 0, 0, 0.55);
+        --chart-grid: rgba(84, 84, 88, 0.45);
+        --note-fg: #ffd28a;
+        --note-ai-fg: #e3b7f7;
+        --toast-bg: rgba(44, 44, 46, 0.96);
+        --toast-fg: #ffffff;
+        --seg-thumb: #636366;
     }
 }
 /* Minimal reset so the layout holds even if the Tailwind CDN is slow or blocked */
@@ -624,61 +631,132 @@ details.options .opts { padding: 0 16px 10px; display: grid; grid-template-colum
 .welcome-result .macros { display: flex; gap: 14px; margin-top: 6px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .welcome-result .macros b { color: var(--text); font-weight: 650; }
 
-/* ---------- Theme: calm paper (light) / ink (dark) ---------- */
-.page-title { font-family: var(--serif); font-size: 33px; font-weight: 600; letter-spacing: -0.02em; }
-.hero-kcal, .tile .v, .chart-kpis b, .sheet-head h3, .ql-head h2, .nutri.kcal b { font-family: var(--serif); font-weight: 600; letter-spacing: -0.02em; }
-.hero-kcal { font-size: 42px; color: var(--text); }
-.hm .v, .hero-eq b, .entry-kcal, .meal-head h3, .card-title { letter-spacing: -0.01em; }
-.meal-head h3, .card-title { font-weight: 650; }
-.rings circle { stroke-width: 13; }
-.card, .tile, .meal, .hero, .settings-section, .ql-item, .action { box-shadow: var(--shadow); }
-.log-grid .action { box-shadow: none; }
-.copy-day, .seg { box-shadow: none; }
-.kcal-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11.5px; font-weight: 600; }
-.hm .k { letter-spacing: 0.06em; font-size: 11px; }
+/* ---------- Theme: iPhone-native (follows light / dark) ---------- */
+body { font-size: 16px; letter-spacing: -0.01em; }
+.page-title { font-family: var(--font); font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+.page-sub { font-size: 15px; }
+.hero-kcal, .tile .v, .chart-kpis b, .nutri.kcal b, .welcome-result .big { font-family: var(--serif); font-weight: 700; letter-spacing: -0.02em; }
+.hero-kcal { font-size: 40px; color: var(--text); }
+.sheet-head h3, .setup-card h3 { font-family: var(--font); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.meal-head h3, .card-title { font-weight: 600; letter-spacing: -0.02em; }
+.card, .tile, .meal, .hero, .settings-section, .setup-card { background: var(--surface); border-radius: var(--radius); box-shadow: none; }
+.ql-item, .action { box-shadow: none; }
+
+/* Rings: thick, like Activity */
+.rings circle { stroke-width: 16; }
+.rings .ring-track { opacity: 0.18; }
+.hm .left { display: none; }
+.hero-stats { gap: 7px; }
+.kcal-label { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.hm .k { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; }
 .hm.protein .k { color: var(--protein); }
 .hm.carbs .k { color: var(--carbs); }
-.hm.fat .k { color: var(--warn); }
+.hm.fat .k { color: var(--fat); }
+.hm .v { font-size: 16px; font-weight: 600; }
 #eq-left b, .hero-eq #eq-left b { color: var(--kcal); }
-.week .day .dow { font-weight: 600; }
-.nav-btn.is-active { color: var(--text); }
-.nav-btn.is-active i { color: var(--kcal); }
-.meal-head .meal-kcal { font-size: 13px; }
-.entry { border-top-color: var(--line); }
-.btn { border-radius: 14px; }
-.btn-primary { box-shadow: 0 6px 16px -8px rgba(44, 138, 91, 0.6); }
+#eq-left.over b, .hero-eq #eq-left.over b { color: var(--protein); }
 
-/* Action buttons and meal icons: soft tinted chips with a coloured glyph */
-.ico-search { background: rgba(44, 138, 91, 0.14); color: var(--kcal); }
-.ico-scan { background: rgba(61, 124, 205, 0.14); color: var(--carbs); }
-.ico-photo { background: rgba(118, 86, 204, 0.14); color: var(--ai); }
-.ico-quick { background: rgba(224, 127, 46, 0.15); color: var(--burn); }
-.ico-describe { background: rgba(196, 82, 154, 0.14); color: var(--pink); }
-.ico-exercise { background: rgba(207, 82, 56, 0.14); color: var(--burn-2); }
-.ico-water { background: rgba(63, 159, 210, 0.15); color: var(--water); }
-.ico-weight { background: var(--surface-3); color: var(--muted); }
-.mi-breakfast { background: rgba(225, 161, 43, 0.17); color: var(--fat); }
-.mi-lunch { background: rgba(44, 138, 91, 0.15); color: var(--kcal); }
-.mi-dinner { background: rgba(118, 86, 204, 0.14); color: var(--ai); }
-.mi-snacks { background: rgba(196, 82, 154, 0.14); color: var(--pink); }
-.mi-exercise { background: rgba(224, 127, 46, 0.16); color: var(--burn); }
-.mi-water { background: rgba(63, 159, 210, 0.16); color: var(--water); }
-.fi-fruit { background: rgba(221, 94, 77, 0.14); color: var(--protein); }
-.fi-veg { background: rgba(44, 138, 91, 0.14); color: var(--kcal); }
-.fi-dairy { background: rgba(63, 159, 210, 0.14); color: var(--water); }
-.fi-egg { background: rgba(225, 161, 43, 0.16); color: var(--fat); }
-.fi-grain { background: rgba(224, 127, 46, 0.15); color: var(--burn); }
-.fi-meat { background: rgba(207, 82, 56, 0.14); color: var(--burn-2); }
-.fi-fish { background: rgba(61, 124, 205, 0.14); color: var(--carbs); }
-.fi-nuts { background: rgba(148, 112, 74, 0.16); color: var(--nut); }
-.fi-fat { background: rgba(225, 161, 43, 0.14); color: var(--fat); }
-.fi-sweet { background: rgba(196, 82, 154, 0.14); color: var(--pink); }
-.fi-drink { background: rgba(63, 159, 210, 0.14); color: var(--water); }
-.fi-pack { background: var(--surface-3); color: var(--muted); }
-.fi-ai { background: rgba(118, 86, 204, 0.14); color: var(--ai); }
-.fi-quick { background: rgba(224, 127, 46, 0.15); color: var(--burn); }
-.fi-mine { background: rgba(44, 138, 91, 0.14); color: var(--kcal); }
-.fi-meal { background: rgba(154, 130, 224, 0.18); color: var(--ai); }"######
+/* Week strip: calendar style */
+.week { border-bottom: 0; }
+.day .dnum { width: 36px; height: 36px; }
+.day.is-selected .dnum { background: var(--kcal); color: #fff; }
+.week .day .dow { font-weight: 600; font-size: 11px; }
+
+/* Segmented control */
+.seg { background: var(--fill); border-radius: 9px; padding: 2px; gap: 0; }
+.seg button { min-height: 32px; border-radius: 7px; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.seg button.is-active { background: var(--seg-thumb); color: var(--text); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04); }
+
+/* Buttons and fields: large, thumb-friendly */
+.btn { min-height: 50px; border-radius: 12px; font-size: 17px; font-weight: 600; }
+.btn-sm { min-height: 40px; font-size: 15px; border-radius: 10px; }
+.btn-primary { background: var(--kcal); color: #fff; box-shadow: none; }
+.btn-soft { background: var(--fill); color: var(--text); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--kcal); }
+.btn-ghost:hover:not(:disabled) { background: var(--fill); color: var(--kcal); }
+.chip { background: var(--fill); }
+.input, .select, .textarea { background: var(--fill); border-color: transparent; border-radius: 10px; font-size: 17px; }
+.input:focus, .select:focus, .textarea:focus { border-color: var(--kcal); background: var(--surface); }
+.icon-btn { width: 44px; height: 44px; }
+.meal-plus { width: 40px; height: 40px; font-size: 16px; }
+.meal-save { width: 40px; height: 40px; }
+
+/* Today: search bar instead of tiles; recent foods as compact chips */
+.today-search { display: flex; gap: 10px; }
+.today-search .log-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--fill); color: var(--muted); font-size: 17px; text-align: left; }
+.today-search .log-search i { color: var(--muted); font-size: 15px; }
+.today-search .log-scan { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--fill); color: var(--kcal); font-size: 18px; }
+.ql-head { margin-bottom: 8px; padding: 0 4px; }
+.ql-head h2 { font-size: 13px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); }
+.ql-meal { background: transparent; padding: 0; font-size: 15px; color: var(--kcal); }
+.ql-meal b { color: var(--kcal); font-weight: 600; }
+.ql-list { gap: 8px; }
+.ql-item { flex: 0 0 auto; min-height: 0; flex-direction: row; align-items: center; gap: 8px; padding: 6px 6px 6px 8px; border-radius: 999px; background: var(--surface); max-width: 260px; }
+.ql-item .food-ico { width: 30px; height: 30px; border-radius: 50%; font-size: 12px; }
+.ql-item .ql-name { font-size: 15px; font-weight: 500; -webkit-line-clamp: 1; white-space: nowrap; display: block; text-overflow: ellipsis; max-width: 150px; }
+.ql-item .ql-kcal { margin-top: 0; padding-right: 0; font-size: 13px; white-space: nowrap; }
+.ql-add { position: static; width: 32px; height: 32px; box-shadow: none; flex-shrink: 0; color: #fff; }
+
+/* Meals: inset grouped lists */
+.meal { padding: 4px 16px 4px; }
+.meal + .meal { margin-top: 14px; }
+.meal-head { padding: 10px 0; }
+.meal-macros { display: none !important; }
+.entry { padding: 11px 0; border-top: 0.5px solid var(--line); }
+.entry-name { font-size: 16px; font-weight: 400; }
+.entry-kcal { font-weight: 500; color: var(--muted); }
+.entry-kcal small { color: var(--faint); }
+.suggest { border-top: 0.5px solid var(--line); color: var(--kcal); font-size: 15px; }
+.suggest b { color: var(--text); font-weight: 500; }
+.suggest > i { color: var(--kcal); }
+.disclosure { border-color: var(--line); }
+
+/* Bottom tab bar */
+.bottom-nav { background: var(--bar-bg); border-top: 0.5px solid var(--line-strong); }
+.nav-btn { font-size: 10.5px; color: #8e8e93; }
+.nav-btn i { font-size: 21px; }
+.nav-btn.is-active, .nav-btn.is-active i { color: var(--kcal); }
+.nav-plus { width: 50px; height: 50px; margin-top: 0; font-size: 21px; color: #fff; background: var(--kcal); box-shadow: none; }
+
+/* Sheets, toasts */
+.sheet { border-radius: 14px 14px 0 0; }
+.grabber { width: 36px; height: 5px; background: var(--line-strong); }
+#toast-container .toast { background: var(--toast-bg); color: var(--toast-fg); border-radius: 16px; box-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.25); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+#toast-container .toast.error { color: var(--danger); }
+
+/* App-style icons: solid colour squircles with a white glyph */
+.meal-ico, .action .ai-ico { color: #fff; border-radius: 9px; }
+.meal-ico { width: 32px; height: 32px; font-size: 15px; }
+.mi-breakfast, .ico-quick { background: var(--fat); }
+.mi-lunch, .ico-search { background: var(--kcal); }
+.mi-dinner { background: var(--ai-2); }
+.mi-snacks, .ico-describe { background: var(--pink); }
+.mi-exercise, .ico-exercise { background: var(--burn-2); }
+.mi-water, .ico-water { background: var(--water); }
+.ico-scan { background: var(--carbs); }
+.ico-photo { background: var(--ai); }
+.ico-weight { background: #8e8e93; }
+.log-grid .action .ai-ico { border-radius: 14px; }
+
+/* Food icons: tinted circles */
+.food-ico { border-radius: 50%; }
+.fi-fruit { background: rgba(255, 45, 85, 0.13); color: var(--protein); }
+.fi-veg { background: rgba(52, 199, 89, 0.15); color: var(--kcal); }
+.fi-dairy { background: rgba(50, 173, 230, 0.15); color: var(--water); }
+.fi-egg { background: rgba(255, 204, 0, 0.2); color: var(--fat); }
+.fi-grain { background: rgba(255, 149, 0, 0.15); color: var(--fat); }
+.fi-meat { background: rgba(255, 59, 48, 0.13); color: var(--burn-2); }
+.fi-fish { background: rgba(0, 122, 255, 0.13); color: var(--carbs); }
+.fi-nuts { background: rgba(162, 132, 94, 0.18); color: var(--nut); }
+.fi-fat { background: rgba(255, 149, 0, 0.13); color: var(--fat); }
+.fi-sweet { background: rgba(255, 45, 85, 0.12); color: var(--pink); }
+.fi-drink { background: rgba(50, 173, 230, 0.15); color: var(--water); }
+.fi-pack { background: var(--fill); color: var(--muted); }
+.fi-ai { background: rgba(175, 82, 222, 0.14); color: var(--ai); }
+.fi-quick { background: rgba(255, 149, 0, 0.15); color: var(--fat); }
+.fi-mine { background: rgba(52, 199, 89, 0.15); color: var(--kcal); }
+.fi-meal { background: rgba(88, 86, 214, 0.15); color: var(--ai-2); }
+"######
 }
 
 pub fn render_header() -> &'static str {
@@ -706,21 +784,27 @@ pub fn render_header() -> &'static str {
 }
 
 pub fn render_meal_card(key: &str, label: &str) -> String {
+    let icon = match key {
+        "breakfast" => "fa-mug-hot",
+        "lunch" => "fa-bowl-food",
+        "dinner" => "fa-utensils",
+        _ => "fa-cookie-bite",
+    };
     format!(
         r##"                <section class="meal" id="meal-{key}">
-                    <header class="meal-head">
-                        <div>
-                            <div class="meal-title">{label} <span class="count" id="meal-count-{key}"></span></div>
-                        </div>
-                        <span class="meal-kcal"><span id="meal-cals-{key}">0</span> kcal</span>
-                        <button id="meal-save-{key}" onclick="openSaveMealModal('{key}')" class="icon-btn sm hidden" title="Save as a meal" aria-label="Save {label} as a meal"><i class="fa-regular fa-bookmark"></i></button>
-                        <button onclick="openFoodSearchModal('{key}')" class="meal-add" aria-label="Add to {label}"><i class="fa-solid fa-plus"></i></button>
-                    </header>
-                    <div class="meal-macro-bar" id="meal-macros-{key}"><span class="p" style="width:0%"></span><span class="c" style="width:0%"></span><span class="f" style="width:0%"></span></div>
+                    <div class="meal-head">
+                        <span class="meal-ico mi-{key}"><i class="fa-solid {icon}"></i></span>
+                        <div class="meal-title"><h3>{label}</h3><span class="meal-kcal" id="badge-{key}-cal"></span></div>
+                        <span id="badge-{key}-protein" class="hidden"></span>
+                        <button class="meal-save hidden" id="meal-save-{key}" onclick="openSaveMealModal('{key}')" title="Save as a meal" aria-label="Save {label} as a meal"><i class="fa-regular fa-bookmark"></i></button>
+                        <button class="meal-plus" onclick="openFoodSearchModal('{key}')" aria-label="Add food to {label}"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="meal-macros hidden" id="meal-macros-{key}" aria-hidden="true"></div>
                     <div id="meal-content-{key}" class="meal-content"><div id="logged-list-{key}"></div><div id="suggestion-slot-{key}"></div></div>
                 </section>"##,
         key = key,
-        label = label
+        label = label,
+        icon = icon
     )
 }
 
@@ -789,22 +873,19 @@ pub fn render_today_tab() -> String {
                 </div>
             </section>
 
-            <div class="actions">
-                <button class="action log-search" onclick="openFoodSearchModal(guessMealForNow())"><span class="ai-ico ico-search"><i class="fa-solid fa-magnifying-glass"></i></span>Search</button>
-                <button class="action log-scan" onclick="openScannerModal(guessMealForNow())" aria-label="Scan a barcode"><span class="ai-ico ico-scan"><i class="fa-solid fa-barcode"></i></span>Scan</button>
-                <button class="action" onclick="triggerVisionUpload(guessMealForNow())"><span class="ai-ico ico-photo"><i class="fa-solid fa-camera"></i></span>Photo AI</button>
-                <button class="action" onclick="openQuickLogModal(guessMealForNow())"><span class="ai-ico ico-quick"><i class="fa-solid fa-bolt"></i></span>Quick add</button>
+            <div class="today-search">
+                <button class="log-search" onclick="openFoodSearchModal(guessMealForNow())"><i class="fa-solid fa-magnifying-glass"></i>Search food</button>
+                <button class="log-scan" onclick="openScannerModal(guessMealForNow())" aria-label="Scan a barcode"><i class="fa-solid fa-barcode"></i></button>
             </div>
 
             <section id="quick-log-section" class="hidden" aria-label="Quick log">
                 <div class="ql-head">
-                    <h2>Quick log</h2>
+                    <h2>Recent</h2>
                     <button class="ql-meal" onclick="cycleQuickLogMeal()" aria-label="Choose the meal quick log adds to">to <b id="quick-log-meal">Lunch</b><i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
                 </div>
                 <div class="ql-list" id="quick-log-list"></div>
             </section>
-
-            <div id="meal-cards">"######);
+"######);
     out.push_str("\n            <div id=\"meal-cards\">\n");
     for (key, label) in MEAL_SLOTS {
         out.push_str(&render_meal_card(key, label));

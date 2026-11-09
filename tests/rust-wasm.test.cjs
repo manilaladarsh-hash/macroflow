@@ -24,7 +24,7 @@ test('TypeScript bridge invokes Rust WebAssembly exports directly (UI shell, sta
     assert.equal(query.inferredStore, 'loblaws');
 
     // UI shell & stylesheet rendered from Rust
-    assert.match(a.document.getElementById('mf-style').textContent, /--kcal:\s*#2c8a5b/);
+    assert.match(a.document.getElementById('mf-style').textContent, /--kcal:\s*#34c759/);
     assert.match(a.document.getElementById('mf-root').innerHTML, /id="tab-content-nutrition"/);
     assert.match(a.document.getElementById('mf-root').innerHTML, /id="meal-breakfast"/);
 
