@@ -683,6 +683,19 @@ body { font-size: 16px; letter-spacing: -0.01em; }
 
 /* Today: search bar instead of tiles; recent foods as compact chips */
 .today-search { display: flex; gap: 10px; }
+.hs-banner { display: flex; align-items: center; background: var(--surface); border-radius: var(--radius); margin-bottom: 12px; }
+.hs-banner-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; min-height: 60px; }
+.hs-banner-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.hs-banner-text b { font-size: 16px; font-weight: 600; }
+.hs-banner-x { width: 44px; height: 44px; display: grid; place-items: center; color: var(--faint); }
+.hs-types { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0 4px; }
+.hs-types span { display: grid; grid-template-columns: 18px 1fr; column-gap: 6px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--fill); color: var(--text); font-size: 13px; font-weight: 600; }
+.hs-types em { grid-column: 2; font-style: normal; font-weight: 400; color: var(--muted); font-size: 12px; }
+.hs-text { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--fill); display: grid; gap: 4px; font-size: 13px; }
+.hs-word { color: var(--text); font-family: var(--mono); }
+.hs-word + .hs-word, div + .hs-word { margin-top: 4px; }
+.hs-chip { display: inline-block; padding: 2px 8px; border-radius: 6px; color: #fff; font-weight: 600; font-size: 12px; }
+.hs-chip.c1 { background: var(--kcal); } .hs-chip.c2 { background: var(--fat); } .hs-chip.c3 { background: var(--carbs); } .hs-chip.c4 { background: var(--ai, #af52de); }
 .today-search .log-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--fill); color: var(--muted); font-size: 17px; text-align: left; }
 .today-search .log-search i { color: var(--muted); font-size: 15px; }
 .today-search .log-scan { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--fill); color: var(--kcal); font-size: 18px; }
@@ -872,6 +885,15 @@ pub fn render_today_tab() -> String {
                     <div id="eq-left"><span id="calorie-left-label">Left</span><b id="calorie-left-display">2,000</b></div>
                 </div>
             </section>
+
+            <div class="hs-banner hidden" id="health-sync-banner" role="group" aria-label="Apple Health">
+                <button class="hs-banner-main" id="health-sync-banner-btn" onclick="onHealthBannerTap()">
+                    <span class="meal-ico mi-snacks"><i class="fa-solid fa-heart"></i></span>
+                    <span class="hs-banner-text"><b id="health-sync-banner-title">Sync Apple Health</b><span id="health-sync-banner-sub" class="small muted"></span></span>
+                    <i class="fa-solid fa-chevron-right faint"></i>
+                </button>
+                <button class="hs-banner-x hidden" id="health-sync-banner-x" onclick="dismissHealthBanner()" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button>
+            </div>
 
             <div class="today-search">
                 <button class="log-search" onclick="openFoodSearchModal(guessMealForNow())"><i class="fa-solid fa-magnifying-glass"></i>Search food</button>
@@ -1077,6 +1099,7 @@ pub fn render_progress_tab() -> &'static str {
                 <div class="card">
                     <div class="card-head"><h3 class="card-title"><i class="fa-solid fa-chart-line" style="color:var(--carbs-2)"></i>Weight trend</h3><span class="small muted" id="weight-trend-rate"></span></div>
                     <div class="chart-kpis" id="weight-kpis"></div>
+                    <p class="small muted hidden" id="weight-bodyfat" style="margin:-4px 0 10px"></p>
                     <div class="chart" id="weight-chart"></div>
                     <div class="chart-legend"><span><i style="background:var(--carbs-2);border-radius:50%"></i>Weigh-ins</span><span><i style="background:var(--kcal);height:3px;width:14px"></i>Trend</span><span id="weight-goal-legend" class="hidden"><i style="background:transparent;border:1.5px dashed var(--muted);width:12px;height:0;border-radius:0"></i>Goal</span></div>
                 </div>
@@ -1753,7 +1776,7 @@ pub fn render_overlays() -> &'static str {
     <div class="sheet">
         <div class="grabber"></div>
         <div class="sheet-head">
-            <div><h3 id="health-sync-title">Sync from Apple Health</h3><p>Bring in steps, calories burned and weight from Apple Watch, iPhone, Fitbit or Google Health.</p></div>
+            <div><h3 id="health-sync-title">Sync from Apple Health</h3><p>Steps, calories burned, weight and body fat from Apple Watch, iPhone, Fitbit or Google Health.</p></div>
             <button class="icon-btn" onclick="closeHealthSync()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="sheet-body">
@@ -1763,31 +1786,41 @@ pub fn render_overlays() -> &'static str {
                     <label for="health-sync-paste">Shortcut output (or paste lines below)</label>
                     <button type="button" class="btn btn-ghost btn-sm" onclick="loadSampleHealthData()"><i class="fa-solid fa-flask"></i>Load sample</button>
                 </div>
-                <textarea id="health-sync-paste" rows="4" class="textarea mono" style="min-height:92px;font-size:13px" placeholder="steps;Nov 8, 2026;8432&#10;active;Nov 8, 2026;512 kcal&#10;weight;Nov 8, 2026;165 lb" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="previewPastedHealthData()"></textarea>
+                <textarea id="health-sync-paste" rows="4" class="textarea mono" style="min-height:92px;font-size:13px" placeholder="MacroFlow Health&#10;steps&#10;Nov 8, 2026 at 12:00 AM&#10;8,432" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="previewPastedHealthData()"></textarea>
                 <div id="health-sync-preview" class="small muted hidden" style="margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border)"></div>
             </div>
             <div class="grid-2">
                 <button class="btn btn-soft" onclick="syncFromAppleHealth()"><i class="fa-regular fa-clipboard"></i>Read clipboard</button>
                 <button class="btn btn-primary" onclick="syncPastedHealthData()"><i class="fa-solid fa-rotate"></i>Sync pasted</button>
             </div>
-            <button type="button" class="disclosure" id="health-sync-guide-toggle" onclick="toggleHealthSyncGuide()" aria-expanded="false" aria-controls="health-sync-guide"><span>How to set up the iPhone Shortcut (2 min)</span><i class="fa-solid fa-chevron-down"></i></button>
+            <button type="button" class="disclosure" id="health-sync-guide-toggle" onclick="toggleHealthSyncGuide()" aria-expanded="false" aria-controls="health-sync-guide"><span>Set up Apple Health (one time, about 3 min)</span><i class="fa-solid fa-chevron-down"></i></button>
             <div id="health-sync-guide" class="hidden">
-                <p class="small muted mb-2">Apple doesn't allow websites to read Apple Health directly. Instead, a 4-step iPhone Shortcut copies your last 7 days to the clipboard so MacroFlow can read them in one tap.</p>
+                <p class="small muted mb-3">Apple doesn't let websites read Apple Health, so a small Shortcut copies your last 7 days and MacroFlow reads them when you tap <b>Sync</b>. No Repeat blocks needed.</p>
                 <ol class="steps-list">
-                    <li><b>Create the Shortcut:</b> Open the <b>Shortcuts</b> app on your iPhone, tap <b>+</b> (top right) and name it <b>MacroFlow Health</b>.</li>
-                    <li><b>Find Steps:</b> Tap <b>Search Actions</b>, add <b>Find Health Samples</b>, and set:<br>• <b>Type</b> → <b>Steps</b><br>• <b>Start Date</b> → <b>is in the last</b> <b>7</b> <b>days</b><br>• Turn on <b>Group by</b> → <b>Day</b></li>
-                    <li><b>Format each day:</b> Add <b>Repeat with Each</b> right below it. Drag a <b>Text</b> action <i>inside</i> the Repeat block and enter:<br><span class="mono" style="color:var(--text)">steps;</span> then tap <b>Repeat Item</b> (above keyboard) → choose <b>Start Date</b> → type <span class="mono" style="color:var(--text)">;</span> → tap <b>Repeat Item</b> → choose <b>Value</b>.<br><span class="small faint">(Any iPhone date format works automatically — you do not need to change Date Format.)</span></li>
-                    <li><b>Copy &amp; Sync:</b> Drag <b>Copy to Clipboard</b> <i>below</i> <b>End Repeat</b>. Tap ▶ (<b>Run</b>) at the bottom right and allow Health access, then return to MacroFlow and tap <b>Read clipboard</b> (or <b>Sync Apple Health</b>).</li>
-                    <li><b>Optional — Add Calories &amp; Weight:</b> To also sync burned calories or weight, duplicate Steps 2–3 for:<br>• <b>Active Energy</b> — start the Text line with <span class="mono" style="color:var(--text)">active;</span><br>• <b>Resting Energy</b> (Apple Watch) — start with <span class="mono" style="color:var(--text)">resting;</span><br>• <b>Weight</b> — start with <span class="mono" style="color:var(--text)">weight;</span> (leave <b>Group by</b> off, and add a space + <b>Repeat Item → Unit</b> after Value)<br>Then place one <b>Text</b> action before <b>Copy to Clipboard</b> containing each <b>Repeat Results</b> on its own line.</li>
-                    <li><b>Fitbit / Google Health users:</b> In the <b>Google Health</b> or <b>Fitbit</b> app, enable <b>Apple Health</b> sync so your tracker writes steps, active calories and weight into Apple Health first.</li>
+                    <li><b>Fitbit or Google Health?</b> In that app, open <b>Connections → Apple Health</b> and allow steps, active calories, weight and body fat. (Apple Watch and iPhone already write to Apple Health.)</li>
+                    <li><b>New Shortcut:</b> open <b>Shortcuts</b>, tap <b>+</b>, and name it <b>MacroFlow Health</b>.</li>
+                    <li><b>Find your data:</b> add <b>Find Health Samples</b> four times, one for each type, all with <b>Start Date is in the last 7 days</b>:
+                        <div class="hs-types">
+                            <span><i class="fa-solid fa-shoe-prints"></i>Steps <em>Group by Day</em></span>
+                            <span><i class="fa-solid fa-fire"></i>Active Energy <em>Group by Day</em></span>
+                            <span><i class="fa-solid fa-weight-scale"></i>Weight</span>
+                            <span><i class="fa-solid fa-percent"></i>Body Fat Percentage</span>
+                        </div>
+                        <span class="small faint">Apple Watch: add a fifth for <b>Resting Energy</b> (Group by Day) and label it <span class="mono">resting</span> below.</span></li>
+                    <li><b>One Text action:</b> add <b>Text</b> and lay it out like this. Type the grey words; for each coloured chip, tap the empty line, pick that <b>Health Samples</b> variable, then tap the chip and choose the property.
+                        <div class="hs-text" aria-label="Text action layout">
+                            <div class="hs-word">MacroFlow Health</div>
+                            <div class="hs-word">steps</div><div><span class="hs-chip c1">Health Samples · Start Date</span></div><div><span class="hs-chip c1">Health Samples · Value</span></div>
+                            <div class="hs-word">active</div><div><span class="hs-chip c2">Health Samples 2 · Start Date</span></div><div><span class="hs-chip c2">Health Samples 2 · Value</span></div>
+                            <div class="hs-word">weight</div><div><span class="hs-chip c3">Health Samples 3 · Start Date</span></div><div><span class="hs-chip c3">Health Samples 3 · Value</span></div><div><span class="hs-chip c3">Health Samples 3 · Unit</span></div>
+                            <div class="hs-word">body fat</div><div><span class="hs-chip c4">Health Samples 4 · Start Date</span></div><div><span class="hs-chip c4">Health Samples 4 · Value</span></div>
+                        </div>
+                        <button type="button" class="btn btn-soft btn-sm mt-2" onclick="copyShortcutTemplate()"><i class="fa-regular fa-copy"></i>Copy the words to paste into Text</button></li>
+                    <li><b>Copy to Clipboard:</b> add it last, tap ▶ once and allow Health access.</li>
+                    <li><b>Make it automatic:</b> in Shortcuts, <b>Automation → + → Time of Day</b>, pick a time (say 6 am), <b>Daily</b>, <b>Run Immediately</b>, and choose <b>MacroFlow Health</b>. Add a midday and evening time too if you like.</li>
+                    <li><b>Done.</b> Whenever you open MacroFlow, tap <b>Sync Apple Health</b>, then <b>Paste</b>. That one tap is all iOS allows.</li>
                 </ol>
-                <p class="list-label mt-4 mb-2">Example lines the Shortcut copies (any date format works)</p>
-                <div class="code-block">MacroFlow Health v1
-steps;Nov 8, 2026 at 12:00 AM;8,432
-active;Nov 8, 2026 at 12:00 AM;512 kcal
-resting;Nov 8, 2026 at 12:00 AM;1,750 kcal
-weight;Nov 8, 2026 at 7:30 AM;165.2 lb</div>
-                <p class="small faint mt-3">Active energy is logged as exercise for that day. Total burned is active + resting energy (estimated from your Settings profile when Resting Energy isn't present) and powers Energy Balance on Insights. Syncing again updates synced days without touching your manual food or weigh-in entries.</p>
+                <p class="small faint mt-3">Active energy is logged as exercise for that day. Total burned is active + resting energy (resting is estimated from your Settings profile when there's no Apple Watch) and powers Energy Balance on Insights. Weights go to Progress, body fat shows under the weight trend. Syncing again updates synced days and never touches your own entries. The older one-line-per-sample Shortcut still works.</p>
             </div>
         </div>
     </div>

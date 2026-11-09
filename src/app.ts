@@ -489,6 +489,7 @@ function toggleCalorieDisplayMode() {
 // NUTRITION AND MEAL RENDERING PIPELINE
 function renderAll() {
     renderDateNavigator();
+    renderHealthSyncBanner();
 
     const dateKey = appState.currentDate;
     const log = getDayLog(dateKey);
@@ -1192,6 +1193,7 @@ function drawWeightChart() {
     if (pts.length < 2) {
         kpis.innerHTML = '';
         document.getElementById('weight-trend-rate').innerText = '';
+        renderBodyFatLine();
         el.innerHTML = chartEmpty('fa-weight-scale', 'Log at least two weigh-ins to see your trend.');
         return;
     }
@@ -1205,6 +1207,7 @@ function drawWeightChart() {
         [`${sign(last.trend - first.trend)}${Math.abs(last.trend - first.trend).toFixed(1)}<small>${unit}</small>`, `change, ${appState.progressRange || 30} days`],
         ...(goal ? [[`${Math.abs(last.trend - goal).toFixed(1)}<small>${unit}</small>`, 'to goal']] : [])
     ]);
+    renderBodyFatLine();
 
     const width = chartWidthOf(el), height = 200;
     const padL = 38, padR = 10, padT = 16, padB = 22;
@@ -3467,6 +3470,7 @@ function applyHealthImport(summary: any, { caloriesKind = summary.caloriesKind, 
         if (estimated) total = restingKcalFor(date) + v.active;
         const activity = appState.activity[date] || {};
         if (v.steps !== undefined) activity.steps = Math.round(v.steps);
+        if (v.bodyFat !== undefined && v.bodyFat > 0) activity.bodyFat = Math.round(v.bodyFat * 10) / 10;
         if (total !== undefined) {
             activity.caloriesOut = Math.round(total);
             if (estimated) activity.caloriesOutEstimated = true;
@@ -3647,6 +3651,72 @@ function healthSyncStatusText() {
     return parts.join(' · ');
 }
 
+// The words of the Shortcut's Text action, with empty lines where the
+// Health Samples variables go.
+const SHORTCUT_TEXT_TEMPLATE = ['MacroFlow Health', 'steps', '', '', 'active', '', '', 'weight', '', '', '', 'body fat', '', ''].join('\n');
+
+async function copyShortcutTemplate() {
+    try {
+        await navigator.clipboard.writeText(SHORTCUT_TEXT_TEMPLATE);
+        showToast('Copied. In Shortcuts, paste into the Text action and fill the empty lines.');
+    } catch (e) {
+        showToast('Copy blocked. Type the grey words into the Text action instead.', true);
+    }
+}
+
+const HEALTH_SYNC_STALE_MS = 3 * 60 * 60 * 1000;
+
+// Today's Apple Health row: "Set up" until the first sync, then "Sync" once
+// the last sync is a few hours old. Hidden while it's fresh.
+function healthBannerState() {
+    if (appState.currentDate !== localDateKey()) return null;
+    const last = appState.lastHealthSync;
+    if (last) {
+        const age = Date.now() - new Date(last.at).getTime();
+        return age >= HEALTH_SYNC_STALE_MS ? { mode: 'sync', sub: `Last synced ${timeAgo(last.at)}. Tap, then Paste.` } : null;
+    }
+    if (!isAppleMobile() || appState.healthBannerDismissed || !appState.onboarded) return null;
+    return { mode: 'setup', sub: 'Steps, calories burned, weight and body fat' };
+}
+
+function renderHealthSyncBanner() {
+    const el = document.getElementById('health-sync-banner');
+    if (!el) return;
+    const state = healthBannerState();
+    el.classList.toggle('hidden', !state);
+    if (!state) return;
+    document.getElementById('health-sync-banner-title').innerText = state.mode === 'setup' ? 'Link Apple Health' : 'Sync Apple Health';
+    document.getElementById('health-sync-banner-sub').innerText = state.sub;
+    document.getElementById('health-sync-banner-x').classList.toggle('hidden', state.mode !== 'setup');
+}
+
+function onHealthBannerTap() {
+    const state = healthBannerState();
+    if (state?.mode === 'setup') return openHealthSync('guide');
+    return syncFromAppleHealth();
+}
+
+function dismissHealthBanner() {
+    appState.healthBannerDismissed = true;
+    saveStateToLocalStorage();
+    renderHealthSyncBanner();
+}
+
+// Latest body fat % synced from Apple Health (smart scales write it there).
+function latestBodyFat() {
+    const days = Object.keys(appState.activity || {}).filter(d => appState.activity[d]?.bodyFat > 0).sort();
+    const date = days[days.length - 1];
+    return date ? { date, value: appState.activity[date].bodyFat } : null;
+}
+
+function renderBodyFatLine() {
+    const el = document.getElementById('weight-bodyfat');
+    if (!el) return;
+    const fat = latestBodyFat();
+    el.classList.toggle('hidden', !fat);
+    el.innerText = fat ? `Body fat ${fat.value.toFixed(1)}% · ${formatDateShort(fat.date)}, from Apple Health` : '';
+}
+
 function renderHealthSyncStatus() {
     const text = healthSyncStatusText();
     const settingsEl = document.getElementById('health-sync-status-settings');
@@ -3657,6 +3727,7 @@ function renderHealthSyncStatus() {
         const statusEl = document.getElementById('health-sync-status');
         if (statusEl) statusEl.innerText = appState.lastHealthSync ? `Synced ${timeAgo(appState.lastHealthSync.at)}` : '';
     }
+    renderHealthSyncBanner();
 }
 
 function snapshotHealthState(dates) {
@@ -3769,7 +3840,8 @@ function previewPastedHealthData() {
         const summaryParts = [
             c.steps ? `${c.steps} ${c.steps === 1 ? 'day' : 'days'} of steps` : '',
             c.calories ? `${c.calories} ${c.calories === 1 ? 'day' : 'days'} of calories` : '',
-            c.weight ? `${c.weight} ${c.weight === 1 ? 'weight' : 'weights'}` : ''
+            c.weight ? `${c.weight} ${c.weight === 1 ? 'weight' : 'weights'}` : '',
+            c.bodyFat ? `${c.bodyFat} body fat ${c.bodyFat === 1 ? 'reading' : 'readings'}` : ''
         ].filter(Boolean);
         parts.push(`<div style="color:var(--ok);font-weight:600">\u2713 Ready to sync: ${escapeHTML(summaryParts.join(', '))}</div>`);
     } else {
@@ -3785,21 +3857,22 @@ function previewPastedHealthData() {
     previewEl.innerHTML = parts.join('');
 }
 
+// Fills the paste box with what the Shortcut copies, in the Repeat-free
+// layout from the setup guide: a label, the Start Dates, then the Values.
 function loadSampleHealthData() {
     const unit = appState.bodyProfile?.unit === 'kg' ? 'kg' : 'lb';
     const baseWeight = unit === 'kg' ? 75.2 : 165.8;
-    const lines = ['MacroFlow Health v1'];
     const sampleSteps = [7420, 8910, 6540, 10230, 8120, 9450, 8640];
     const sampleActive = [410, 525, 380, 640, 470, 560, 515];
-    const sampleResting = [1710, 1720, 1705, 1735, 1715, 1725, 1720];
-    for (let i = 6; i >= 0; i--) {
-        const d = localDateKey(localDayOffset(-i));
-        const idx = 6 - i;
-        lines.push(`steps;${d};${sampleSteps[idx]} count`);
-        lines.push(`active;${d};${sampleActive[idx]} kcal`);
-        lines.push(`resting;${d};${sampleResting[idx]} kcal`);
-    }
-    lines.push(`weight;${localDateKey()};${baseWeight} ${unit}`);
+    const dates = [6, 5, 4, 3, 2, 1, 0].map(i => localDateKey(localDayOffset(-i)));
+    const today = localDateKey();
+    const lines = [
+        'MacroFlow Health',
+        'steps', ...dates, ...sampleSteps.map(n => n.toLocaleString('en-US')),
+        'active', ...dates, ...sampleActive.map(String),
+        'weight', today, String(baseWeight), unit,
+        'body fat', today, '0.214'
+    ];
     const pasteEl = document.getElementById('health-sync-paste') as HTMLTextAreaElement | null;
     if (pasteEl) {
         pasteEl.value = lines.join('\n');
@@ -4626,6 +4699,11 @@ document.addEventListener('keydown', event => {
         event.preventDefault();
         OVERLAY_CLOSERS[top]();
     }
+});
+
+// Coming back to the app: the Shortcut may have run since, so offer a sync.
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) renderHealthSyncBanner();
 });
 
 // Release the camera when the app is backgrounded; resume when visible.

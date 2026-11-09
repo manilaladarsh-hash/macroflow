@@ -41,18 +41,35 @@ Diary dates, streaks, and calorie trends follow your browser's local calendar, i
 
 Websites can't read Apple Health, and Google isn't onboarding new apps to its Google Health API, so MacroFlow can't sign in to either directly. But the Google Health app (which syncs Fitbit devices such as the Fitbit Air) writes steps, active calories, workouts and weight to Apple Health, and an Apple **Shortcut** can read Apple Health and hand the numbers to MacroFlow with one tap.
 
-Build the Shortcut once (about 5 minutes):
+Set it up once (about 3 minutes, no Repeat blocks):
 
-1. In the **Google Health** app, open **Connections → Apple Health**, tap **Get started** and allow steps, active calories and weight. In Apple's Health app, check that Steps, Active Energy and Weight have data.
+1. **Fitbit or Google Health:** in that app, open **Connections → Apple Health** and allow steps, active calories, weight and body fat. Apple Watch and iPhone already write to Apple Health.
 2. Open **Shortcuts**, tap **+**, and name the shortcut **MacroFlow Health**.
-3. Add **Find Health Samples**: Type is **Steps**, Start Date is in the last **7 days**, **Group By: Day**, **Sort by: Start Date**.
-4. Add **Repeat with Each**. Inside it, add a **Text** action with: `steps;` + *Repeat Item → Start Date* (date format **ISO 8601**) + `;` + *Repeat Item → Value* + a space + *Repeat Item → Unit*.
-5. Repeat steps 3–4 for **Active Energy** (`active;`) and **Weight** (`weight;`). With an Apple Watch, also add **Resting Energy** (`resting;`).
-6. After the last **End Repeat**, add a **Text** action: `MacroFlow Health v1` on the first line, then each **Repeat Results** on its own line.
-7. Add **Copy to Clipboard**.
-8. Make it automatic: **Automation → + → Time of Day**, pick a time, choose **Run Immediately**, and select **MacroFlow Health**. Add a few times a day (for example 7 am, 1 pm, 9 pm). Each run replaces whatever was on your clipboard.
+3. Add **Find Health Samples** four times, each with **Start Date is in the last 7 days**: **Steps** (Group by Day), **Active Energy** (Group by Day), **Weight**, and **Body Fat Percentage**. With an Apple Watch, add a fifth for **Resting Energy** (Group by Day).
+4. Add one **Text** action laid out like this, where each `⟨…⟩` is a variable: tap the empty line, pick that Health Samples result, then tap it and choose the property. (**Copy the words** in MacroFlow's setup guide pastes the label lines for you.)
 
-Then open MacroFlow and tap **Sync Apple Health** in the Exercise section (or **Settings → Health data → Sync from Apple Health**), and tap **Paste** when iOS asks. That one tap is the only manual step: iOS doesn't let websites read Apple Health or the clipboard by themselves. The copied text looks like this:
+   ```
+   MacroFlow Health
+   steps
+   ⟨Health Samples · Start Date⟩
+   ⟨Health Samples · Value⟩
+   active
+   ⟨Health Samples 2 · Start Date⟩
+   ⟨Health Samples 2 · Value⟩
+   weight
+   ⟨Health Samples 3 · Start Date⟩
+   ⟨Health Samples 3 · Value⟩
+   ⟨Health Samples 3 · Unit⟩
+   body fat
+   ⟨Health Samples 4 · Start Date⟩
+   ⟨Health Samples 4 · Value⟩
+   ```
+
+   (Apple Watch: add `resting` with its Start Date and Value.) Shortcuts prints each list one item per line, so MacroFlow pairs the first date with the first value, and so on.
+5. Add **Copy to Clipboard**, tap ▶ once, and allow Health access.
+6. Make it automatic: **Automation → + → Time of Day**, pick a time, **Daily**, **Run Immediately**, and select **MacroFlow Health**. Add a few times a day if you like (for example 6 am, 1 pm, 9 pm). Each run replaces whatever was on your clipboard.
+
+Then open MacroFlow and tap **Sync Apple Health**, then **Paste**. On iPhone, Today shows a **Link Apple Health** row until the first sync, and a **Sync Apple Health** row whenever the last sync is more than 3 hours old. That tap is the only manual step: iOS doesn't let websites read Apple Health or the clipboard by themselves. If a line can't be read, the sync sheet says which label and why (for example, dates and values that don't pair up). The older one-line-per-sample format (`steps;2026-10-15;8432`, built with Repeat with Each) still works:
 
 ```
 MacroFlow Health v1
@@ -60,9 +77,10 @@ steps;2026-10-15T00:00:00-04:00;8432 count
 active;2026-10-15T00:00:00-04:00;512.3 kcal
 resting;2026-10-15T00:00:00-04:00;1750 kcal
 weight;2026-10-15T00:00:00-04:00;78.4 kg
+bodyfat;2026-10-15T00:00:00-04:00;0.182
 ```
 
-Active energy becomes that day's exercise entry. Total burned is active + resting energy; Fitbit and Google Health don't send resting energy to Apple Health, so when it's missing MacroFlow estimates it from your **Settings** profile (Mifflin-St Jeor, the same idea as Fitbit's own total; today counts only the hours so far). Total burned feeds the energy balance on Insights, which only counts finished days. Set your age, height, sex and weight in Settings so the estimate fits you. Steps show on Today and weights go to Progress. Syncing again replaces the synced days; your own exercise entries and weigh-ins are never overwritten, and **Undo** on the confirmation reverses a sync. If clipboard access is blocked, paste the text into the box that appears. The same text saved as a file also works with **Import health files**. The setup guide is also in the app (**Settings → Health data → Set up the Shortcut**).
+Active energy becomes that day's exercise entry. Total burned is active + resting energy; Fitbit and Google Health don't send resting energy to Apple Health, so when it's missing MacroFlow estimates it from your **Settings** profile (Mifflin-St Jeor, the same idea as Fitbit's own total; today counts only the hours so far). Total burned feeds the energy balance on Insights, which only counts finished days. Set your age, height, sex and weight in Settings so the estimate fits you. Steps show on Today, weights go to Progress, and the latest body fat % shows under the weight trend. Weights printed without a unit use the unit chosen in Settings. Syncing again replaces the synced days; your own exercise entries and weigh-ins are never overwritten, and **Undo** on the confirmation reverses a sync. If clipboard access is blocked, paste the text into the box that appears. The same text saved as a file also works with **Import health files**. The setup guide is also in the app (**Settings → Health data → Set up the Shortcut**).
 
 ### From files (Google Takeout, Fitbit, Google Fit, CSV)
 
@@ -129,4 +147,4 @@ npm run typecheck  # Type-checks src/*.ts
 
 ## Regression checks
 
-With Node.js 18 or later, run `npm test` (or `node --test tests/*.test.cjs`). These suites instantiate the compiled Rust WebAssembly module (`pkg/macroflow_core.wasm`) and TypeScript application bundle (`dist/app.js`) in a small DOM harness. They cover Rust Wasm self-tests, portion previews and persistence, repeated logs, legacy ID repair, local dates, and daylight saving boundaries, plus barcode check digits, UPC-E expansion, two-frame scan confirmation, exact barcode lookup, Open Food Facts unit conversion, health-data import (Fitbit JSON, Google Fit CSV, generic CSV), Apple Health Shortcut sync (formats from different locales, replace-on-resync, undo, manual weigh-ins kept), USDA GTIN matching, AI label checks, the Gemini model fallback, batch scanning, exercise goals, saved meals, moving entries, water, the weekly report, the calorie and macro rings (including the second lap past a target), food icons, Quick log with undo, repeating yesterday's meal, the + sheet, the weight trend, and the Insights charts. They do not test visual layout or a real camera. To exercise different time zones on macOS/Linux, prefix the command with `TZ=America/Toronto` or `TZ=Pacific/Kiritimati`.
+With Node.js 18 or later, run `npm test` (or `node --test tests/*.test.cjs`). These suites instantiate the compiled Rust WebAssembly module (`pkg/macroflow_core.wasm`) and TypeScript application bundle (`dist/app.js`) in a small DOM harness. They cover Rust Wasm self-tests, portion previews and persistence, repeated logs, legacy ID repair, local dates, and daylight saving boundaries, plus barcode check digits, UPC-E expansion, two-frame scan confirmation, exact barcode lookup, Open Food Facts unit conversion, health-data import (Fitbit JSON, Google Fit CSV, generic CSV), Apple Health Shortcut sync (the Repeat-free layout, body fat, the Today sync row, formats from different locales, replace-on-resync, undo, manual weigh-ins kept), USDA GTIN matching, AI label checks, the Gemini model fallback, batch scanning, exercise goals, saved meals, moving entries, water, the weekly report, the calorie and macro rings (including the second lap past a target), food icons, Quick log with undo, repeating yesterday's meal, the + sheet, the weight trend, and the Insights charts. They do not test visual layout or a real camera. To exercise different time zones on macOS/Linux, prefix the command with `TZ=America/Toronto` or `TZ=Pacific/Kiritimati`.
