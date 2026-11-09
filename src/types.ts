@@ -183,6 +183,7 @@ interface ActivityRecord {
     steps?: number;
     caloriesOut?: number;
     caloriesOutEstimated?: boolean;
+    bodyFat?: number;
     source?: string;
     [key: string]: any;
 }
@@ -223,6 +224,7 @@ interface HealthCounts {
     steps: number;
     calories: number;
     weight: number;
+    bodyFat?: number;
 }
 
 interface HealthSyncRecord {
@@ -259,6 +261,7 @@ interface AppState {
     lastHealthImport?: HealthSyncRecord | null;
     lastHealthSync?: HealthSyncRecord | null;
     onboarded?: boolean;
+    healthBannerDismissed?: boolean;
     activeTab: string;
     calorieDisplayMode: CalorieDisplayMode | string;
     expandedMeals: Record<string, boolean>;

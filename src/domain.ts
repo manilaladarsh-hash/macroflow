@@ -256,7 +256,9 @@ function shortcutReport(text: string, { requireHeader = false }: { requireHeader
     return rustWasm.shortcutReport(text, {
         requireHeader,
         tzOffsetMinutes: -new Date().getTimezoneOffset(),
-        today: localDateKey()
+        today: localDateKey(),
+        // Weights printed without a unit are in the unit chosen in Settings.
+        weightUnit: typeof appState !== 'undefined' && appState?.bodyProfile?.unit === 'kg' ? 'kg' : 'lbs'
     });
 }
 

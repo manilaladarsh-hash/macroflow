@@ -1,4 +1,4 @@
-use crate::json::{self, Map, Value};
+use crate::json::{self, IntoValue, Map, Value};
 use crate::nutrition::{js_round, LB_PER_KG};
 use crate::types::{HealthCounts, HealthFieldClassification, ShortcutLineParsed, ShortcutValue};
 use std::collections::{BTreeMap, BTreeSet};
@@ -611,6 +611,7 @@ fn shortcut_metric_canonical(name: &str) -> Option<&'static str> {
         "resting" | "resting_kcal" | "resting_energy" | "resting_calories" | "basal" | "basal_energy"
         | "basal_energy_burned" => Some("resting"),
         "weight" | "weight_kg" | "weight_lb" | "weight_lbs" | "body_mass" | "body_weight" => Some("weight"),
+        "bodyfat" | "body_fat" | "body_fat_percentage" | "body_fat_percent" | "fat_percentage" => Some("bodyfat"),
         _ => None,
     }
 }
@@ -638,7 +639,9 @@ impl ShortcutOptions {
 }
 
 pub const SHORTCUT_REASON_SEPARATOR: &str = "No ; between the label, the date and the number.";
-pub const SHORTCUT_REASON_LABEL: &str = "The line should start with steps, active, resting or weight.";
+pub const SHORTCUT_REASON_LABEL: &str = "The line should start with steps, active, resting, weight or bodyfat.";
+pub const SHORTCUT_REASON_PAIRS: &str = "The dates and numbers don't pair up. Under this label, add Start Date and then Value from the same Find Health Samples.";
+pub const SHORTCUT_REASON_NO_DATES: &str = "No dates under this label. Add the samples' Start Date first, then their Value.";
 pub const SHORTCUT_REASON_DATE: &str = "The date couldn't be read. In the Text action, tap the date and pick Start Date.";
 pub const SHORTCUT_REASON_VALUE: &str = "The number couldn't be read. In the Text action, tap the last item and pick Value.";
 
@@ -689,6 +692,7 @@ pub fn parse_shortcut_line_opts(line: &str, opts: &ShortcutOptions) -> Result<Sh
     };
 
     let date = date.ok_or(SHORTCUT_REASON_DATE)?;
+    let value_text = if metric == "bodyfat" { value_text.replace('%', " ") } else { value_text };
     let parsed = parse_shortcut_value(&value_text, metric).ok_or(SHORTCUT_REASON_VALUE)?;
     if parsed.value < 0.0 {
         return Err(SHORTCUT_REASON_VALUE);
@@ -708,6 +712,14 @@ pub fn parse_shortcut_line_opts(line: &str, opts: &ShortcutOptions) -> Result<Sh
             value /= LB_PER_KG;
         } else if unit == "g" {
             value /= 1000.0;
+        }
+    } else if metric == "bodyfat" {
+        // Apple Health stores a fraction (0.182); Shortcuts may print 18.2.
+        if value <= 1.0 {
+            value *= 100.0;
+        }
+        if value <= 0.0 || value >= 75.0 {
+            return Err(SHORTCUT_REASON_VALUE);
         }
     } else if metric != "steps" && (unit == "kj" || unit == "kilojoules") {
         value /= 4.184;
@@ -738,6 +750,88 @@ fn is_shortcut_header(line: &str) -> bool {
     } else {
         false
     }
+}
+
+/// A line that is only a metric name ("steps", "Active energy:") starts a
+/// section in the Repeat-free Shortcut layout.
+fn section_label(line: &str) -> Option<&'static str> {
+    let t = line.trim().trim_end_matches(':').trim();
+    if t.is_empty() || !t.chars().all(|c| c.is_ascii_alphabetic() || c == ' ' || c == '_') {
+        return None;
+    }
+    let name = t
+        .to_ascii_lowercase()
+        .split(|c: char| c == ' ' || c == '_')
+        .filter(|w| !w.is_empty())
+        .collect::<Vec<_>>()
+        .join("_");
+    shortcut_metric_canonical(&name)
+}
+
+/// The Repeat-free Shortcut puts each metric's list properties in one Text
+/// action, and Shortcuts prints a list one item per line:
+///
+/// ```text
+/// steps
+/// Nov 7, 2026 at 12:00 AM      <- Start Date of every sample
+/// Nov 8, 2026 at 12:00 AM
+/// 8,432                        <- Value of every sample, same order
+/// 10,120
+/// ```
+///
+/// An optional third block holds each sample's Unit. Sections become ordinary
+/// `metric;date;value` lines; lines outside any section are kept as they are.
+/// Errors are `(label, reason)` pairs for the report.
+fn expand_sections(lines: &[&str], opts: &DateOptions) -> (Vec<String>, Vec<(String, &'static str)>) {
+    let mut out: Vec<String> = Vec::new();
+    let mut errors = Vec::new();
+    let mut i = 0;
+    while i < lines.len() {
+        let Some(metric) = section_label(lines[i]) else {
+            out.push(lines[i].to_string());
+            i += 1;
+            continue;
+        };
+        let label = lines[i].trim().to_string();
+        let start = i + 1;
+        let mut end = start;
+        while end < lines.len() && section_label(lines[end]).is_none() {
+            end += 1;
+        }
+        let body = &lines[start..end];
+        i = end;
+        if body.is_empty() {
+            continue; // no samples for this metric
+        }
+        // Full `metric;date;value` lines under a label still work.
+        if body.iter().all(|l| parse_shortcut_line_opts(l, &ShortcutOptions { date: opts.clone(), weight_unit: None }).is_ok()) {
+            out.extend(body.iter().map(|l| l.to_string()));
+            continue;
+        }
+        let dates = body
+            .iter()
+            .take_while(|l| parse_health_date_opts(l, opts).is_some())
+            .count();
+        let rest = body.len() - dates;
+        if dates == 0 {
+            errors.push((label, SHORTCUT_REASON_NO_DATES));
+            continue;
+        }
+        let with_units = rest == dates * 2;
+        if rest != dates && !with_units {
+            errors.push((label, SHORTCUT_REASON_PAIRS));
+            continue;
+        }
+        for k in 0..dates {
+            let mut value = body[dates + k].to_string();
+            if with_units {
+                value.push(' ');
+                value.push_str(body[dates * 2 + k]);
+            }
+            out.push(format!("{};{};{}", metric, body[k].trim(), value.trim()));
+        }
+    }
+    (out, errors)
 }
 
 /// Settles `a/b/yyyy` for the whole paste: one date with a part over 12 decides
@@ -788,18 +882,24 @@ pub fn shortcut_report(text: &str, require_header: bool, opts: &ShortcutOptions)
     if let Some(mf) = infer_month_first(data_lines) {
         opts.date.month_first = Some(mf);
     }
+    let (expanded, section_errors) = expand_sections(data_lines, &opts.date);
+    let data_lines: Vec<&str> = expanded.iter().map(|l| l.as_str()).collect();
 
     let mut raw: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
     let mut rows = 0usize;
     let mut problems: Vec<Value> = Vec::new();
     let mut problem_count = 0usize;
+    for (label, reason) in &section_errors {
+        problem_count += 1;
+        problems.push(json!({ "line": shorten(label, 90), "reason": *reason }));
+    }
 
-    for line in data_lines {
+    for line in &data_lines {
         match parse_shortcut_line_opts(line, &opts) {
             Ok(r) => {
                 let day = raw.entry(r.date).or_default();
                 // Ungrouped samples add up; weight keeps the last reading of the day.
-                if r.metric == "weight" {
+                if r.metric == "weight" || r.metric == "bodyfat" {
                     day.insert(r.metric, r.value);
                 } else {
                     let prev = day.get(&r.metric).copied().unwrap_or(0.0);
@@ -835,6 +935,7 @@ pub fn shortcut_report(text: &str, require_header: bool, opts: &ShortcutOptions)
 fn build_shortcut_summary(raw: BTreeMap<String, BTreeMap<String, f64>>) -> Option<Value> {
     let mut days = Map::new();
     let mut counts = HealthCounts::default();
+    let mut body_fat_days = 0usize;
 
     for (date, d) in raw {
         let mut out = Map::new();
@@ -859,6 +960,10 @@ fn build_shortcut_summary(raw: BTreeMap<String, BTreeMap<String, f64>>) -> Optio
                 counts.weight += 1;
             }
         }
+        if let Some(&fat) = d.get("bodyfat") {
+            out.insert("bodyFat".to_string(), json!(js_round(fat * 10.0) / 10.0));
+            body_fat_days += 1;
+        }
         if !out.is_empty() {
             days.insert(date, Value::Object(out));
         }
@@ -870,6 +975,10 @@ fn build_shortcut_summary(raw: BTreeMap<String, BTreeMap<String, f64>>) -> Optio
     let from = days.keys().next().cloned().unwrap_or_default();
     let to = days.keys().next_back().cloned().unwrap_or_default();
 
+    let mut counts = counts.into_value();
+    if body_fat_days > 0 {
+        if let Some(m) = counts.as_object_mut() { m.insert("bodyFat".to_string(), json!(body_fat_days)); }
+    }
     Some(json!({
         "days": Value::Object(days),
         "files": ["Apple Health"],

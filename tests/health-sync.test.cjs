@@ -162,8 +162,98 @@ test('iPhone default date formats, day-first locales, diagnostic preview and sam
 
     // Sample data loader populates 7 days and syncs cleanly.
     a.run('openHealthSync("guide"); loadSampleHealthData();');
-    assert.match(a.document.getElementById('health-sync-preview').innerHTML, /Ready to sync: 7 days of steps, 7 days of calories, 1 weight/);
+    assert.match(a.document.getElementById('health-sync-preview').innerHTML, /Ready to sync: 7 days of steps, 7 days of calories, 1 weight, 1 body fat reading/);
     const synced = plain(a.run('syncPastedHealthData()'));
     assert.equal(synced.counts.steps, 7);
     assert.equal(synced.counts.calories, 7);
+});
+
+// The Repeat-free Shortcut: one Find Health Samples per metric, then one Text
+// action with a label line, the samples' Start Dates, then their Values.
+const sectionPayload = [
+    'MacroFlow Health',
+    'steps',
+    'Nov 7, 2026 at 12:00 AM',
+    'Nov 8, 2026 at 12:00 AM',
+    '8,432',
+    '10,120',
+    'active',
+    'Nov 7, 2026 at 12:00 AM',
+    'Nov 8, 2026 at 12:00 AM',
+    '512.3',
+    '640',
+    'resting',                       // no Apple Watch: nothing under the label
+    'weight',
+    'Nov 8, 2026 at 7:30 AM',
+    '172.8',
+    'lb',                            // optional Unit block
+    'body fat',
+    'Nov 8, 2026 at 7:30 AM',
+    '0.182'                          // Health stores a fraction
+].join('\n');
+
+test('Repeat-free Shortcut: label, dates, then values per metric', () => {
+    const a = app();
+    const r = plain(a.run(`parseShortcutPayload(${json(sectionPayload)})`));
+    assert.deepEqual(r.days['2026-11-07'], { steps: 8432, active: 512 });
+    assert.equal(r.days['2026-11-08'].steps, 10120);
+    assert.equal(r.days['2026-11-08'].active, 640);
+    assert.equal(r.days['2026-11-08'].weight, 78.38);       // 172.8 lb
+    assert.equal(r.days['2026-11-08'].bodyFat, 18.2);
+    assert.deepEqual(r.counts, { steps: 2, calories: 2, weight: 1, bodyFat: 1 });
+    // A weight with no Unit block uses the unit chosen in Settings.
+    a.run(`appState.bodyProfile.unit = 'kg'`);
+    const kg = plain(a.run(`parseShortcutPayload(${json('MacroFlow Health\nweight\n2026-11-08\n78.4')})`));
+    assert.equal(kg.days['2026-11-08'].weight, 78.4);
+    a.run(`appState.bodyProfile.unit = 'lbs'`);
+    const lb = plain(a.run(`parseShortcutPayload(${json('MacroFlow Health\nweight\n2026-11-08\n172.8')})`));
+    assert.equal(lb.days['2026-11-08'].weight, 78.38);
+});
+
+test('Repeat-free Shortcut: mismatched lists are explained, the rest still syncs', () => {
+    const a = app();
+    const report = plain(a.run(`shortcutReport(${json([
+        'MacroFlow Health',
+        'steps', '2026-11-07', '2026-11-08', '8432',   // one value missing
+        'active', '512', '640',                       // values but no dates
+        'weight', '2026-11-08', '78.4 kg'
+    ].join('\n'))})`));
+    assert.deepEqual(report.problems.map(p => p.line), ['steps', 'active']);
+    assert.match(report.problems[0].reason, /don't pair up/);
+    assert.match(report.problems[1].reason, /No dates/);
+    assert.deepEqual(Object.keys(report.summary.days), ['2026-11-08']);
+    // Old one-line-per-sample text still works, with or without labels above it.
+    const old = plain(a.run(`parseShortcutPayload(${json('MacroFlow Health v1\nsteps\nsteps;2026-11-08;8432')})`));
+    assert.equal(old.days['2026-11-08'].steps, 8432);
+});
+
+test('body fat from Apple Health is kept and shown with the weight trend', () => {
+    const a = app();
+    a.run(`appState.weightHistory = [{ date: '2026-11-01', value: 176, unit: 'lbs' }, { date: '2026-11-08', value: 175, unit: 'lbs' }];
+        applyShortcutSync(parseShortcutPayload(${json(sectionPayload)}));`);
+    assert.equal(a.run(`appState.activity['2026-11-08'].bodyFat`), 18.2);
+    assert.deepEqual(plain(a.run('latestBodyFat()')), { date: '2026-11-08', value: 18.2 });
+    a.run('renderBodyFatLine()');
+    assert.match(a.document.getElementById('weight-bodyfat').innerText, /^Body fat 18\.2% · /);
+    assert.equal(a.run(`parseShortcutPayload('MacroFlow Health v1\\nbodyfat;2026-11-08;250')`), null); // not a body fat %
+});
+
+test('Today offers a sync once the last one is a few hours old', () => {
+    const a = app();
+    const banner = () => a.document.getElementById('health-sync-banner');
+    a.run(`appState.lastHealthSync = { at: new Date(Date.now() - 30 * 60000).toISOString() }; renderAll();`);
+    assert.equal(banner().classes.has('hidden'), true);                     // fresh
+    a.run(`appState.lastHealthSync = { at: new Date(Date.now() - 5 * 3600000).toISOString() }; renderAll();`);
+    assert.equal(banner().classes.has('hidden'), false);
+    assert.equal(a.document.getElementById('health-sync-banner-title').innerText, 'Sync Apple Health');
+    assert.match(a.document.getElementById('health-sync-banner-sub').innerText, /5 h ago/);
+    a.run(`selectDate(localDateKey(localDayOffset(-1))); renderAll();`);
+    assert.equal(banner().classes.has('hidden'), true);                     // only on today
+});
+
+test('the copied Text template has the labels the parser expects', () => {
+    const a = app();
+    const t = a.run('SHORTCUT_TEXT_TEMPLATE');
+    const lines = t.split('\n').filter(Boolean);
+    assert.deepEqual(lines, ['MacroFlow Health', 'steps', 'active', 'weight', 'body fat']);
 });
